@@ -1,0 +1,145 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Функция book_name (сокращение авторов)
+</h1>
+<p class="C">
+Напишем более универсальную функцию с дополнительным параметром - максимальное
+число авторов в названии.
+</p>
+<p class="C">
+Поскольку функция меняет сигнатуру (число и/или типы входных параметров),
+ее необходимо сначала удалить, а потом создать заново. В данном случае
+у функции есть зависимый объект - представление catalog_v, в котором она
+используется. Представление тоже придется пересоздать (в реальной работе все
+эти действия надо выполнять в одной транзакции, чтобы изменения вступили в
+силу атомарно).
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP FUNCTION</span> <span style="color:#c73a69">book_name</span><span style="color:#323232">(</span><span style="color:#a00050">integer</span><span style="color:#323232">,</span><span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">CASCADE</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+NOTICE:  drop cascades to view catalog_v
+DROP FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">book_name</span><span style="color:#323232">(</span>book_id <span style="color:#a00050">integer</span><span style="color:#323232">,</span> title <span style="color:#a00050">text</span><span style="color:#323232">,</span> maxauthors <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">DEFAULT</span> <span style="color:#1094a0">2</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+    res <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    res <span style="color:#323232">:=</span> <span style="color:#c73a69">shorten</span><span style="color:#323232">(</span>title<span style="color:#323232">)</span> || <span style="color:#1094a0">'. '</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">FOR</span> r <span style="color:#3b6ac8">IN</span> <span style="color:#323232">(</span>
+        <span style="color:#3b6ac8">SELECT</span> a.last_name<span style="color:#323232">,</span> a.first_name<span style="color:#323232">,</span> a.middle_name<span style="color:#323232">,</span> ash.seq_num
+        <span style="color:#3b6ac8">FROM</span>   authors a
+               <span style="color:#3b6ac8">JOIN</span> authorship ash <span style="color:#3b6ac8">ON</span> a.author_id <span style="color:#323232">=</span> ash.author_id
+        <span style="color:#3b6ac8">WHERE</span>  ash.book_id <span style="color:#323232">=</span> book_name.book_id
+        <span style="color:#3b6ac8">ORDER BY</span> ash.seq_num
+    <span style="color:#323232">)</span>
+    <span style="color:#3b6ac8">LOOP</span>
+        <span style="color:#3b6ac8">EXIT WHEN</span> r.seq_num <span style="color:#323232">&gt;</span> maxauthors<span style="color:#323232">;</span>
+        res <span style="color:#323232">:=</span> res || <span style="color:#c73a69">author_name</span><span style="color:#323232">(</span>r.last_name<span style="color:#323232">,</span> r.first_name<span style="color:#323232">,</span> r.middle_name<span style="color:#323232">)</span> || <span style="color:#1094a0">', '</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    res <span style="color:#323232">:=</span> <span style="color:#c73a69">rtrim</span><span style="color:#323232">(</span>res<span style="color:#323232">,</span> <span style="color:#1094a0">', '</span><span style="color:#323232">);</span>
+    <span style="color:#3b6ac8">IF</span> r.seq_num <span style="color:#323232">&gt;</span> maxauthors <span style="color:#3b6ac8">THEN</span>
+        res <span style="color:#323232">:=</span> res || <span style="color:#1094a0">' и др.'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN</span> res<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE VIEW</span> catalog_v <span style="color:#3b6ac8">AS</span>
+<span style="color:#3b6ac8">SELECT</span> b.book_id<span style="color:#323232">,</span>
+       b.title<span style="color:#323232">,</span>
+       b.onhand_qty<span style="color:#323232">,</span>
+       <span style="color:#c73a69">book_name</span><span style="color:#323232">(</span>b.book_id<span style="color:#323232">,</span> b.title<span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> display_name<span style="color:#323232">,</span>
+       b.authors
+<span style="color:#3b6ac8">FROM</span>   books b
+<span style="color:#3b6ac8">ORDER BY</span> display_name<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE VIEW
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> book_id<span style="color:#323232">,</span> display_name <span style="color:#3b6ac8">FROM</span> catalog_v<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ book_id |                     display_name                      
+---------+-------------------------------------------------------
+       4 | &#1042;&#1086;&#1081;&#1085;&#1072; &#1080; &#1084;&#1080;&#1088;. &#1058;&#1086;&#1083;&#1089;&#1090;&#1086;&#1081; &#1051;. &#1053;.
+       2 | &#1052;&#1091;&#1084;&#1091;. &#1058;&#1091;&#1088;&#1075;&#1077;&#1085;&#1077;&#1074; &#1048;. &#1057;.
+       5 | &#1055;&#1091;&#1090;&#1077;&#1096;&#1077;&#1089;&#1090;&#1074;&#1080;&#1103; &#1074; &#1085;&#1077;&#1082;&#1086;&#1090;&#1086;&#1088;&#1099;&#1077; &#1091;&#1076;&#1072;&#1083;&#1077;&#1085;&#1085;&#1099;&#1077; &#1089;&#1090;&#1088;&#1072;&#1085;&#1099;.... &#1057;&#1074;&#1080;&#1092;&#1090; &#1044;.
+       1 | &#1057;&#1082;&#1072;&#1079;&#1082;&#1072; &#1086; &#1094;&#1072;&#1088;&#1077; &#1057;&#1072;&#1083;&#1090;&#1072;&#1085;&#1077;. &#1055;&#1091;&#1096;&#1082;&#1080;&#1085; &#1040;. &#1057;.
+       3 | &#1058;&#1088;&#1091;&#1076;&#1085;&#1086; &#1073;&#1099;&#1090;&#1100; &#1073;&#1086;&#1075;&#1086;&#1084;. &#1057;&#1090;&#1088;&#1091;&#1075;&#1072;&#1094;&#1082;&#1080;&#1081; &#1040;. &#1053;., &#1057;&#1090;&#1088;&#1091;&#1075;&#1072;&#1094;&#1082;&#1080;&#1081; &#1041;. &#1053;.
+       6 | &#1061;&#1088;&#1077;&#1089;&#1090;&#1086;&#1084;&#1072;&#1090;&#1080;&#1103;. &#1055;&#1091;&#1096;&#1082;&#1080;&#1085; &#1040;. &#1057;., &#1058;&#1086;&#1083;&#1089;&#1090;&#1086;&#1081; &#1051;. &#1053;. &#1080; &#1076;&#1088;.
+(6 rows)
+
+</pre></div>
+<p class="C">
+Вариант на чистом SQL для сравнения:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">book_name</span><span style="color:#323232">(</span>book_id <span style="color:#a00050">integer</span><span style="color:#323232">,</span> title <span style="color:#a00050">text</span><span style="color:#323232">,</span> maxauthors <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">DEFAULT</span> <span style="color:#1094a0">2</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">shorten</span><span style="color:#323232">(</span>book_name.title<span style="color:#323232">)</span>
+       || <span style="color:#1094a0">'. '</span>
+       || <span style="color:#c73a69">string_agg</span><span style="color:#323232">(</span><span style="color:#c73a69">author_name</span><span style="color:#323232">(</span>a.last_name<span style="color:#323232">,</span> a.first_name<span style="color:#323232">,</span> a.middle_name<span style="color:#323232">),</span>
+                     <span style="color:#1094a0">', '</span> <span style="color:#3b6ac8">ORDER BY</span> ash.seq_num<span style="color:#323232">)</span>
+          <span style="color:#3b6ac8">FILTER</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">WHERE</span> ash.seq_num <span style="color:#323232">&lt;=</span> maxauthors<span style="color:#323232">)</span>
+       || <span style="color:#3b6ac8">CASE</span>
+              <span style="color:#3b6ac8">WHEN</span> <span style="color:#c73a69">max</span><span style="color:#323232">(</span>ash.seq_num<span style="color:#323232">) &gt;</span> maxauthors <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">' и др.'</span>
+              <span style="color:#3b6ac8">ELSE</span> <span style="color:#1094a0">''</span>
+          <span style="color:#3b6ac8">END</span>
+<span style="color:#3b6ac8">FROM</span>   authors a
+       <span style="color:#3b6ac8">JOIN</span> authorship ash <span style="color:#3b6ac8">ON</span> a.author_id <span style="color:#323232">=</span> ash.author_id
+<span style="color:#3b6ac8">WHERE</span>  ash.book_id <span style="color:#323232">=</span> book_name.book_id<span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STABLE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> book_id<span style="color:#323232">,</span> display_name <span style="color:#3b6ac8">FROM</span> catalog_v<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ book_id |                     display_name                      
+---------+-------------------------------------------------------
+       4 | &#1042;&#1086;&#1081;&#1085;&#1072; &#1080; &#1084;&#1080;&#1088;. &#1058;&#1086;&#1083;&#1089;&#1090;&#1086;&#1081; &#1051;. &#1053;.
+       2 | &#1052;&#1091;&#1084;&#1091;. &#1058;&#1091;&#1088;&#1075;&#1077;&#1085;&#1077;&#1074; &#1048;. &#1057;.
+       5 | &#1055;&#1091;&#1090;&#1077;&#1096;&#1077;&#1089;&#1090;&#1074;&#1080;&#1103; &#1074; &#1085;&#1077;&#1082;&#1086;&#1090;&#1086;&#1088;&#1099;&#1077; &#1091;&#1076;&#1072;&#1083;&#1077;&#1085;&#1085;&#1099;&#1077; &#1089;&#1090;&#1088;&#1072;&#1085;&#1099;.... &#1057;&#1074;&#1080;&#1092;&#1090; &#1044;.
+       1 | &#1057;&#1082;&#1072;&#1079;&#1082;&#1072; &#1086; &#1094;&#1072;&#1088;&#1077; &#1057;&#1072;&#1083;&#1090;&#1072;&#1085;&#1077;. &#1055;&#1091;&#1096;&#1082;&#1080;&#1085; &#1040;. &#1057;.
+       3 | &#1058;&#1088;&#1091;&#1076;&#1085;&#1086; &#1073;&#1099;&#1090;&#1100; &#1073;&#1086;&#1075;&#1086;&#1084;. &#1057;&#1090;&#1088;&#1091;&#1075;&#1072;&#1094;&#1082;&#1080;&#1081; &#1040;. &#1053;., &#1057;&#1090;&#1088;&#1091;&#1075;&#1072;&#1094;&#1082;&#1080;&#1081; &#1041;. &#1053;.
+       6 | &#1061;&#1088;&#1077;&#1089;&#1090;&#1086;&#1084;&#1072;&#1090;&#1080;&#1103;. &#1055;&#1091;&#1096;&#1082;&#1080;&#1085; &#1040;. &#1057;., &#1058;&#1086;&#1083;&#1089;&#1090;&#1086;&#1081; &#1051;. &#1053;. &#1080; &#1076;&#1088;.
+(6 rows)
+
+</pre></div>
+</body>
+</html>

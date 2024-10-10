@@ -1,0 +1,372 @@
+<html><head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+  <style>
+  p.C    { font-size: 80%; }
+  li     { font-size: 80%; }
+  h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+  div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+  div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+  div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+  div.R1 { padding-left: 0px; page-break-inside: avoid; }
+  div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+  div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+  div.E  { padding-left: 0px; font-weight: bold; }
+  div.R  { padding-left: 0px; }
+  </style>
+  </head>
+  <body style="margin: 59.5px;">
+  <!-- body -->
+  <!-- 4 -->
+  <h1>
+  Базы данных
+  </h1>
+  <p class="C">
+  Список баз данных можно получить в psql такой командой:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\l</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">                                  List of databases
+     Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges   
+  -----------+----------+----------+-------------+-------------+-----------------------
+   postgres  | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | 
+   student   | student  | UTF8     | en_US.UTF-8 | en_US.UTF-8 | 
+   template0 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres          +
+             |          |          |             |             | postgres=CTc/postgres
+   template1 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres          +
+             |          |          |             |             | postgres=CTc/postgres
+  (4 rows)
+  
+  </pre></div>
+  <p class="C">
+  Здесь выводится много полей, которые нас сейчас не интересуют.
+  </p>
+  <p class="C">
+  Когда мы создаем новую базу данных, она (по умолчанию) копируется из шаблона template1.
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> data_logical<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">CREATE DATABASE
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> data_logical
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">You are now connected to database "data_logical" as user "student".
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\l</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">                                   List of databases
+       Name     |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges   
+  --------------+----------+----------+-------------+-------------+-----------------------
+   data_logical | student  | UTF8     | en_US.UTF-8 | en_US.UTF-8 | 
+   postgres     | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | 
+   student      | student  | UTF8     | en_US.UTF-8 | en_US.UTF-8 | 
+   template0    | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres          +
+                |          |          |             |             | postgres=CTc/postgres
+   template1    | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres          +
+                |          |          |             |             | postgres=CTc/postgres
+  (5 rows)
+  
+  </pre></div>
+  <!-- end -->
+  
+  
+  </body></html>
+
+
+  <html><head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+    <style>
+    p.C    { font-size: 80%; }
+    li     { font-size: 80%; }
+    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+    div.E  { padding-left: 0px; font-weight: bold; }
+    div.R  { padding-left: 0px; }
+    </style>
+    </head>
+    <body style="margin: 59.5px;">
+    <!-- body -->
+    <!-- 7 -->
+    <h1>
+    Схемы
+    </h1>
+    <p class="C">
+    Для списка схем в psql есть специальная команда (\dn = describe namespace):
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\dn</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">  List of schemas
+      Name  |  Owner   
+    --------+----------
+     public | postgres
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    Эта команда не показывает служебные схемы. Чтобы увидеть их, нужно добавить модификатор S (он работает аналогичным образом и для многих других команд):
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\dnS</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">        List of schemas
+            Name        |  Owner   
+    --------------------+----------
+     information_schema | postgres
+     pg_catalog         | postgres
+     pg_temp_1          | postgres
+     pg_toast           | postgres
+     pg_toast_temp_1    | postgres
+     public             | postgres
+    (6 rows)
+    
+    </pre></div>
+    <p class="C">
+    Про некоторые из этих схем (public, pg_catalog, information_schema) мы уже говорили; про остальные поговорим позже в других темах.
+    </p>
+    <p class="C">
+    Еще один полезный модификатор — знак «плюс», который выводит дополнительную информацию:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\dn</span><span style="color:#323232">+</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">                          List of schemas
+      Name  |  Owner   |  Access privileges   |      Description       
+    --------+----------+----------------------+------------------------
+     public | postgres | postgres=UC/postgres+| standard public schema
+            |          | =UC/postgres         | 
+    (1 row)
+    
+    </pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Создадим новую схему:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE SCHEMA</span> special<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE SCHEMA
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\dn</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">  List of schemas
+      Name   |  Owner   
+    ---------+----------
+     public  | postgres
+     special | student
+    (2 rows)
+    
+    </pre></div>
+    <p class="C">
+    Создадим таблицу:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE TABLE
+    </pre></div>
+    <p class="C">
+    По умолчанию таблица будет создана в схеме public. Список таблиц в этой схеме можно получить командой \dt с указанием шаблона для имен схем и таблиц:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\dt</span> public.<span style="color:#323232">*</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">        List of relations
+     Schema | Name | Type  |  Owner  
+    --------+------+-------+---------
+     public | t    | table | student
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    Таблицу (как и другие объекты) можно перемещать между схемами. Поскольку речь идет о логической организации, перемещение происходит только в системном каталоге; сами данные физически остаются на месте.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER TABLE</span> t <span style="color:#3b6ac8">SET SCHEMA</span> special<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">ALTER TABLE
+    </pre></div>
+    <p class="C">
+    Что останется в схеме public?
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\dt</span> public.<span style="color:#323232">*</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">Did not find any relation named "public.*".
+    </pre></div>
+    <p class="C">
+    Ничего. А в special?
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\dt</span> special.<span style="color:#323232">*</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">        List of relations
+     Schema  | Name | Type  |  Owner  
+    ---------+------+-------+---------
+     special | t    | table | student
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    Таблица переместилась. Теперь к ней можно обращаться с явным указанием схемы:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> special.t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> n 
+    ---
+    (0 rows)
+    
+    </pre></div>
+    <p class="C">
+    Но если опустить имя схемы, таблица не будет найдена:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">ERROR:  relation "t" does not exist
+    LINE 1: SELECT * FROM t;
+                          ^
+    </pre></div>
+    <!-- end -->
+    
+    
+    </body></html>
+
+
+    <html><head>
+      <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+      <style>
+      p.C    { font-size: 80%; }
+      li     { font-size: 80%; }
+      h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+      div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+      div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+      div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+      div.R1 { padding-left: 0px; page-break-inside: avoid; }
+      div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+      div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+      div.E  { padding-left: 0px; font-weight: bold; }
+      div.R  { padding-left: 0px; }
+      </style>
+      </head>
+      <body style="margin: 59.5px;">
+      <!-- body -->
+      <!-- 9 -->
+      <h1>
+      Путь поиска
+      </h1>
+      <p class="C">
+      Путь поиска по умолчанию имеет такое значение:
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SHOW</span> search_path<span style="color:#323232">;</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1">   search_path   
+      -----------------
+       "$user", public
+      (1 row)
+      
+      </pre></div>
+      <p class="C">
+      Конструкция «$user» обозначает схему с тем же именем, что и имя текущего пользователя (в нашем случае — student). Поскольку такой схемы нет, она игнорируется.
+      </p>
+      <p class="C">
+      Чтобы не думать над тем, какие схемы есть, каких нет, и какие не указаны явно, можно воспользоваться функцией:
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">current_schemas</span><span style="color:#323232">(</span><span style="color:#00a150">true</span><span style="color:#323232">);</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1">   current_schemas   
+      ---------------------
+       {pg_catalog,public}
+      (1 row)
+      
+      </pre></div>
+      <p class="C">
+      Видим, что была убрана несуществующая схема и неявно была добавлена схема системного каталога.
+      </p>
+      <p class="C">
+      Установим путь поиска, например, так:
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> search_path <span style="color:#323232">=</span> public<span style="color:#323232">,</span> special<span style="color:#323232">;</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1">SET
+      </pre></div>
+      <p class="C">
+      Теперь таблица будет найдена.
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1"> n 
+      ---
+      (0 rows)
+      
+      </pre></div>
+      <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+      <p class="C">
+      Здесь мы установили конфигурационный параметр на уровне сеанса (при переподключении значение пропадет). Устанавливать такое значение на уровне всего кластера тоже не правильно — возможно, этот путь нужен не всегда и не всем.
+      </p>
+      <p class="C">
+      Но параметр можно установить и на уровне отдельной базы данных:
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER DATABASE</span> data_logical <span style="color:#3b6ac8">SET</span> search_path <span style="color:#323232">=</span> public<span style="color:#323232">,</span> special<span style="color:#323232">;</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1">ALTER DATABASE
+      </pre></div>
+      <p class="C">
+      Теперь он будет устанавливаться для всех новых подключений к БД data_logical. Проверим:
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> data_logical
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1">You are now connected to database "data_logical" as user "student".
+      </pre></div>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SHOW</span> search_path<span style="color:#323232">;</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1">   search_path   
+      -----------------
+       public, special
+      (1 row)
+      
+      </pre></div>
+      <!-- end -->
+      
+      
+      </body></html>

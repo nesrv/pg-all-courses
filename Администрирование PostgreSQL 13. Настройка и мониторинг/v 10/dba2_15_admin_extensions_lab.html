@@ -1,0 +1,285 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Установка расширения
+</h1>
+<p class="C">
+Устанавливаем файлы расширения:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#3b6ac8">make</span> install <span style="color:#323232">-</span>C <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>uom PG_CONFIG<span style="color:#323232">=/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>bin<span style="color:#323232">/</span><span style="color:#00a150">pg_config</span>
+</pre>
+</div>
+<div class="R"><pre class="R">
+make: Entering directory '/home/student/uom'
+/bin/mkdir -p '/usr/local/pgsql/share/extension'
+/bin/mkdir -p '/usr/local/pgsql/share/extension'
+/usr/bin/install -c -m 644 .//uom.control '/usr/local/pgsql/share/extension/'
+/usr/bin/install -c -m 644 .//uom--1.0.sql .//uom--1.2.sql .//uom--1.0--1.1.sql .//uom--1.1--1.2.sql  '/usr/local/pgsql/share/extension/'
+make: Leaving directory '/home/student/uom'
+</pre></div>
+<p class="C">
+Проверим, что расширение доступно для загрузки в базу данных:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> pg_available_extensions <span style="color:#3b6ac8">WHERE</span> name <span style="color:#323232">=</span> <span style="color:#1094a0">'uom'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ name | default_version | installed_version |       comment        
+------+-----------------+-------------------+----------------------
+ uom  | 1.2             |                   | Units of Measurement
+(1 row)
+
+</pre></div>
+<h1>
+Создание расширения в базе данных
+</h1>
+<p class="C">
+Создаем расширение uom в новой базе:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> admin_extensions<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> admin_extensions
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;admin_extensions&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE EXTENSION</span> uom<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE EXTENSION
+</pre></div>
+<p class="C">
+Версия расширения соответствует значению параметра default_version:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\dx</span> uom
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+               List of installed extensions
+ Name | Version | Schema |           Description           
+------+---------+--------+---------------------------------
+ uom  | 1.2     | public | &#1045;&#1076;&#1080;&#1085;&#1080;&#1094;&#1099; &#1080;&#1079;&#1084;&#1077;&#1088;&#1077;&#1085;&#1080;&#1103;. uom--1.2.sql
+(1 row)
+
+</pre></div>
+<p class="C">
+Поскольку для версии 1.2 есть файл uom--1.2.sql, то он и используется для
+создания расширения. А для тех, кто хочет перейти с 1.1 или с 1.0, имеются
+соответствующие пути обновления.
+</p>
+<h1>
+Расширение справочника
+</h1>
+<p class="C">
+Добавляем футы и дюймы. Столбец predefined заполняется значением по умолчанию
+(false):
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> uom_ref <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'фут'</span><span style="color:#323232">,</span> <span style="color:#1094a0">0.3048</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> uom_ref <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'дюйм'</span><span style="color:#323232">,</span> <span style="color:#1094a0">0.0254</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<p class="C">
+Сколько же дюймов в футе?
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">uom2uom</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span> <span style="color:#1094a0">'фут'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'дюйм'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+       uom2uom       
+---------------------
+ 12.0000000000000000
+(1 row)
+
+</pre></div>
+<h1>
+Изменение доступа
+</h1>
+<p class="C">
+Создаем отдельную роль для доступа к таблице uom_ref:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE ROLE</span> util<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE ROLE
+</pre></div>
+<p class="C">
+Читать из таблицы может только новая роль:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT SELECT ON</span> uom_ref <span style="color:#3b6ac8">TO</span> util<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">REVOKE SELECT ON</span> uom_ref <span style="color:#3b6ac8">FROM</span> public<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+REVOKE
+</pre></div>
+<h1>
+pg_dump и объекты расширений
+</h1>
+<p class="C">
+Информация о том, содержимое каких таблиц будет выгружать pg_dump, сохраняется
+в pg_extension:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> extname<span style="color:#323232">,</span> extconfig<span style="color:#323232">::</span><span style="color:#a00050">regclass</span><span style="color:#323232">[],</span> extcondition 
+    <span style="color:#3b6ac8">FROM</span> pg_extension
+    <span style="color:#3b6ac8">WHERE</span> extname <span style="color:#323232">=</span> <span style="color:#1094a0">'uom'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ extname | extconfig |       extcondition       
+---------+-----------+--------------------------
+ uom     | {uom_ref} | {&quot;WHERE NOT predefined&quot;}
+(1 row)
+
+</pre></div>
+<p class="C">
+Запускаем pg_dump:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_dump</span> <span style="color:#323232">-</span>d admin_extensions
+</pre>
+</div>
+<div class="R"><pre class="R">
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 10.6
+-- Dumped by pg_dump version 10.6
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+--
+-- Name: uom; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS uom WITH SCHEMA public;
+
+
+--
+-- Name: EXTENSION uom; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION uom IS '&#1045;&#1076;&#1080;&#1085;&#1080;&#1094;&#1099; &#1080;&#1079;&#1084;&#1077;&#1088;&#1077;&#1085;&#1080;&#1103;. uom--1.2.sql';
+
+
+--
+-- Data for Name: uom_ref; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.uom_ref (name, k, predefined) FROM stdin;
+&#1092;&#1091;&#1090;	0.3048	f
+&#1076;&#1102;&#1081;&#1084;	0.0254	f
+\.
+
+
+--
+-- Name: TABLE uom_ref; Type: ACL; Schema: public; Owner: postgres
+--
+
+REVOKE SELECT ON TABLE public.uom_ref FROM PUBLIC;
+GRANT SELECT ON TABLE public.uom_ref TO util;
+
+
+--
+-- PostgreSQL database dump complete
+--
+</pre></div>
+<p class="C">
+Проверим, как pg_dump выгружает объекты расширения:
+</p>
+<ul class="U">
+<li>Таблица, тип, функции и операторы не выгружаются. Они будут созданы командой CREATE EXTENSION. В системе, где производится восстановление, должна быть та же версия расширения, что при выгрузке.</li>
+<li>Содержимое вновь добавленных строк таблицы выгружается командой COPY.</li>
+<li>Права доступа к таблице uom_ref формируются такими, какими они были на момент запуска pg_dump.</li>
+</ul>
+<p class="C">
+Для того, чтобы правильно выгрузить права доступа, в системном каталоге
+сохраняется информация о правах на объекты, выданные скриптами создания
+расширений:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> objoid<span style="color:#323232">::</span><span style="color:#a00050">regclass</span><span style="color:#323232">,</span> initprivs <span style="color:#3b6ac8">FROM</span> pg_init_privs <span style="color:#3b6ac8">WHERE</span> privtype <span style="color:#323232">=</span> <span style="color:#1094a0">'e'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ objoid  |                initprivs                
+---------+-----------------------------------------
+ uom_ref | {postgres=arwdDxt/postgres,=r/postgres}
+(1 row)
+
+</pre></div>
+<p class="C">
+Без этого было бы невозможно сформировать команду REVOKE.
+</p>
+</body>
+</html>

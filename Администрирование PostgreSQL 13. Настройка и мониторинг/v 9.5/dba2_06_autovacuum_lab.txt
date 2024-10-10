@@ -1,0 +1,326 @@
+
+Часть 1
+~~~~~~~
+
+
+psql 
+
+Создаем БД и таблицу.
+
+=> create database db6;
+CREATE DATABASE
+
+=> \c db6
+You are now connected to database "db6" as user "postgres".
+
+=> create table t1(id serial, n numeric);
+CREATE TABLE
+
+=> insert into t1(n) select 1 from generate_series(1,100000);
+INSERT 0 100000
+
+=> analyze t1;
+ANALYZE
+
+Для оценки разрастания удобно воспользоваться расширением pgstattuple.
+
+=> create extension pgstattuple;
+CREATE EXTENSION
+
+Вот начальная информация. Поле free_percent показывает свободное пространство
+в страницах. Оно может быть не нулевым из-за неиспользованного места
+в страницах даже при fillfactor=100.
+
+=> \x
+Expanded display is on.
+
+=> select * from pgstattuple('t1');
+-[ RECORD 1 ]------+--------
+table_len          | 4022272
+tuple_count        | 100000
+tuple_len          | 3300000
+tuple_percent      | 82.04
+dead_tuple_count   | 0
+dead_tuple_len     | 0
+dead_tuple_percent | 0
+free_space         | 8524
+free_percent       | 0.21
+
+
+Настроиваем автоочистку на 10% строк.
+
+=> alter system set autovacuum_vacuum_threshold=0;
+ALTER SYSTEM
+
+=> alter system set autovacuum_vacuum_scale_factor=0.1;
+ALTER SYSTEM
+
+Установим также частоту запуска процессов в 1 раз в секунду:
+
+=> alter system set autovacuum_naptime=1;
+ALTER SYSTEM
+
+=> select pg_reload_conf();
+-[ RECORD 1 ]--+--
+pg_reload_conf | t
+
+
+Выполняем обновление таблицы.
+
+Будем изменять строки, равномерно распределенные по таблице,
+для чего воcпользуемся столбцом id.
+
+=> update t1 set n=n+1 where id % 20 = 0;
+UPDATE 5000
+
+sleep 2 
+
+=> update t1 set n=n+1 where id % 20 = 1;
+UPDATE 5000
+
+sleep 2 
+
+=> update t1 set n=n+1 where id % 20 = 2;
+UPDATE 5000
+
+sleep 2 
+
+=> update t1 set n=n+1 where id % 20 = 3;
+UPDATE 5000
+
+sleep 2 
+
+=> update t1 set n=n+1 where id % 20 = 4;
+UPDATE 5000
+
+sleep 2 
+
+=> update t1 set n=n+1 where id % 20 = 5;
+UPDATE 5000
+
+sleep 2 
+
+=> update t1 set n=n+1 where id % 20 = 6;
+UPDATE 5000
+
+sleep 2 
+
+=> update t1 set n=n+1 where id % 20 = 7;
+UPDATE 5000
+
+sleep 2 
+
+=> update t1 set n=n+1 where id % 20 = 8;
+UPDATE 5000
+
+sleep 2 
+
+=> update t1 set n=n+1 where id % 20 = 9;
+UPDATE 5000
+
+sleep 2 
+
+Оцениваем разрастание.
+
+Вот статистика по таблице (autovacuum_count - сколько раз выпонялась автоочистка):
+
+=> select * from pg_stat_user_tables where relname='t1';
+-[ RECORD 1 ]-------+------------------------------
+relid               | 143746
+schemaname          | public
+relname             | t1
+seq_scan            | 11
+seq_tup_read        | 1100000
+idx_scan            | 
+idx_tup_fetch       | 
+n_tup_ins           | 100000
+n_tup_upd           | 50000
+n_tup_del           | 0
+n_tup_hot_upd       | 41078
+n_live_tup          | 100000
+n_dead_tup          | 7451
+n_mod_since_analyze | 10000
+last_vacuum         | 
+last_autovacuum     | 2017-12-14 19:03:07.346578+03
+last_analyze        | 2017-12-14 19:03:02.024435+03
+last_autoanalyze    | 2017-12-14 19:03:17.876784+03
+vacuum_count        | 0
+autovacuum_count    | 1
+analyze_count       | 1
+autoanalyze_count   | 3
+
+
+Вот как увеличилась таблица:
+
+=> select * from pgstattuple('t1');
+-[ RECORD 1 ]------+--------
+table_len          | 4374528
+tuple_count        | 100000
+tuple_len          | 3300000
+tuple_percent      | 75.44
+dead_tuple_count   | 5000
+dead_tuple_len     | 165000
+dead_tuple_percent | 3.77
+free_space         | 3892
+free_percent       | 0.09
+
+
+Суммарно изменилось 50000 строк, что составляет 50% от размера таблицы.
+Однако автоочистка выполнялась меньше пяти раз, поскольку существенная
+часть обновлений была оптимизирована внутристраничной очисткой,
+в частности HOT-обновлениями (поле n_tup_hot_upd).
+За счет этого и таблица увеличилась в размерах не сильно.
+
+Часть 2
+~~~~~~~
+
+Создадим другую таблицу.
+
+=> create table t2(id serial, n numeric);
+CREATE TABLE
+
+=> insert into t2(n) select 1 from generate_series(1,100000);
+INSERT 0 100000
+
+=> analyze t2;
+ANALYZE
+
+Откроем новый сеанс.
+
+        |  psql 
+
+        |  => \c db6
+        |  You are now connected to database "db6" as user "postgres".
+
+        |  => begin;
+        |  BEGIN
+
+        |  => set transaction isolation level repeatable read;
+        |  SET
+
+        |  => select count(*) from t2;
+        |   count  
+        |  --------
+        |   100000
+        |  (1 row)
+        |  
+
+Выполняем обновление таблицы.
+
+=> update t2 set n=n+1 where id % 20 = 0;
+UPDATE 5000
+
+sleep 2 
+
+=> update t2 set n=n+1 where id % 20 = 1;
+UPDATE 5000
+
+sleep 2 
+
+=> update t2 set n=n+1 where id % 20 = 2;
+UPDATE 5000
+
+sleep 2 
+
+=> update t2 set n=n+1 where id % 20 = 3;
+UPDATE 5000
+
+sleep 2 
+
+=> update t2 set n=n+1 where id % 20 = 4;
+UPDATE 5000
+
+sleep 2 
+
+=> update t2 set n=n+1 where id % 20 = 5;
+UPDATE 5000
+
+sleep 2 
+
+=> update t2 set n=n+1 where id % 20 = 6;
+UPDATE 5000
+
+sleep 2 
+
+=> update t2 set n=n+1 where id % 20 = 7;
+UPDATE 5000
+
+sleep 2 
+
+=> update t2 set n=n+1 where id % 20 = 8;
+UPDATE 5000
+
+sleep 2 
+
+=> update t2 set n=n+1 where id % 20 = 9;
+UPDATE 5000
+
+sleep 2 
+
+        |  => \q
+
+sleep 5 
+
+Оценим разрастание.
+
+Статистика по таблице:
+
+=> select * from pg_stat_user_tables where relname='t2';
+-[ RECORD 1 ]-------+------------------------------
+relid               | 143764
+schemaname          | public
+relname             | t2
+seq_scan            | 11
+seq_tup_read        | 1100000
+idx_scan            | 
+idx_tup_fetch       | 
+n_tup_ins           | 100000
+n_tup_upd           | 50000
+n_tup_del           | 0
+n_tup_hot_upd       | 0
+n_live_tup          | 100000
+n_dead_tup          | 0
+n_mod_since_analyze | 5000
+last_vacuum         | 
+last_autovacuum     | 2017-12-14 19:03:43.524178+03
+last_analyze        | 2017-12-14 19:03:22.765318+03
+last_autoanalyze    | 2017-12-14 19:03:39.343096+03
+vacuum_count        | 0
+autovacuum_count    | 8
+analyze_count       | 1
+autoanalyze_count   | 3
+
+
+Вот как увеличилась таблица:
+
+=> select * from pgstattuple('t2');
+-[ RECORD 1 ]------+--------
+table_len          | 6029312
+tuple_count        | 100000
+tuple_len          | 3300000
+tuple_percent      | 54.73
+dead_tuple_count   | 0
+dead_tuple_len     | 0
+dead_tuple_percent | 0
+free_space         | 1808704
+free_percent       | 30
+
+
+За счет того, что версии строк были в активном снимке,
+очистка не могла их удалить. Поэтому реальное разрастание таблицы
+может оказаться больше ожидаемого, несмотря на установленные параметры.
+Большое количество срабатываний автоочистки вызвано той же причиной:
+рабочий процесс запускался каждую секунду, обнаруживал, что таблица
+требует очистки, но не мог ее выполнить и завершался.
+
+Восстановим настройки.
+
+=> alter system reset all;
+ALTER SYSTEM
+
+=> select pg_reload_conf();
+-[ RECORD 1 ]--+--
+pg_reload_conf | t
+
+
+=> \q

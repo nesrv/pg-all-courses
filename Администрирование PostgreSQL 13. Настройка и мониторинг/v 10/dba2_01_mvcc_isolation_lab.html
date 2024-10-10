@@ -1,0 +1,208 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Изоляция и системный каталог
+</h1>
+<p class="C">
+Создаем функцию, возвращающую единицу:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> mvcc_isolation<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> mvcc_isolation
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;mvcc_isolation&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">f</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">AS</span> $$
+  <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Начинаем транзакцию Read Committed во втором сеансе:
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> mvcc_isolation
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+You are now connected to database &quot;mvcc_isolation&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN ISOLATION LEVEL READ COMMITTED</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+BEGIN
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">f</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ f 
+---
+ 1
+(1 row)
+
+</pre></div>
+<p class="C">
+Изменяем функцию:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">f</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">AS</span> $$
+  <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">2</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">f</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ f 
+---
+ 2
+(1 row)
+
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">f</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ f 
+---
+ 1
+(1 row)
+
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+COMMIT
+</pre></div>
+<p class="C">
+Многоверсионность в PostgreSQL распространяется и на таблицы системного
+каталога. В том числе и на pg_proc, где хранится исходный код функций. Поэтому
+разные транзакции могут видеть и вызывать разные экземпляры одной и той
+же функции.
+</p>
+<p class="C">
+Но при этом даже на уровне Read Committed не возникает неповторяемого чтения -
+этим таблицы системного каталога отличаются от обычных.
+</p>
+<h1>
+Момент времени, на который видны данные
+</h1>
+<p class="C">
+Пустая таблица:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<p class="C">
+Открываем транзакцию Repeatable Read:
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN ISOLATION LEVEL REPEATABLE READ</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+BEGIN
+</pre></div>
+<p class="C">
+Добавляем строку в таблицу (изменения фиксируются):
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<p class="C">
+Проверяем содержимое таблицы в открытой транзакции:
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ id 
+----
+  1
+(1 row)
+
+</pre></div>
+<p class="C">
+Строка (неожиданно) видна. Дело в том, что транзакции Repeatable Read (и
+Serializable) видят данные на момент начала первой команды, а не на момент
+начала транзакции.
+</p>
+<p class="C">
+Если сейчас добавить в таблицу новые строки, результат повторной выборки
+уже не изменится.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">2</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ id 
+----
+  1
+(1 row)
+
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+COMMIT
+</pre></div>
+</body>
+</html>

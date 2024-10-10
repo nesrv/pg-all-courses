@@ -1,0 +1,688 @@
+<html><head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+    <style>
+    p.C    { font-size: 80%; }
+    li     { font-size: 80%; }
+    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+    div.E  { padding-left: 0px; font-weight: bold; }
+    div.R  { padding-left: 0px; }
+    </style>
+    </head>
+    <body style="margin: 59.5px;">
+    <!-- body -->
+    <!-- 4 -->
+    <h1>
+    Инициализация и обращение к элементам
+    </h1>
+    <p class="C">
+    Объявление переменной и инициализация массива целиком:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        a <span style="color:#a00050">integer</span><span style="color:#323232">[</span><span style="color:#1094a0">2</span><span style="color:#323232">];</span> <span style="color:#969696">-- размер игнорируется</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        a <span style="color:#323232">:=</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">10</span><span style="color:#323232">,</span><span style="color:#1094a0">20</span><span style="color:#323232">,</span><span style="color:#1094a0">30</span><span style="color:#323232">];</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> a<span style="color:#323232">;</span>
+        <span style="color:#969696">-- по умолчанию элементы нумеруются с единицы</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'a[1] = %, a[2] = %, a[3] = %'</span><span style="color:#323232">,</span> a<span style="color:#323232">[</span><span style="color:#1094a0">1</span><span style="color:#323232">],</span> a<span style="color:#323232">[</span><span style="color:#1094a0">2</span><span style="color:#323232">],</span> a<span style="color:#323232">[</span><span style="color:#1094a0">3</span><span style="color:#323232">];</span>
+        <span style="color:#969696">-- срез массива</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Срез [2:3] = %'</span><span style="color:#323232">,</span> a<span style="color:#323232">[</span><span style="color:#1094a0">2</span><span style="color:#323232">:</span><span style="color:#1094a0">3</span><span style="color:#323232">];</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">NOTICE:  {10,20,30}
+    NOTICE:  a[1] = 10, a[2] = 20, a[3] = 30
+    NOTICE:  Срез [2:3] = {20,30}
+    DO
+    </pre></div>
+    <p class="C">
+    Одномерный массив можно заполнять и поэлементно — при необходимости он автоматически расширяется. Если пропустить какие-то элементы, они получают неопределенные значения.
+    </p>
+    <p class="C">
+    Что будет выведено?
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        a <span style="color:#a00050">integer</span><span style="color:#323232">[];</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        a<span style="color:#323232">[</span><span style="color:#1094a0">2</span><span style="color:#323232">] :=</span> <span style="color:#1094a0">10</span><span style="color:#323232">;</span>
+        a<span style="color:#323232">[</span><span style="color:#1094a0">3</span><span style="color:#323232">] :=</span> <span style="color:#1094a0">20</span><span style="color:#323232">;</span>
+        a<span style="color:#323232">[</span><span style="color:#1094a0">6</span><span style="color:#323232">] :=</span> <span style="color:#1094a0">30</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> a<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">NOTICE:  [2:6]={10,20,NULL,NULL,30}
+    DO
+    </pre></div>
+    <p class="C">
+    Поскольку нумерация началась не с единицы, перед самим массивом дополнительно выводится диапазон номеров элементов.
+    </p>
+    <p class="C">
+    Еще один способ получить массив — создать его из подзапроса:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        a <span style="color:#a00050">integer</span><span style="color:#323232">[];</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        a <span style="color:#323232">:=</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">(</span> <span style="color:#3b6ac8">SELECT</span> n <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">3</span><span style="color:#323232">)</span> n <span style="color:#323232">);</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> a<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">NOTICE:  {1,2,3}
+    DO
+    </pre></div>
+    <p class="C">
+    Можно и наоборот, массив преобразовать в таблицу:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">unnest</span><span style="color:#323232">(</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span><span style="color:#1094a0">3</span><span style="color:#323232">] );</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> unnest 
+    --------
+          1
+          2
+          3
+    (3 rows)
+    
+    </pre></div>
+    <p class="C">
+    Интересно, что выражение IN со списком значений преобразуется в поиск по массиву:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN</span> <span style="color:#323232">(</span>costs off<span style="color:#323232">)</span>
+    <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">10</span><span style="color:#323232">)</span> <span style="color:#c73a69">g</span><span style="color:#323232">(</span>id<span style="color:#323232">)</span> <span style="color:#3b6ac8">WHERE</span> id <span style="color:#3b6ac8">IN</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">                 QUERY PLAN                  
+    ---------------------------------------------
+     Function Scan on generate_series g
+       Filter: (id = ANY ('{1,2,3}'::integer[]))
+    (2 rows)
+    
+    </pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Двумерный массив можно рассматривать как массив массивов (массив строк, каждая из которых — массив элементов). Здесь мы использовали другой способ инициализации с помощью строкового литерала.
+    </p>
+    <p class="C">
+    После инициализации многомерный массив уже нельзя расширить.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        a <span style="color:#a00050">integer</span><span style="color:#323232">[][] :=</span> <span style="color:#1094a0">'{</span>
+    <span style="color:#1094a0">        { 10, 20, 30},</span>
+    <span style="color:#1094a0">        {100,200,300}</span>
+    <span style="color:#1094a0">    }'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> a<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Срез [1:2][2:3] = %'</span><span style="color:#323232">,</span> a<span style="color:#323232">[</span><span style="color:#1094a0">1</span><span style="color:#323232">:</span><span style="color:#1094a0">2</span><span style="color:#323232">][</span><span style="color:#1094a0">2</span><span style="color:#323232">:</span><span style="color:#1094a0">3</span><span style="color:#323232">];</span>
+        <span style="color:#969696">-- расширять нельзя</span>
+        a<span style="color:#323232">[</span><span style="color:#1094a0">4</span><span style="color:#323232">][</span><span style="color:#1094a0">4</span><span style="color:#323232">] :=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">NOTICE:  {{10,20,30},{100,200,300}}
+    NOTICE:  Срез [1:2][2:3] = {{20,30},{200,300}}
+    ERROR:  array subscript out of range
+    CONTEXT:  PL/pgSQL function inline_code_block line 11 at assignment
+    </pre></div>
+    <!-- end -->
+    
+    
+    </body></html>
+
+    <html><head>
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+        <style>
+        p.C    { font-size: 80%; }
+        li     { font-size: 80%; }
+        h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+        div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+        div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+        div.R1 { padding-left: 0px; page-break-inside: avoid; }
+        div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+        div.E  { padding-left: 0px; font-weight: bold; }
+        div.R  { padding-left: 0px; }
+        </style>
+        </head>
+        <body style="margin: 59.5px;">
+        <!-- body -->
+        <!-- 6 -->
+        <h1>
+        Массивы и циклы
+        </h1>
+        <p class="C">
+        Цикл можно организовать, итерируя индексы элементов массива. Второй параметр функций array_lower и array_upper — номер размерности (единица для одномерных массивов).
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            a <span style="color:#a00050">integer</span><span style="color:#323232">[] :=</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">10</span><span style="color:#323232">,</span><span style="color:#1094a0">20</span><span style="color:#323232">,</span><span style="color:#1094a0">30</span><span style="color:#323232">];</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#c73a69">array_lower</span><span style="color:#323232">(</span>a<span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">)</span>..<span style="color:#c73a69">array_upper</span><span style="color:#323232">(</span>a<span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">LOOP</span> 
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'a[%] = %'</span><span style="color:#323232">,</span> i<span style="color:#323232">,</span> a<span style="color:#323232">[</span>i<span style="color:#323232">];</span>
+            <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  a[1] = 10
+        NOTICE:  a[2] = 20
+        NOTICE:  a[3] = 30
+        DO
+        </pre></div>
+        <p class="C">
+        Если индексы не нужны, то проще итерировать сами элементы:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            a <span style="color:#a00050">integer</span><span style="color:#323232">[] :=</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">10</span><span style="color:#323232">,</span><span style="color:#1094a0">20</span><span style="color:#323232">,</span><span style="color:#1094a0">30</span><span style="color:#323232">];</span>
+            x <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">FOREACH</span> x <span style="color:#3b6ac8">IN ARRAY</span> a <span style="color:#3b6ac8">LOOP</span> 
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> x<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  10
+        NOTICE:  20
+        NOTICE:  30
+        DO
+        </pre></div>
+        <p class="C">
+        Итерация индексов в двумерном массиве:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            <span style="color:#969696">-- можно и без двойных квадратных скобок</span>
+            a <span style="color:#a00050">integer</span><span style="color:#323232">[] :=</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span>
+                <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span> <span style="color:#1094a0">10</span><span style="color:#323232">,</span> <span style="color:#1094a0">20</span><span style="color:#323232">,</span> <span style="color:#1094a0">30</span><span style="color:#323232">],</span>
+                <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">100</span><span style="color:#323232">,</span><span style="color:#1094a0">200</span><span style="color:#323232">,</span><span style="color:#1094a0">300</span><span style="color:#323232">]</span>
+            <span style="color:#323232">];</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#c73a69">array_lower</span><span style="color:#323232">(</span>a<span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">)</span>..<span style="color:#c73a69">array_upper</span><span style="color:#323232">(</span>a<span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">LOOP</span> <span style="color:#969696">-- по строкам</span>
+                <span style="color:#3b6ac8">FOR</span> j <span style="color:#3b6ac8">IN</span> <span style="color:#c73a69">array_lower</span><span style="color:#323232">(</span>a<span style="color:#323232">,</span><span style="color:#1094a0">2</span><span style="color:#323232">)</span>..<span style="color:#c73a69">array_upper</span><span style="color:#323232">(</span>a<span style="color:#323232">,</span><span style="color:#1094a0">2</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">LOOP</span> <span style="color:#969696">-- по столбцам</span>
+                    <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'a[%][%] = %'</span><span style="color:#323232">,</span> i<span style="color:#323232">,</span> j<span style="color:#323232">,</span> a<span style="color:#323232">[</span>i<span style="color:#323232">][</span>j<span style="color:#323232">];</span>
+                <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  a[1][1] = 10
+        NOTICE:  a[1][2] = 20
+        NOTICE:  a[1][3] = 30
+        NOTICE:  a[2][1] = 100
+        NOTICE:  a[2][2] = 200
+        NOTICE:  a[2][3] = 300
+        DO
+        </pre></div>
+        <p class="C">
+        Итерация элементов двумерного массива не требует вложенного цикла:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            a <span style="color:#a00050">integer</span><span style="color:#323232">[] :=</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span>
+                <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span> <span style="color:#1094a0">10</span><span style="color:#323232">,</span> <span style="color:#1094a0">20</span><span style="color:#323232">,</span> <span style="color:#1094a0">30</span><span style="color:#323232">],</span>
+                <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">100</span><span style="color:#323232">,</span><span style="color:#1094a0">200</span><span style="color:#323232">,</span><span style="color:#1094a0">300</span><span style="color:#323232">]</span>
+            <span style="color:#323232">];</span>
+            x <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">FOREACH</span> x <span style="color:#3b6ac8">IN ARRAY</span> a <span style="color:#3b6ac8">LOOP</span> 
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> x<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  10
+        NOTICE:  20
+        NOTICE:  30
+        NOTICE:  100
+        NOTICE:  200
+        NOTICE:  300
+        DO
+        </pre></div>
+        <!-- end -->
+        
+        
+        </body></html>
+
+
+        <html><head>
+            <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+            <style>
+            p.C    { font-size: 80%; }
+            li     { font-size: 80%; }
+            h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+            div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+            div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+            div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+            div.R1 { padding-left: 0px; page-break-inside: avoid; }
+            div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+            div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+            div.E  { padding-left: 0px; font-weight: bold; }
+            div.R  { padding-left: 0px; }
+            </style>
+            </head>
+            <body style="margin: 59.5px;">
+            <!-- body -->
+            <!-- 8 -->
+            <h1>
+            Массивы и подпрограммы
+            </h1>
+            <p class="C">
+            В теме «SQL. Процедуры» мы рассматривали перегрузку и полиморфизм и создали функцию maximum, которая находила максимальное из трех чисел. Обобщим ее на произвольное число аргументов. Для этого объявим один VARIADIC-параметр:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">maximum</span><span style="color:#323232">(</span><span style="color:#3b6ac8">VARIADIC</span> a <span style="color:#a00050">integer</span><span style="color:#323232">[])</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span>
+            <span style="color:#3b6ac8">AS</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                x <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+                maxsofar <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">FOREACH</span> x <span style="color:#3b6ac8">IN ARRAY</span> a <span style="color:#3b6ac8">LOOP</span>
+                    <span style="color:#3b6ac8">IF</span> x <span style="color:#3b6ac8">IS NOT NULL AND</span> <span style="color:#323232">(</span>maxsofar <span style="color:#3b6ac8">IS NULL OR</span> x <span style="color:#323232">&gt;</span> maxsofar<span style="color:#323232">)</span> <span style="color:#3b6ac8">THEN</span>
+                        maxsofar <span style="color:#323232">:=</span> x<span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RETURN</span> maxsofar<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">CREATE FUNCTION
+            </pre></div>
+            <p class="C">
+            Пробуем:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">maximum</span><span style="color:#323232">(</span><span style="color:#1094a0">12</span><span style="color:#323232">,</span> <span style="color:#1094a0">65</span><span style="color:#323232">,</span> <span style="color:#1094a0">47</span><span style="color:#323232">);</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> maximum 
+            ---------
+                  65
+            (1 row)
+            
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">maximum</span><span style="color:#323232">(</span><span style="color:#1094a0">12</span><span style="color:#323232">,</span> <span style="color:#1094a0">65</span><span style="color:#323232">,</span> <span style="color:#1094a0">47</span><span style="color:#323232">,</span> null<span style="color:#323232">,</span> <span style="color:#1094a0">87</span><span style="color:#323232">,</span> <span style="color:#1094a0">24</span><span style="color:#323232">);</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> maximum 
+            ---------
+                  87
+            (1 row)
+            
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">maximum</span><span style="color:#323232">(</span>null<span style="color:#323232">,</span> null<span style="color:#323232">);</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> maximum 
+            ---------
+                    
+            (1 row)
+            
+            </pre></div>
+            <p class="C">
+            Для полноты картины и эта функция может быть сделана полиморфной, чтобы принимать любой тип данных (для которого, конечно, должны быть определены операции сравнения).
+            </p>
+            <ul class="U">
+            <li>
+            Полиморфные типы anyarray и anyelement всегда согласованы между собой: anyarray = anyelement[];
+            </li>
+            <li>
+            Нам нужна переменная, имеющая тип элемента массива. Но объявить ее как anyelement нельзя — она должна иметь реальный тип. Здесь помогает конструкция %TYPE.
+            </li>
+            </ul>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP FUNCTION</span> <span style="color:#c73a69">maximum</span><span style="color:#323232">(</span><span style="color:#a00050">integer</span><span style="color:#323232">[]);</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">DROP FUNCTION
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">maximum</span><span style="color:#323232">(</span><span style="color:#3b6ac8">VARIADIC</span> a <span style="color:#a00050">anyarray</span><span style="color:#323232">,</span> maxsofar <span style="color:#3b6ac8">OUT</span> <span style="color:#a00050">anyelement</span><span style="color:#323232">)</span>
+            <span style="color:#3b6ac8">AS</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                x maxsofar<span style="color:#a00050">%TYPE</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">FOREACH</span> x <span style="color:#3b6ac8">IN ARRAY</span> a <span style="color:#3b6ac8">LOOP</span>
+                    <span style="color:#3b6ac8">IF</span> x <span style="color:#3b6ac8">IS NOT NULL AND</span> <span style="color:#323232">(</span>maxsofar <span style="color:#3b6ac8">IS NULL OR</span> x <span style="color:#323232">&gt;</span> maxsofar<span style="color:#323232">)</span> <span style="color:#3b6ac8">THEN</span>
+                        maxsofar <span style="color:#323232">:=</span> x<span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">CREATE FUNCTION
+            </pre></div>
+            <p class="C">
+            Проверим:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">maximum</span><span style="color:#323232">(</span><span style="color:#1094a0">12</span><span style="color:#323232">,</span> <span style="color:#1094a0">65</span><span style="color:#323232">,</span> <span style="color:#1094a0">47</span><span style="color:#323232">);</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> maximum 
+            ---------
+                  65
+            (1 row)
+            
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">maximum</span><span style="color:#323232">(</span><span style="color:#1094a0">12.1</span><span style="color:#323232">,</span> <span style="color:#1094a0">65.3</span><span style="color:#323232">,</span> <span style="color:#1094a0">47.6</span><span style="color:#323232">);</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> maximum 
+            ---------
+                65.3
+            (1 row)
+            
+            </pre></div>
+            <p class="C">
+            Вот теперь у нас получился практически полный аналог выражения greatest!
+            </p>
+            <!-- end -->
+            
+            
+            </body></html>
+
+            <html><head>
+                <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+                <style>
+                p.C    { font-size: 80%; }
+                li     { font-size: 80%; }
+                h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+                div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+                div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+                div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+                div.R1 { padding-left: 0px; page-break-inside: avoid; }
+                div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+                div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+                div.E  { padding-left: 0px; font-weight: bold; }
+                div.R  { padding-left: 0px; }
+                </style>
+                </head>
+                <body style="margin: 59.5px;">
+                <!-- body -->
+                <!-- 10 -->
+                <h1>
+                Массив или таблица?
+                </h1>
+                <p class="C">
+                Представим себе, что мы проектируем базу данных для ведения блога. В блоге есть сообщения, и нам хотелось бы сопоставлять им теги.
+                </p>
+                <p class="C">
+                Традиционный подход состоит в том, что для тегов надо создать отдельную таблицу, например, так:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">posts</span><span style="color:#323232">(</span>
+                    post_id <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">PRIMARY KEY</span><span style="color:#323232">,</span>
+                    message <span style="color:#a00050">text</span>
+                <span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE TABLE
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">tags</span><span style="color:#323232">(</span>
+                    tag_id <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">PRIMARY KEY</span><span style="color:#323232">,</span>
+                    name <span style="color:#a00050">text</span>
+                <span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE TABLE
+                </pre></div>
+                <p class="C">
+                Связываем сообщения и теги отношением многие ко многим через еще одну таблицу:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">posts_tags</span><span style="color:#323232">(</span>
+                    post_id <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">REFERENCES</span> <span style="color:#c73a69">posts</span><span style="color:#323232">(</span>post_id<span style="color:#323232">),</span>
+                    tag_id <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">REFERENCES</span> <span style="color:#c73a69">tags</span><span style="color:#323232">(</span>tag_id<span style="color:#323232">)</span>
+                <span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE TABLE
+                </pre></div>
+                <p class="C">
+                Наполним таблицы тестовыми данными:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">posts</span><span style="color:#323232">(</span>post_id<span style="color:#323232">,</span>message<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span>
+                    <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Перечитывал пейджер, много думал.'</span><span style="color:#323232">),</span>
+                    <span style="color:#323232">(</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Это было уже весной, и я отнес елку обратно.'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">INSERT 0 2
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">tags</span><span style="color:#323232">(</span>tag_id<span style="color:#323232">,</span>name<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span>
+                    <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span> <span style="color:#1094a0">'былое и думы'</span><span style="color:#323232">), (</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span> <span style="color:#1094a0">'технологии'</span><span style="color:#323232">), (</span><span style="color:#1094a0">3</span><span style="color:#323232">,</span> <span style="color:#1094a0">'семья'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">INSERT 0 3
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">posts_tags</span><span style="color:#323232">(</span>post_id<span style="color:#323232">,</span>tag_id<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span>
+                    <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">), (</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">2</span><span style="color:#323232">), (</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">), (</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">INSERT 0 4
+                </pre></div>
+                <p class="C">
+                Теперь мы можем вывести сообщения и теги:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> p.message<span style="color:#323232">,</span> t.name
+                <span style="color:#3b6ac8">FROM</span> posts p
+                     <span style="color:#3b6ac8">JOIN</span> posts_tags pt <span style="color:#3b6ac8">ON</span> pt.post_id <span style="color:#323232">=</span> p.post_id
+                     <span style="color:#3b6ac8">JOIN</span> tags t <span style="color:#3b6ac8">ON</span> t.tag_id <span style="color:#323232">=</span> pt.tag_id
+                <span style="color:#3b6ac8">ORDER BY</span> p.post_id<span style="color:#323232">,</span> t.name<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">                   message                    |     name     
+                ----------------------------------------------+--------------
+                 Перечитывал пейджер, много думал.            | былое и думы
+                 Перечитывал пейджер, много думал.            | технологии
+                 Это было уже весной, и я отнес елку обратно. | былое и думы
+                 Это было уже весной, и я отнес елку обратно. | семья
+                (4 rows)
+                
+                </pre></div>
+                <p class="C">
+                Более наглядно будет получить сообщения с тегами, сгруппированными в массив. Для этого используем агрегирующую функцию:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> p.message<span style="color:#323232">,</span> <span style="color:#c73a69">array_agg</span><span style="color:#323232">(</span>t.name <span style="color:#3b6ac8">ORDER BY</span> t.name<span style="color:#323232">)</span> tags
+                <span style="color:#3b6ac8">FROM</span> posts p
+                     <span style="color:#3b6ac8">JOIN</span> posts_tags pt <span style="color:#3b6ac8">ON</span> pt.post_id <span style="color:#323232">=</span> p.post_id
+                     <span style="color:#3b6ac8">JOIN</span> tags t <span style="color:#3b6ac8">ON</span> t.tag_id <span style="color:#323232">=</span> pt.tag_id
+                <span style="color:#3b6ac8">GROUP BY</span> p.post_id
+                <span style="color:#3b6ac8">ORDER BY</span> p.post_id<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">                   message                    |            tags             
+                ----------------------------------------------+-----------------------------
+                 Перечитывал пейджер, много думал.            | {"былое и думы",технологии}
+                 Это было уже весной, и я отнес елку обратно. | {"былое и думы",семья}
+                (2 rows)
+                
+                </pre></div>
+                <p class="C">
+                Можем найти все сообщения с определенным тегом:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> p.message
+                <span style="color:#3b6ac8">FROM</span> posts p
+                     <span style="color:#3b6ac8">JOIN</span> posts_tags pt <span style="color:#3b6ac8">ON</span> pt.post_id <span style="color:#323232">=</span> p.post_id
+                     <span style="color:#3b6ac8">JOIN</span> tags t <span style="color:#3b6ac8">ON</span> t.tag_id <span style="color:#323232">=</span> pt.tag_id
+                <span style="color:#3b6ac8">WHERE</span> t.name <span style="color:#323232">=</span> <span style="color:#1094a0">'былое и думы'</span>
+                <span style="color:#3b6ac8">ORDER BY</span> p.post_id<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">                   message                    
+                ----------------------------------------------
+                 Перечитывал пейджер, много думал.
+                 Это было уже весной, и я отнес елку обратно.
+                (2 rows)
+                
+                </pre></div>
+                <p class="C">
+                Может потребоваться найти все уникальные теги — это совсем просто:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> t.name
+                <span style="color:#3b6ac8">FROM</span> tags t
+                <span style="color:#3b6ac8">ORDER BY</span> t.name<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">     name     
+                --------------
+                 былое и думы
+                 семья
+                 технологии
+                (3 rows)
+                
+                </pre></div>
+                <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+                <p class="C">
+                Теперь попробуем подойти к задаче по-другому. Пусть теги будут представлены текстовым массивом прямо внутри таблицы сообщений.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP TABLE</span> posts_tags<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">DROP TABLE
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP TABLE</span> tags<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">DROP TABLE
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER TABLE</span> posts <span style="color:#3b6ac8">ADD COLUMN</span> tags <span style="color:#a00050">text</span><span style="color:#323232">[];</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">ALTER TABLE
+                </pre></div>
+                <p class="C">
+                Теперь у нас нет идентификаторов тегов, но они нам не очень и нужны.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> posts <span style="color:#3b6ac8">SET</span> tags <span style="color:#323232">=</span> <span style="color:#1094a0">'{"былое и думы","технологии"}'</span>
+                <span style="color:#3b6ac8">WHERE</span> post_id <span style="color:#323232">=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">UPDATE 1
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> posts <span style="color:#3b6ac8">SET</span> tags <span style="color:#323232">=</span> <span style="color:#1094a0">'{"былое и думы","семья"}'</span>
+                <span style="color:#3b6ac8">WHERE</span> post_id <span style="color:#323232">=</span> <span style="color:#1094a0">2</span><span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">UPDATE 1
+                </pre></div>
+                <p class="C">
+                Вывод всех сообщений упростился:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> p.message<span style="color:#323232">,</span> p.tags
+                <span style="color:#3b6ac8">FROM</span> posts p
+                <span style="color:#3b6ac8">ORDER BY</span> p.post_id<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">                   message                    |            tags             
+                ----------------------------------------------+-----------------------------
+                 Перечитывал пейджер, много думал.            | {"былое и думы",технологии}
+                 Это было уже весной, и я отнес елку обратно. | {"былое и думы",семья}
+                (2 rows)
+                
+                </pre></div>
+                <p class="C">
+                Сообщения с определенным тегом тоже легко найти (используем оператор пересечения &amp;&amp;).
+                </p>
+                <p class="C">
+                Эта операция может быть ускорена с помощью индекса GIN, и для такого запроса не придется перебирать всю таблицу сообщений.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> p.message
+                <span style="color:#3b6ac8">FROM</span> posts p
+                <span style="color:#3b6ac8">WHERE</span> p.tags <span style="color:#323232">&amp;&amp;</span> <span style="color:#1094a0">'{"былое и думы"}'</span>
+                <span style="color:#3b6ac8">ORDER BY</span> p.post_id<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">                   message                    
+                ----------------------------------------------
+                 Перечитывал пейджер, много думал.
+                 Это было уже весной, и я отнес елку обратно.
+                (2 rows)
+                
+                </pre></div>
+                <p class="C">
+                А вот получить список тегов довольно сложно. Для этого требуется развернуть все массивы тегов в большую таблицу и найти в ней уникальные значения, а это тяжелая операция.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT DISTINCT</span> <span style="color:#c73a69">unnest</span><span style="color:#323232">(</span>p.tags<span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> name
+                <span style="color:#3b6ac8">FROM</span> posts p<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">     name     
+                --------------
+                 технологии
+                 былое и думы
+                 семья
+                (3 rows)
+                
+                </pre></div>
+                <p class="C">
+                Тут хорошо видно, что имеет место дублирование данных.
+                </p>
+                <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+                <p class="C">
+                Итак, оба подхода вполне могут применяться.
+                </p>
+                <p class="C">
+                В простых случаях массивы выглядят проще и работают хорошо.
+                </p>
+                <p class="C">
+                В более сложных сценариях (представьте, что вместе с именем тега мы хотим хранить дату его создания; или требуется проверка ограничений целостности) классический вариант становится более привлекательным.
+                </p>
+                <!-- end -->
+                
+                
+                </body></html>
+
+                
+
+
+

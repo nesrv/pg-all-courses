@@ -1,0 +1,319 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Настройка автоочистки
+</h1>
+<p class="C">
+Настраиваем автоочистку на 10 % строк.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> autovacuum_vacuum_threshold <span style="color:#323232">=</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> autovacuum_vacuum_scale_factor <span style="color:#323232">=</span> <span style="color:#1094a0">0.1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<p class="C">
+Устанавливаем частоту запуска процессов в 1 раз в секунду:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> autovacuum_naptime <span style="color:#323232">=</span> <span style="color:#1094a0">'1s'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_reload_conf</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+</pre></div>
+<h1>
+Таблица
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> mvcc_autovacuum<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> mvcc_autovacuum
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;mvcc_autovacuum&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n<span style="color:#323232">)</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">100000</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 100000
+</pre></div>
+<h1>
+Изменение данных
+</h1>
+<p class="C">
+Начальный размер таблицы:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_table_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">));</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_size_pretty 
+----------------
+ 3168 kB
+(1 row)
+
+</pre></div>
+<p class="C">
+Выполняем обновление таблицы с задержками в несколько секунд между командами.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5584
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5421
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5422
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5509
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5522
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5528
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5396
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5513
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5501
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5397
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5431
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5472
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5477
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5453
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5353
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5497
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5470
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5475
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5557
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.055</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 5548
+</pre></div>
+<h1>
+Оценка разрастания
+</h1>
+<p class="C">
+Статистика по таблице (autovacuum_count - сколько раз выполнялась автоочистка):
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> pg_stat_all_tables <span style="color:#3b6ac8">WHERE</span> relname<span style="color:#323232">=</span><span style="color:#1094a0">'t'</span> <span style="color:#00a150">\gx</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+-[ RECORD 1 ]-------+------------------------------
+relid               | 25124
+schemaname          | public
+relname             | t
+seq_scan            | 20
+seq_tup_read        | 2000000
+idx_scan            | 
+idx_tup_fetch       | 
+n_tup_ins           | 100000
+n_tup_upd           | 109526
+n_tup_del           | 0
+n_tup_hot_upd       | 67610
+n_live_tup          | 100000
+n_dead_tup          | 5548
+n_mod_since_analyze | 5548
+last_vacuum         | 
+last_autovacuum     | 2019-08-12 17:19:50.669151+03
+last_analyze        | 
+last_autoanalyze    | 2019-08-12 17:19:50.767039+03
+vacuum_count        | 0
+autovacuum_count    | 5
+analyze_count       | 0
+autoanalyze_count   | 9
+
+</pre></div>
+<p class="C">
+Вот как увеличилась таблица:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_table_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">));</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_size_pretty 
+----------------
+ 4192 kB
+(1 row)
+
+</pre></div>
+<p class="C">
+Суммарно изменилось порядка 110000 строк, что составляет 110% от размера
+таблицы. Можно было бы предположить, что автоочистка сработает 10-11 раз.
+</p>
+<p class="C">
+Однако автоочистка выполнялась примерно в два раза реже, поскольку существенная
+часть обновлений была оптимизирована внутристраничной очисткой (в нашем
+случае, HOT-очисткой: поле n_tup_hot_upd).
+</p>
+<p class="C">
+Таблица увеличилась не в два раза, а меньше - примерно на треть. В идеале
+достаточно было бы 5-6 %, но:
+</p>
+<ul class="U">
+<li>карта свободного пространства не обновляется при внутристраничной очистке, а автоочистка срабатывает только на второй раз,</li>
+<li>в результате HOT-обновлений на страницах появляются "лишние" redirect-указатели - при небольшой длине строк, как в нашем примере, этот эффект становится заметен,</li>
+<li>карта свободного пространства хранит не точную (округленную) информацию.</li>
+</ul>
+</body>
+</html>

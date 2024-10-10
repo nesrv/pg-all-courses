@@ -1,0 +1,208 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Случайная временная отметка
+</h1>
+<p class="C">
+Функция с двумя временными отметками:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">rnd_timestamp</span><span style="color:#323232">(</span>t_start <span style="color:#a00050">timestamptz</span><span style="color:#323232">,</span> t_end <span style="color:#a00050">timestamptz</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">timestamptz</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">SELECT</span> t_start <span style="color:#323232">+ (</span>t_end <span style="color:#323232">-</span> t_start<span style="color:#323232">) *</span> <span style="color:#c73a69">random</span><span style="color:#323232">();</span>
+$$ <span style="color:#3b6ac8">VOLATILE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT current_timestamp</span><span style="color:#323232">,</span>
+    <span style="color:#c73a69">rnd_timestamp</span><span style="color:#323232">(</span><span style="color:#3b6ac8">current_timestamp</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">current_timestamp</span> <span style="color:#323232">+</span> <span style="color:#3b6ac8">interval</span> <span style="color:#1094a0">'1 hour'</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">10</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+              now              |         rnd_timestamp         
+-------------------------------+-------------------------------
+ 2017-09-01 15:54:43.080408+03 | 2017-09-01 16:00:54.677569+03
+ 2017-09-01 15:54:43.080408+03 | 2017-09-01 16:35:47.672671+03
+ 2017-09-01 15:54:43.080408+03 | 2017-09-01 16:15:31.388326+03
+ 2017-09-01 15:54:43.080408+03 | 2017-09-01 16:21:09.202394+03
+ 2017-09-01 15:54:43.080408+03 | 2017-09-01 16:10:11.572123+03
+ 2017-09-01 15:54:43.080408+03 | 2017-09-01 16:26:54.926134+03
+ 2017-09-01 15:54:43.080408+03 | 2017-09-01 16:51:32.249848+03
+ 2017-09-01 15:54:43.080408+03 | 2017-09-01 16:27:35.946782+03
+ 2017-09-01 15:54:43.080408+03 | 2017-09-01 16:04:02.164987+03
+ 2017-09-01 15:54:43.080408+03 | 2017-09-01 16:17:01.101458+03
+(10 rows)
+
+</pre></div>
+<p class="C">
+Вторую функцию (с параметром-интервалом) можно определить через первую:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">rnd_timestamp</span><span style="color:#323232">(</span>t_start <span style="color:#a00050">timestamptz</span><span style="color:#323232">,</span> t_delta <span style="color:#3b6ac8">interval</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">timestamptz</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">rnd_timestamp</span><span style="color:#323232">(</span>t_start<span style="color:#323232">,</span> t_start <span style="color:#323232">+</span> t_delta<span style="color:#323232">);</span>
+$$ <span style="color:#3b6ac8">VOLATILE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">rnd_timestamp</span><span style="color:#323232">(</span><span style="color:#3b6ac8">current_timestamp</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">interval</span> <span style="color:#1094a0">'1 hour'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+         rnd_timestamp         
+-------------------------------
+ 2017-09-01 16:09:56.838673+03
+(1 row)
+
+</pre></div>
+<h1>
+Автомобильные номера
+</h1>
+<p class="C">
+Создадим таблицу с номерами.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">cars</span><span style="color:#323232">(</span>
+    id <span style="color:#a00050">serial</span> <span style="color:#3b6ac8">PRIMARY KEY</span><span style="color:#323232">,</span>
+    regnum <span style="color:#a00050">text</span>
+<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">cars</span><span style="color:#323232">(</span>regnum<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'К 123 ХМ'</span><span style="color:#323232">), (</span><span style="color:#1094a0">'k123xm'</span><span style="color:#323232">), (</span><span style="color:#1094a0">'A 098BC'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 3
+</pre></div>
+<p class="C">
+Функция нормализации:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">normalize</span><span style="color:#323232">(</span>regnum <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">upper</span><span style="color:#323232">(</span><span style="color:#c73a69">translate</span><span style="color:#323232">(</span>regnum<span style="color:#323232">,</span> <span style="color:#1094a0">'АВЕКМНОРСТУХ '</span><span style="color:#323232">,</span> <span style="color:#1094a0">'ABEKMHOPCTYX'</span><span style="color:#323232">));</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">normalize</span><span style="color:#323232">(</span>regnum<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> cars<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ normalize 
+-----------
+ K123XM
+ K123XM
+ A098BC
+(3 rows)
+
+</pre></div>
+<p class="C">
+Теперь легко найти дубликаты:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">num_unique</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">bigint</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(</span><span style="color:#3b6ac8">DISTINCT</span> <span style="color:#c73a69">normalize</span><span style="color:#323232">(</span>regnum<span style="color:#323232">))</span>
+<span style="color:#3b6ac8">FROM</span> cars<span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STABLE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">num_unique</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ num_unique 
+------------
+          2
+(1 row)
+
+</pre></div>
+<h1>
+Корни квадратного уравнения
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">square_roots</span><span style="color:#323232">(</span>a <span style="color:#a00050">float</span><span style="color:#323232">,</span> b <span style="color:#a00050">float</span><span style="color:#323232">,</span> c <span style="color:#a00050">float</span><span style="color:#323232">,</span> x1 <span style="color:#3b6ac8">OUT</span> <span style="color:#a00050">float</span><span style="color:#323232">,</span> x2 <span style="color:#3b6ac8">OUT</span> <span style="color:#a00050">float</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">WITH</span> <span style="color:#c73a69">discriminant</span><span style="color:#323232">(</span>d<span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> <span style="color:#323232">(</span>
+    <span style="color:#3b6ac8">SELECT</span> b<span style="color:#323232">*</span>b <span style="color:#323232">-</span> <span style="color:#1094a0">4</span><span style="color:#323232">*</span>a<span style="color:#323232">*</span>c
+<span style="color:#323232">)</span>
+<span style="color:#3b6ac8">SELECT CASE WHEN</span> d <span style="color:#323232">&gt;=</span> <span style="color:#1094a0">0.0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#323232">(-</span>b <span style="color:#323232">+</span> <span style="color:#c73a69">sqrt</span><span style="color:#323232">(</span>d<span style="color:#323232">))/</span><span style="color:#1094a0">2</span><span style="color:#323232">/</span>a <span style="color:#3b6ac8">END</span><span style="color:#323232">,</span>
+       <span style="color:#3b6ac8">CASE WHEN</span> d <span style="color:#323232">&gt;</span>  <span style="color:#1094a0">0.0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#323232">(-</span>b <span style="color:#323232">-</span> <span style="color:#c73a69">sqrt</span><span style="color:#323232">(</span>d<span style="color:#323232">))/</span><span style="color:#1094a0">2</span><span style="color:#323232">/</span>a <span style="color:#3b6ac8">END</span>
+<span style="color:#3b6ac8">FROM</span> discriminant<span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">square_roots</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span>  <span style="color:#1094a0">0</span><span style="color:#323232">, -</span><span style="color:#1094a0">4</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ square_roots 
+--------------
+ (2,-2)
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">square_roots</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">, -</span><span style="color:#1094a0">4</span><span style="color:#323232">,</span>  <span style="color:#1094a0">4</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ square_roots 
+--------------
+ (2,)
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">square_roots</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span>  <span style="color:#1094a0">1</span><span style="color:#323232">,</span>  <span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ square_roots 
+--------------
+ (,)
+(1 row)
+
+</pre></div>
+</body>
+</html>

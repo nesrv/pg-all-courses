@@ -1,0 +1,510 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Блокировки при нескольких обновлениях строки
+</h1>
+<p class="C">
+Для простоты создадим таблицу без первичного ключа.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> locks_rows<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> locks_rows
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;locks_rows&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">accounts</span><span style="color:#323232">(</span>acc_no <span style="color:#a00050">integer</span><span style="color:#323232">,</span> amount <span style="color:#a00050">numeric</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> accounts <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">1000.00</span><span style="color:#323232">),(</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span><span style="color:#1094a0">2000.00</span><span style="color:#323232">),(</span><span style="color:#1094a0">3</span><span style="color:#323232">,</span><span style="color:#1094a0">3000.00</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 3
+</pre></div>
+<p class="C">
+Создадим представление над pg_locks как в демонстрации:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE VIEW</span> locks <span style="color:#3b6ac8">AS</span>
+<span style="color:#3b6ac8">SELECT</span> pid<span style="color:#323232">,</span>
+       locktype<span style="color:#323232">,</span>
+       <span style="color:#3b6ac8">CASE</span> locktype
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">'relation'</span> <span style="color:#3b6ac8">THEN</span> relation<span style="color:#323232">::</span><span style="color:#a00050">REGCLASS</span><span style="color:#323232">::</span><span style="color:#a00050">text</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">'virtualxid'</span> <span style="color:#3b6ac8">THEN</span> virtualxid<span style="color:#323232">::</span><span style="color:#a00050">text</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">'transactionid'</span> <span style="color:#3b6ac8">THEN</span> transactionid<span style="color:#323232">::</span><span style="color:#a00050">text</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">'tuple'</span> <span style="color:#3b6ac8">THEN</span> relation<span style="color:#323232">::</span><span style="color:#a00050">REGCLASS</span><span style="color:#323232">::</span><span style="color:#a00050">text</span>||<span style="color:#1094a0">':'</span>||tuple<span style="color:#323232">::</span><span style="color:#a00050">text</span>
+       <span style="color:#3b6ac8">END AS</span> lockid<span style="color:#323232">,</span>
+       <span style="color:#3b6ac8">mode</span><span style="color:#323232">,</span>
+       <span style="color:#3b6ac8">granted</span>
+<span style="color:#3b6ac8">FROM</span> pg_locks<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE VIEW
+</pre></div>
+<p class="C">
+Первая транзакция обновляет и, соответственно, блокирует строку:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+BEGIN
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">txid_current</span><span style="color:#323232">(),</span> <span style="color:#c73a69">pg_backend_pid</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ txid_current | pg_backend_pid 
+--------------+----------------
+       215338 |          29324
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> accounts <span style="color:#3b6ac8">SET</span> amount <span style="color:#323232">=</span> amount <span style="color:#323232">+</span> <span style="color:#1094a0">100.00</span> <span style="color:#3b6ac8">WHERE</span> acc_no <span style="color:#323232">=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<p class="C">
+Вторая транзакция делает то же самое:
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> locks_rows
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+You are now connected to database &quot;locks_rows&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+BEGIN
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">txid_current</span><span style="color:#323232">(),</span> <span style="color:#c73a69">pg_backend_pid</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ txid_current | pg_backend_pid 
+--------------+----------------
+       215339 |          29457
+(1 row)
+
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> accounts <span style="color:#3b6ac8">SET</span> amount <span style="color:#323232">=</span> amount <span style="color:#323232">+</span> <span style="color:#1094a0">100.00</span> <span style="color:#3b6ac8">WHERE</span> acc_no <span style="color:#323232">=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<p class="C">
+И третья:
+</p>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> locks_rows
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+You are now connected to database &quot;locks_rows&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+BEGIN
+</pre></div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">txid_current</span><span style="color:#323232">(),</span> <span style="color:#c73a69">pg_backend_pid</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+ txid_current | pg_backend_pid 
+--------------+----------------
+       215340 |          29531
+(1 row)
+
+</pre></div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> accounts <span style="color:#3b6ac8">SET</span> amount <span style="color:#323232">=</span> amount <span style="color:#323232">+</span> <span style="color:#1094a0">100.00</span> <span style="color:#3b6ac8">WHERE</span> acc_no <span style="color:#323232">=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<p class="C">
+Блокировки для первой транзакции:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> locks <span style="color:#3b6ac8">WHERE</span> pid <span style="color:#323232">=</span> <span style="color:#1094a0">29324</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+  pid  |   locktype    |  lockid  |       mode       | granted 
+-------+---------------+----------+------------------+---------
+ 29324 | relation      | pg_locks | AccessShareLock  | t
+ 29324 | relation      | locks    | AccessShareLock  | t
+ 29324 | relation      | accounts | RowExclusiveLock | t
+ 29324 | virtualxid    | 6/5      | ExclusiveLock    | t
+ 29324 | transactionid | 215338   | ExclusiveLock    | t
+(5 rows)
+
+</pre></div>
+<ul class="U">
+<li>Тип relation для pg_locks и locks в режиме AccessShareLock - устанавливаются на читаемые отношения.</li>
+<li>Тип relation для accounts в режиме RowExclusiveLock - устанавливается на изменяемое отношение.</li>
+<li>Типы virtualxid и transactionid в режиме ExclusiveLock - удерживаются каждой транзакцией для самой себя.</li>
+</ul>
+<p class="C">
+Блокировки для второй транзакции:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> locks <span style="color:#3b6ac8">WHERE</span> pid <span style="color:#323232">=</span> <span style="color:#1094a0">29457</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+  pid  |   locktype    |   lockid   |       mode       | granted 
+-------+---------------+------------+------------------+---------
+ 29457 | relation      | accounts   | RowExclusiveLock | t
+ 29457 | virtualxid    | 2/84       | ExclusiveLock    | t
+ 29457 | transactionid | 215339     | ExclusiveLock    | t
+ 29457 | transactionid | 215338     | ShareLock        | f
+ 29457 | tuple         | accounts:1 | ExclusiveLock    | t
+(5 rows)
+
+</pre></div>
+<p class="C">
+По сравнению с первой транзакцией:
+</p>
+<ul class="U">
+<li>Блокировки для pg_locks и locks отсутствуют, так как вторая транзакция не обращалась к этим отношениям.</li>
+<li>Транзакция ожидает получение блокировки типа transactionid в режиме ShareLock для первой транзакции. </li>
+<li>Удерживается блокировка типа tuple для обновляемой строки.</li>
+</ul>
+<p class="C">
+Блокировки для третьей транзакции:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> locks <span style="color:#3b6ac8">WHERE</span> pid <span style="color:#323232">=</span> <span style="color:#1094a0">29531</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+  pid  |   locktype    |   lockid   |       mode       | granted 
+-------+---------------+------------+------------------+---------
+ 29531 | relation      | accounts   | RowExclusiveLock | t
+ 29531 | virtualxid    | 4/100415   | ExclusiveLock    | t
+ 29531 | transactionid | 215340     | ExclusiveLock    | t
+ 29531 | tuple         | accounts:1 | ExclusiveLock    | f
+(4 rows)
+
+</pre></div>
+<p class="C">
+Транзакция ожидает получение блокировки типа tuple для обновляемой строки.
+</p>
+<p class="C">
+Общую картину текущих ожиданий можно увидеть в представлении
+pg_stat_activity. Для удобства можно добавить и информацию о блокирующих
+процессах:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> pid<span style="color:#323232">,</span> wait_event_type<span style="color:#323232">,</span> wait_event<span style="color:#323232">,</span> <span style="color:#c73a69">pg_blocking_pids</span><span style="color:#323232">(</span>pid<span style="color:#323232">)</span> 
+<span style="color:#3b6ac8">FROM</span> pg_stat_activity 
+<span style="color:#3b6ac8">WHERE</span> backend_type <span style="color:#323232">=</span> <span style="color:#1094a0">'client backend'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+  pid  | wait_event_type |  wait_event   | pg_blocking_pids 
+-------+-----------------+---------------+------------------
+ 29457 | Lock            | transactionid | {29324}
+ 29531 | Lock            | tuple         | {29457}
+ 29324 |                 |               | {}
+(3 rows)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ROLLBACK</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ROLLBACK
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ROLLBACK</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+UPDATE 1
+ROLLBACK
+</pre></div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ROLLBACK</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+UPDATE 1
+ROLLBACK
+</pre></div>
+<h1>
+Взаимоблокировка трех транзакций
+</h1>
+<p class="C">
+Воспроизведем взаимоблокировку трех транзакций.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+BEGIN
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> accounts <span style="color:#3b6ac8">SET</span> amount <span style="color:#323232">=</span> amount <span style="color:#323232">-</span> <span style="color:#1094a0">100.00</span> <span style="color:#3b6ac8">WHERE</span> acc_no <span style="color:#323232">=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+BEGIN
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> accounts <span style="color:#3b6ac8">SET</span> amount <span style="color:#323232">=</span> amount <span style="color:#323232">-</span> <span style="color:#1094a0">100.00</span> <span style="color:#3b6ac8">WHERE</span> acc_no <span style="color:#323232">=</span> <span style="color:#1094a0">2</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+UPDATE 1
+</pre></div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+BEGIN
+</pre></div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> accounts <span style="color:#3b6ac8">SET</span> amount <span style="color:#323232">=</span> amount <span style="color:#323232">-</span> <span style="color:#1094a0">100.00</span> <span style="color:#3b6ac8">WHERE</span> acc_no <span style="color:#323232">=</span> <span style="color:#1094a0">3</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> accounts <span style="color:#3b6ac8">SET</span> amount <span style="color:#323232">=</span> amount <span style="color:#323232">+</span> <span style="color:#1094a0">100.00</span> <span style="color:#3b6ac8">WHERE</span> acc_no <span style="color:#323232">=</span> <span style="color:#1094a0">2</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> accounts <span style="color:#3b6ac8">SET</span> amount <span style="color:#323232">=</span> amount <span style="color:#323232">+</span> <span style="color:#1094a0">100.00</span> <span style="color:#3b6ac8">WHERE</span> acc_no <span style="color:#323232">=</span> <span style="color:#1094a0">3</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> accounts <span style="color:#3b6ac8">SET</span> amount <span style="color:#323232">=</span> amount <span style="color:#323232">+</span> <span style="color:#1094a0">100.00</span> <span style="color:#3b6ac8">WHERE</span> acc_no <span style="color:#323232">=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+
+</div>
+<div class="R1"><pre class="R1">
+ERROR:  deadlock detected
+DETAIL:  Process 29324 waits for ShareLock on transaction 215342; blocked by process 29457.
+Process 29457 waits for ShareLock on transaction 215343; blocked by process 29531.
+Process 29531 waits for ShareLock on transaction 215341; blocked by process 29324.
+HINT:  See server log for query details.
+CONTEXT:  while updating tuple (0,2) in relation &quot;accounts&quot;
+ROLLBACK
+
+</pre></div>
+<div class="R2"><pre class="R2">
+UPDATE 1
+COMMIT
+
+</pre></div>
+<div class="R3"><pre class="R3">
+UPDATE 1
+COMMIT
+</pre></div>
+<p class="C">
+Вот какую информацию о взаимоблокировке можно получить из журнала:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">tail</span> <span style="color:#323232">-</span>n <span style="color:#1094a0">10</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile
+</pre>
+</div>
+<div class="R"><pre class="R">
+2019-08-12 17:25:55.279 MSK [29324] ERROR:  deadlock detected
+2019-08-12 17:25:55.279 MSK [29324] DETAIL:  Process 29324 waits for ShareLock on transaction 215342; blocked by process 29457.
+	Process 29457 waits for ShareLock on transaction 215343; blocked by process 29531.
+	Process 29531 waits for ShareLock on transaction 215341; blocked by process 29324.
+	Process 29324: UPDATE accounts SET amount = amount + 100.00 WHERE acc_no = 2;
+	Process 29457: UPDATE accounts SET amount = amount + 100.00 WHERE acc_no = 3;
+	Process 29531: UPDATE accounts SET amount = amount + 100.00 WHERE acc_no = 1;
+2019-08-12 17:25:55.279 MSK [29324] HINT:  See server log for query details.
+2019-08-12 17:25:55.279 MSK [29324] CONTEXT:  while updating tuple (0,2) in relation &quot;accounts&quot;
+2019-08-12 17:25:55.279 MSK [29324] STATEMENT:  UPDATE accounts SET amount = amount + 100.00 WHERE acc_no = 2;
+</pre></div>
+<h1>
+Взаимоблокировка двух операций UPDATE
+</h1>
+<p class="C">
+Команда UPDATE блокирует строки по мере их обновления. Это происходит не
+одномоментно.
+</p>
+<p class="C">
+Поэтому если одна команда будет обновлять строки в одном порядке, а другая
+- в другом, они могут взаимозаблокироваться. Это может произойти, если для
+команд будут построены разные планы выполнения, например, одна будет читать
+таблицу последовательно, а другая - по индексу.
+</p>
+<p class="C">
+Получить такую ситуацию непросто даже специально, в реальной работе она
+маловероятна. Проиллюстрировать ее проще всего с помощью курсоров, поскольку
+это дает возможность управлять порядком чтения.
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+BEGIN
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DECLARE</span> c1 <span style="color:#3b6ac8">CURSOR FOR</span>
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> accounts <span style="color:#3b6ac8">ORDER BY</span> acc_no
+<span style="color:#3b6ac8">FOR UPDATE</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+DECLARE CURSOR
+</pre></div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+BEGIN
+</pre></div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DECLARE</span> c2 <span style="color:#3b6ac8">CURSOR FOR</span>
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> accounts <span style="color:#3b6ac8">ORDER BY</span> acc_no <span style="color:#3b6ac8">DESC</span> <span style="color:#969696">-- в обратную сторону</span>
+<span style="color:#3b6ac8">FOR UPDATE</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+DECLARE CURSOR
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">FETCH</span> c1<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ acc_no | amount  
+--------+---------
+      1 | 1100.00
+(1 row)
+
+</pre></div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">FETCH</span> c2<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+ acc_no | amount  
+--------+---------
+      3 | 3000.00
+(1 row)
+
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">FETCH</span> c1<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ acc_no | amount  
+--------+---------
+      2 | 1900.00
+(1 row)
+
+</pre></div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">FETCH</span> c2<span style="color:#323232">;</span>
+</pre>
+</div>
+<p class="C">
+Вторая команда ожидает блокировку...
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">FETCH</span> c1<span style="color:#323232">;</span>
+</pre>
+</div>
+<p class="C">
+Произошла взаимоблокировка. И через некоторое время:
+
+</p>
+<div class="R2"><pre class="R2">
+ acc_no | amount  
+--------+---------
+      3 | 3000.00
+(1 row)
+
+
+</pre></div>
+<div class="R3"><pre class="R3">
+ERROR:  deadlock detected
+DETAIL:  Process 29531 waits for ShareLock on transaction 215344; blocked by process 29457.
+Process 29457 waits for ShareLock on transaction 215345; blocked by process 29531.
+HINT:  See server log for query details.
+CONTEXT:  while locking tuple (0,8) in relation &quot;accounts&quot;
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+</body>
+</html>

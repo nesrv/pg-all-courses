@@ -1,0 +1,55 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Функция get_catalog
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">get_catalog</span><span style="color:#323232">(</span>author_name <span style="color:#a00050">text</span><span style="color:#323232">,</span> book_title <span style="color:#a00050">text</span><span style="color:#323232">,</span> in_stock <span style="color:#a00050">boolean</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">RETURNS TABLE</span><span style="color:#323232">(</span>book_id <span style="color:#a00050">integer</span><span style="color:#323232">,</span> display_name <span style="color:#a00050">text</span><span style="color:#323232">,</span> onhand_qty <span style="color:#a00050">integer</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    title_cond <span style="color:#a00050">text</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">''</span><span style="color:#323232">;</span>
+    author_cond <span style="color:#a00050">text</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">''</span><span style="color:#323232">;</span>
+    qty_cond <span style="color:#a00050">text</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">''</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">IF</span> book_title <span style="color:#323232">!=</span> <span style="color:#1094a0">''</span> <span style="color:#3b6ac8">THEN</span>
+        title_cond <span style="color:#323232">:=</span> <span style="color:#c73a69">format</span><span style="color:#323232">(</span><span style="color:#1094a0">' AND cv.title ILIKE %L'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'%'</span>||<span style="color:#3b6ac8">coalesce</span><span style="color:#323232">(</span>book_title<span style="color:#323232">,</span><span style="color:#1094a0">''</span><span style="color:#323232">)</span>||<span style="color:#1094a0">'%'</span><span style="color:#323232">);</span>
+    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">IF</span> author_name <span style="color:#323232">!=</span> <span style="color:#1094a0">''</span> <span style="color:#3b6ac8">THEN</span>
+        author_cond <span style="color:#323232">:=</span> <span style="color:#c73a69">format</span><span style="color:#323232">(</span><span style="color:#1094a0">' AND cv.authors ILIKE %L'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'%'</span>||<span style="color:#3b6ac8">coalesce</span><span style="color:#323232">(</span>author_name<span style="color:#323232">,</span><span style="color:#1094a0">''</span><span style="color:#323232">)</span>||<span style="color:#1094a0">'%'</span><span style="color:#323232">);</span>
+    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">IF</span> in_stock <span style="color:#3b6ac8">THEN</span>
+        qty_cond <span style="color:#323232">:=</span> <span style="color:#1094a0">' AND cv.onhand_qty &gt; 0'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN QUERY EXECUTE</span> <span style="color:#1094a0">'</span>
+<span style="color:#1094a0">        SELECT cv.book_id, </span>
+<span style="color:#1094a0">               cv.display_name,</span>
+<span style="color:#1094a0">               cv.onhand_qty</span>
+<span style="color:#1094a0">        FROM   catalog_v cv</span>
+<span style="color:#1094a0">        WHERE  true'</span>
+        || title_cond || author_cond || qty_cond || <span style="color:#1094a0">'</span>
+<span style="color:#1094a0">        ORDER BY display_name'</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+</body>
+</html>

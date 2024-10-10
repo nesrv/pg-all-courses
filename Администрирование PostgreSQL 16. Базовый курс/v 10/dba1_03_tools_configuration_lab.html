@@ -1,0 +1,147 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Параметры, изменение которых требует перезапуска сервера
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> name<span style="color:#323232">,</span> setting<span style="color:#323232">,</span> unit <span style="color:#3b6ac8">FROM</span> pg_settings <span style="color:#3b6ac8">WHERE</span> context <span style="color:#323232">=</span> <span style="color:#1094a0">'postmaster'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                name                 |                setting                | unit 
+-------------------------------------+---------------------------------------+------
+ allow_system_table_mods             | off                                   | 
+ archive_mode                        | off                                   | 
+ autovacuum_freeze_max_age           | 200000000                             | 
+ autovacuum_max_workers              | 3                                     | 
+ autovacuum_multixact_freeze_max_age | 400000000                             | 
+ bonjour                             | off                                   | 
+ bonjour_name                        |                                       | 
+ cluster_name                        |                                       | 
+ config_file                         | /usr/local/pgsql/data/postgresql.conf | 
+ data_directory                      | /usr/local/pgsql/data                 | 
+ dynamic_shared_memory_type          | posix                                 | 
+ event_source                        | PostgreSQL                            | 
+ external_pid_file                   |                                       | 
+ hba_file                            | /usr/local/pgsql/data/pg_hba.conf     | 
+ hot_standby                         | on                                    | 
+ huge_pages                          | try                                   | 
+ ident_file                          | /usr/local/pgsql/data/pg_ident.conf   | 
+ listen_addresses                    | localhost                             | 
+ logging_collector                   | off                                   | 
+ max_connections                     | 100                                   | 
+ max_files_per_process               | 1000                                  | 
+ max_locks_per_transaction           | 64                                    | 
+ max_logical_replication_workers     | 4                                     | 
+ max_pred_locks_per_transaction      | 64                                    | 
+ max_prepared_transactions           | 0                                     | 
+ max_replication_slots               | 10                                    | 
+ max_wal_senders                     | 10                                    | 
+ max_worker_processes                | 8                                     | 
+ old_snapshot_threshold              | -1                                    | min
+ port                                | 5432                                  | 
+ shared_buffers                      | 16384                                 | 8kB
+ shared_preload_libraries            |                                       | 
+ superuser_reserved_connections      | 3                                     | 
+ track_activity_query_size           | 1024                                  | 
+ track_commit_timestamp              | off                                   | 
+ unix_socket_directories             | /tmp                                  | 
+ unix_socket_group                   |                                       | 
+ unix_socket_permissions             | 0777                                  | 
+ wal_buffers                         | 512                                   | 8kB
+ wal_level                           | replica                               | 
+ wal_log_hints                       | off                                   | 
+(41 rows)
+
+</pre></div>
+<h1>
+Установка listen_addresses
+</h1>
+<p class="C">
+Изменяем файл редактором sed (с тем же успехом можно воспользоваться любым
+другим редактором):
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\!</span> sed <span style="color:#1094a0">&quot;s/.*listen_addresses =.*/listen_addresses = '*'/&quot;</span> <span style="color:#323232">-</span>i <span style="color:#323232">/</span>usr<span style="color:#323232">/</span><span style="color:#3b6ac8">local</span><span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span><span style="color:#3b6ac8">data</span><span style="color:#323232">/</span>postgresql.conf
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+</pre></div>
+<p class="C">
+Убедимся, что новое значение есть в файле и ждет перезапуска сервера:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> pg_file_settings <span style="color:#3b6ac8">WHERE</span> name <span style="color:#323232">=</span> <span style="color:#1094a0">'listen_addresses'</span><span style="color:#00a150">\gx</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+-[ RECORD 1 ]-------------------------------------
+sourcefile | /usr/local/pgsql/data/postgresql.conf
+sourceline | 59
+seqno      | 1
+name       | listen_addresses
+setting    | *
+applied    | f
+error      | setting could not be applied
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> name<span style="color:#323232">,</span> setting<span style="color:#323232">,</span> pending_restart <span style="color:#3b6ac8">FROM</span> pg_settings <span style="color:#3b6ac8">WHERE</span> name <span style="color:#323232">=</span> <span style="color:#1094a0">'listen_addresses'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+       name       |  setting  | pending_restart 
+------------------+-----------+-----------------
+ listen_addresses | localhost | t
+(1 row)
+
+</pre></div>
+<h1>
+Применение и проверка
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\q</span>
+</pre>
+</div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>l <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data restart
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">postgres$ <span style="color:#00a150">psql</span> 
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SHOW</span> listen_addresses<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ listen_addresses 
+------------------
+ *
+(1 row)
+
+</pre></div>
+</body>
+</html>

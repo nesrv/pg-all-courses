@@ -1,0 +1,501 @@
+<html><head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+    <style>
+    p.C    { font-size: 80%; }
+    li     { font-size: 80%; }
+    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+    div.E  { padding-left: 0px; font-weight: bold; }
+    div.R  { padding-left: 0px; }
+    </style>
+    </head>
+    <body style="margin: 59.5px;">
+    <!-- body -->
+    <!-- 5 -->
+    <h1>
+    Управление транзакциями
+    </h1>
+    <p class="C">
+    По умолчанию psql работает в режиме автофиксации:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\echo :AUTOCOMMIT</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">on
+    </pre></div>
+    <p class="C">
+    Это приводит к тому, что любая команда, выданная без явного указания начала транзакции, сразу же фиксируется.
+    </p>
+    <ul class="U">
+    <li>
+    Включен ли аналогичный режим в драйвере PostgreSQL вашего любимого языка программирования?
+    </li>
+    </ul>
+    <p class="C">
+    Создадим таблицу с одной строкой:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>
+        id <span style="color:#a00050">integer</span><span style="color:#323232">,</span>
+        s <span style="color:#a00050">text</span>
+    <span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE TABLE
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id<span style="color:#323232">,</span> s<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span> <span style="color:#1094a0">'foo'</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">INSERT 0 1
+    </pre></div>
+    <p class="C">
+    Другая транзакция увидит таблицу и строку?
+    </p>
+    <div class="S2">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R2"><pre class="R2"> id |  s  
+    ----+-----
+      1 | foo
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    Да. Сравните:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span> <span style="color:#969696">-- явно начинаем транзакцию</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">BEGIN
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id<span style="color:#323232">,</span> s<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span> <span style="color:#1094a0">'bar'</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">INSERT 0 1
+    </pre></div>
+    <p class="C">
+    Что увидит другая транзакция на этот раз?
+    </p>
+    <div class="S2">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R2"><pre class="R2"> id |  s  
+    ----+-----
+      1 | foo
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    Изменения еще не зафиксированы, поэтому не видны другой транзакции.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">COMMIT
+    </pre></div>
+    <p class="C">
+    А теперь?
+    </p>
+    <div class="S2">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R2"><pre class="R2"> id |  s  
+    ----+-----
+      1 | foo
+      2 | bar
+    (2 rows)
+    
+    </pre></div>
+    <p class="C">
+    Режим без автофиксации неявно начинает транзакцию при первой выданной команде; изменения надо фиксировать самостоятельно.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\set</span> AUTOCOMMIT off
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"></pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id<span style="color:#323232">,</span> s<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">3</span><span style="color:#323232">,</span> <span style="color:#1094a0">'baz'</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">INSERT 0 1
+    </pre></div>
+    <p class="C">
+    Что на этот раз?
+    </p>
+    <div class="S2">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R2"><pre class="R2"> id |  s  
+    ----+-----
+      1 | foo
+      2 | bar
+    (2 rows)
+    
+    </pre></div>
+    <p class="C">
+    Изменения не видны; транзакция была начата неявно.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">COMMIT
+    </pre></div>
+    <p class="C">
+    Ну и наконец:
+    </p>
+    <div class="S2">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R2"><pre class="R2"> id |  s  
+    ----+-----
+      1 | foo
+      2 | bar
+      3 | baz
+    (3 rows)
+    
+    </pre></div>
+    <p class="C">
+    Восстановим режим, в котором psql работает по умолчанию.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\set</span> AUTOCOMMIT on
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"></pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Изменения можно откатывать, не прерывая транзакцию (хотя необходимость в этом возникает нечасто).
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">BEGIN
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SAVEPOINT</span> sp<span style="color:#323232">;</span> <span style="color:#969696">-- точка сохранения</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">SAVEPOINT
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id<span style="color:#323232">,</span> s<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">4</span><span style="color:#323232">,</span> <span style="color:#1094a0">'qux'</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">INSERT 0 1
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> id |  s  
+    ----+-----
+      1 | foo
+      2 | bar
+      3 | baz
+      4 | qux
+    (4 rows)
+    
+    </pre></div>
+    <p class="C">
+    Обратите внимание: свои собственные изменения транзакция видит, даже если они не зафиксированы.
+    </p>
+    <p class="C">
+    Теперь откатим все до точки сохранения.
+    </p>
+    <p class="C">
+    Откат к точке сохранения не подразумевает передачу управления (то есть не работает как GOTO); отменяются только изменения состояния БД, выполненные от момента установки точки до текущего момента.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ROLLBACK TO</span> sp<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">ROLLBACK
+    </pre></div>
+    <p class="C">
+    Что увидим?
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> id |  s  
+    ----+-----
+      1 | foo
+      2 | bar
+      3 | baz
+    (3 rows)
+    
+    </pre></div>
+    <p class="C">
+    Сейчас изменения отменены, но транзакция продолжается:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id<span style="color:#323232">,</span> s<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">4</span><span style="color:#323232">,</span> <span style="color:#1094a0">'xyz'</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">INSERT 0 1
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">COMMIT
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> id |  s  
+    ----+-----
+      1 | foo
+      2 | bar
+      3 | baz
+      4 | xyz
+    (4 rows)
+    
+    </pre></div>
+    <!-- end -->
+    
+    
+    </body></html>
+
+    <html><head>
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+        <style>
+        p.C    { font-size: 80%; }
+        li     { font-size: 80%; }
+        h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+        div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+        div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+        div.R1 { padding-left: 0px; page-break-inside: avoid; }
+        div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+        div.E  { padding-left: 0px; font-weight: bold; }
+        div.R  { padding-left: 0px; }
+        </style>
+        </head>
+        <body style="margin: 59.5px;">
+        <!-- body -->
+        <!-- 8 -->
+        <h1>
+        Подготовленные операторы
+        </h1>
+        <p class="C">
+        В SQL оператор подготавливается командой PREPARE (это команда является расширением PostgreSQL, она отсутствует в стандарте):
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">PREPARE</span> <span style="color:#c73a69">q</span><span style="color:#323232">(</span><span style="color:#a00050">integer</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span>
+            <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> id <span style="color:#323232">=</span> <span style="color:#00a150">$1</span><span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">PREPARE
+        </pre></div>
+        <p class="C">
+        При этом выполняется разбор, трансформация и запоминается полученное дерево разбора.
+        </p>
+        <p class="C">
+        После подготовки оператор можно вызывать по имени, передавая фактические параметры:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXECUTE</span> <span style="color:#c73a69">q</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1"> id |  s  
+        ----+-----
+          1 | foo
+        (1 row)
+        
+        </pre></div>
+        <p class="C">
+        Если у&nbsp;запроса нет параметров, при подготовке запоминается и построенный план выполнения. Если же параметры есть, как в этом примере, то их фактические значения принимаются во внимание при планировании. Но планировщик может счесть, что план, построенный без учета параметров, окажется не хуже, и тогда перестанет выполнять планирование повторно.
+        </p>
+        <ul class="U">
+        <li>
+        А как подготовить и выполнить оператор в вашем любимом языке?
+        </li>
+        <li>
+        Есть ли возможность выполнить оператор, НЕ подготавливая его?
+        </li>
+        </ul>
+        <p class="C">
+        Все подготовленные операторы можно увидеть в представлении:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> pg_prepared_statements <span style="color:#00a150">\gx</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">-[ RECORD 1 ]---+-----------------------------------
+        name            | q
+        statement       | PREPARE q(integer) AS             +
+                        |     SELECT * FROM t WHERE id = $1;
+        prepare_time    | 2023-07-26 11:03:28.478946+03
+        parameter_types | {integer}
+        from_sql        | t
+        
+        </pre></div>
+        <!-- end -->
+        
+        
+        </body></html>
+
+        <html><head>
+            <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+            <style>
+            p.C    { font-size: 80%; }
+            li     { font-size: 80%; }
+            h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+            div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+            div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+            div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+            div.R1 { padding-left: 0px; page-break-inside: avoid; }
+            div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+            div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+            div.E  { padding-left: 0px; font-weight: bold; }
+            div.R  { padding-left: 0px; }
+            </style>
+            </head>
+            <body style="margin: 59.5px;">
+            <!-- body -->
+            <!-- 10 -->
+            <h1>
+            Курсоры
+            </h1>
+            <p class="C">
+            Обычная команда SELECT получает сразу все строки:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">ORDER BY</span> id<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> id |  s  
+            ----+-----
+              1 | foo
+              2 | bar
+              3 | baz
+              4 | xyz
+            (4 rows)
+            
+            </pre></div>
+            <p class="C">
+            Курсор позволяет получать данные построчно.
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">BEGIN
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DECLARE</span> c <span style="color:#3b6ac8">CURSOR FOR</span>
+                <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">ORDER BY</span> id<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">DECLARE CURSOR
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">FETCH</span> c<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> id |  s  
+            ----+-----
+              1 | foo
+            (1 row)
+            
+            </pre></div>
+            <p class="C">
+            Размер выборки можно указывать:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">FETCH</span> <span style="color:#1094a0">2</span> c<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> id |  s  
+            ----+-----
+              2 | bar
+              3 | baz
+            (2 rows)
+            
+            </pre></div>
+            <p class="C">
+            Размер выборки играет большое значение, когда строк очень много: обрабатывать большой объем данных построчно очень неэффективно.
+            </p>
+            <p class="C">
+            Что, если в процессе чтения мы дойдем до конца таблицы?
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">FETCH</span> <span style="color:#1094a0">2</span> c<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> id |  s  
+            ----+-----
+              4 | xyz
+            (1 row)
+            
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">FETCH</span> <span style="color:#1094a0">2</span> c<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> id | s 
+            ----+---
+            (0 rows)
+            
+            </pre></div>
+            <p class="C">
+            FETCH просто перестанет возвращать строки. В обычных языках программирования всегда есть возможность проверить это условие.
+            </p>
+            <ul class="U">
+            <li>
+            Как в вашем языке программирования получать данные построчно с помощью курсора?
+            </li>
+            <li>
+            Есть ли возможность НЕ пользоваться курсором и получить все строки сразу?
+            </li>
+            <li>
+            Как настраивается размер выборки для курсора?
+            </li>
+            </ul>
+            <p class="C">
+            По окончании работы открытый курсор можно закрыть, освобождая ресурсы:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CLOSE</span> c<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">CLOSE CURSOR
+            </pre></div>
+            <p class="C">
+            Однако курсоры закрываются автоматически по завершению транзакции, так что можно не закрывать их явно. (Исключение составляют курсоры, открытые с указанием WITH HOLD.)
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">COMMIT
+            </pre></div>
+            <!-- end -->
+            
+            
+            </body></html>
+
+            
+

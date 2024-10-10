@@ -1,0 +1,361 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Подготовка
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> wal_tuning<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pgbench</span> <span style="color:#323232">-</span>i wal_tuning
+</pre>
+</div>
+<div class="R"><pre class="R">
+NOTICE:  table &quot;pgbench_history&quot; does not exist, skipping
+NOTICE:  table &quot;pgbench_tellers&quot; does not exist, skipping
+NOTICE:  table &quot;pgbench_accounts&quot; does not exist, skipping
+NOTICE:  table &quot;pgbench_branches&quot; does not exist, skipping
+creating tables...
+100000 of 100000 tuples (100%) done (elapsed 0.13 s, remaining 0.00 s)
+vacuum...
+set primary keys...
+done.
+</pre></div>
+<h1>
+Full page writes = on
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SHOW</span> full_page_writes<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ full_page_writes 
+------------------
+ on
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CHECKPOINT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CHECKPOINT
+</pre></div>
+<p class="C">
+Запускаем тест на 15 секунд.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_current_wal_insert_lsn</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_current_wal_insert_lsn 
+---------------------------
+ 0/33429A54
+(1 row)
+
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pgbench</span> <span style="color:#323232">-</span>T <span style="color:#1094a0">15</span> wal_tuning
+</pre>
+</div>
+<div class="R"><pre class="R">
+starting vacuum...end.
+transaction type: &lt;builtin: TPC-B (sort of)&gt;
+scaling factor: 1
+query mode: simple
+number of clients: 1
+number of threads: 1
+duration: 15 s
+number of transactions actually processed: 14047
+latency average = 1.068 ms
+tps = 936.419516 (including connections establishing)
+tps = 936.590413 (excluding connections establishing)
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_current_wal_insert_lsn</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_current_wal_insert_lsn 
+---------------------------
+ 0/347BC290
+(1 row)
+
+</pre></div>
+<p class="C">
+Размер журнальных записей:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#1094a0">'0/347BC290'</span><span style="color:#323232">::</span><span style="color:#a00050">pg_lsn</span> <span style="color:#323232">-</span> <span style="color:#1094a0">'0/33429A54'</span><span style="color:#323232">::</span><span style="color:#a00050">pg_lsn</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_size_pretty 
+----------------
+ 20 MB
+(1 row)
+
+</pre></div>
+<h1>
+Full page writes = off
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> full_page_writes <span style="color:#323232">=</span> <span style="color:#3b6ac8">off</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_reload_conf</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CHECKPOINT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CHECKPOINT
+</pre></div>
+<p class="C">
+Запускаем тест на 15 секунд.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_current_wal_insert_lsn</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_current_wal_insert_lsn 
+---------------------------
+ 0/347BC348
+(1 row)
+
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pgbench</span> <span style="color:#323232">-</span>T <span style="color:#1094a0">15</span> wal_tuning
+</pre>
+</div>
+<div class="R"><pre class="R">
+starting vacuum...end.
+transaction type: &lt;builtin: TPC-B (sort of)&gt;
+scaling factor: 1
+query mode: simple
+number of clients: 1
+number of threads: 1
+duration: 15 s
+number of transactions actually processed: 14039
+latency average = 1.068 ms
+tps = 935.919149 (including connections establishing)
+tps = 936.039184 (excluding connections establishing)
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_current_wal_insert_lsn</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_current_wal_insert_lsn 
+---------------------------
+ 0/35A677C0
+(1 row)
+
+</pre></div>
+<p class="C">
+Размер журнальных записей:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#1094a0">'0/35A677C0'</span><span style="color:#323232">::</span><span style="color:#a00050">pg_lsn</span> <span style="color:#323232">-</span> <span style="color:#1094a0">'0/347BC348'</span><span style="color:#323232">::</span><span style="color:#a00050">pg_lsn</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_size_pretty 
+----------------
+ 19 MB
+(1 row)
+
+</pre></div>
+<p class="C">
+Размер уменьшился, но не так существенно, как можно было бы ожидать.
+</p>
+<p class="C">
+Причина в том, что кластер инициализирован с контрольными суммами в страницах
+данных:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SHOW</span> data_checksums<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ data_checksums 
+----------------
+ on
+(1 row)
+
+</pre></div>
+<p class="C">
+При этом, несмотря на то, что full_page_writes выключен, в журнал все равно
+записываются полные образы страниц при изменении битов подсказок. Эти данные
+и составляют большую часть всего объема:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_waldump</span> <span style="color:#323232">--</span>stats <span style="color:#323232">-</span>p <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data<span style="color:#323232">/</span>pg_wal <span style="color:#323232">-</span>s <span style="color:#1094a0">'0/347BC348'</span> <span style="color:#323232">-</span>e <span style="color:#1094a0">'0/35A677C0'</span>
+</pre>
+</div>
+<div class="R"><pre class="R">
+Type                                           N      (%)          Record size      (%)             FPI size      (%)        Combined size      (%)
+----                                           -      ---          -----------      ---             --------      ---        -------------      ---
+XLOG                                        1719 (  2,00)                84231 (  1,50)             13840388 (100,00)             13924619 ( 71,62)
+Transaction                                14040 ( 16,30)               477440 (  8,52)                    0 (  0,00)               477440 (  2,46)
+Storage                                        1 (  0,00)                   42 (  0,00)                    0 (  0,00)                   42 (  0,00)
+CLOG                                           1 (  0,00)                   30 (  0,00)                    0 (  0,00)                   30 (  0,00)
+Database                                       0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+Tablespace                                     0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+MultiXact                                      0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+RelMap                                         0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+Standby                                        4 (  0,00)                  276 (  0,00)                    0 (  0,00)                  276 (  0,00)
+Heap2                                      14189 ( 16,48)               886699 ( 15,83)                    0 (  0,00)               886699 (  4,56)
+Heap                                       56159 ( 65,21)              4153565 ( 74,14)                    0 (  0,00)              4153565 ( 21,36)
+Btree                                          5 (  0,01)                  320 (  0,01)                    0 (  0,00)                  320 (  0,00)
+Hash                                           0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+Gin                                            0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+Gist                                           0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+Sequence                                       0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+SPGist                                         0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+BRIN                                           0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+CommitTs                                       0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+ReplicationOrigin                              0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+Generic                                        0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+LogicalMessage                                 0 (  0,00)                    0 (  0,00)                    0 (  0,00)                    0 (  0,00)
+                                        --------                      --------                      --------                      --------
+Total                                      86118                       5602603 [28,82%]             13840388 [71,18%]             19442991 [100%]
+</pre></div>
+<p class="C">
+Обратите внимание на общий размер (строка Total) полных образов (столбец
+FPI size).
+</p>
+<h1>
+Сжатие
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> full_page_writes <span style="color:#323232">=</span> <span style="color:#3b6ac8">on</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> wal_compression <span style="color:#323232">=</span> <span style="color:#3b6ac8">on</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_reload_conf</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CHECKPOINT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CHECKPOINT
+</pre></div>
+<p class="C">
+Запускаем тест на 15 секунд.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_current_wal_insert_lsn</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_current_wal_insert_lsn 
+---------------------------
+ 0/35A67878
+(1 row)
+
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pgbench</span> <span style="color:#323232">-</span>T <span style="color:#1094a0">15</span> wal_tuning
+</pre>
+</div>
+<div class="R"><pre class="R">
+starting vacuum...end.
+transaction type: &lt;builtin: TPC-B (sort of)&gt;
+scaling factor: 1
+query mode: simple
+number of clients: 1
+number of threads: 1
+duration: 15 s
+number of transactions actually processed: 13763
+latency average = 1.090 ms
+tps = 917.474784 (including connections establishing)
+tps = 917.615077 (excluding connections establishing)
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_current_wal_insert_lsn</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_current_wal_insert_lsn 
+---------------------------
+ 0/3623DD38
+(1 row)
+
+</pre></div>
+<p class="C">
+Размер журнальных записей:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#1094a0">'0/3623DD38'</span><span style="color:#323232">::</span><span style="color:#a00050">pg_lsn</span> <span style="color:#323232">-</span> <span style="color:#1094a0">'0/35A67878'</span><span style="color:#323232">::</span><span style="color:#a00050">pg_lsn</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_size_pretty 
+----------------
+ 8025 kB
+(1 row)
+
+</pre></div>
+<p class="C">
+В данном случае - при наличии большого числа полных образов страниц - размер
+журнальных записей уменьшился примерно в три раза. Хотя включение сжатия
+и нагружает процессор, практически наверняка им стоит воспользоваться при
+включенных контрольных суммах.
+</p>
+</body>
+</html>

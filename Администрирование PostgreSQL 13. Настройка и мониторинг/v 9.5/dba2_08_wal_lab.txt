@@ -1,0 +1,199 @@
+
+Создадим БД и таблицу
+~~~~~~~~~~~~~~~~~~~~~
+
+
+=> create database db8;
+CREATE DATABASE
+
+=> \c db8
+You are now connected to database "db8" as user "postgres".
+
+=> create table t(n numeric, t text);
+CREATE TABLE
+
+=> insert into t values (1, repeat('A',1000));
+INSERT 0 1
+
+Параметры (а)
+~~~~~~~~~~~~~
+
+
+=> alter system reset all;
+ALTER SYSTEM
+
+=> alter system set full_page_writes = on;
+ALTER SYSTEM
+
+=> alter system set wal_compression = off;
+ALTER SYSTEM
+
+=> \q
+
+pg_ctl restart -w -m fast -l /home/postgres/logfile 
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+psql 
+
+=> \c db8
+You are now connected to database "db8" as user "postgres".
+
+=> checkpoint;
+CHECKPOINT
+
+Выполняем изменение и определяем размер журнала.
+
+=> select pg_current_xlog_location() as start_lsn \gset
+
+=> \setenv START_LSN :start_lsn
+
+=> select pg_xlogfile_name(:'start_lsn') as start_seg \gset
+
+=> \setenv START_SEG :start_seg
+
+=> update t set n=n+1;
+UPDATE 1
+
+=> select pg_current_xlog_location() as end_lsn \gset
+
+=> \setenv END_LSN :end_lsn
+
+=> select :'end_lsn'::pg_lsn - :'start_lsn'::pg_lsn;
+ ?column? 
+----------
+     2208
+(1 row)
+
+
+Журнал включает запись об изменении строки с занятой частью страницы (FPW = Full Page Write) и запись о фиксации изменений.
+
+=> \! pg_xlogdump -p $PGDATA/pg_xlog -s $START_LSN -e $END_LSN $START_SEG
+rmgr: Heap        len (rec/tot):     14/  2169, tx:     558106, lsn: 3/FB4E4680, prev 3/FB4E4618, desc: HOT_UPDATE off 1 xmax 558106 ; new off 2 xmax 0, blkref #0: rel 1663/143784/143785 blk 0 FPW
+rmgr: Transaction len (rec/tot):      8/    34, tx:     558106, lsn: 3/FB4E4EFC, prev 3/FB4E4680, desc: COMMIT 2017-12-14 19:03:51.618072 MSK
+
+
+Параметры (б)
+~~~~~~~~~~~~~
+
+
+=> alter system set full_page_writes = on;
+ALTER SYSTEM
+
+=> alter system set wal_compression = on;
+ALTER SYSTEM
+
+=> \q
+
+pg_ctl restart -w -m fast -l /home/postgres/logfile 
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+psql 
+
+=> \c db8
+You are now connected to database "db8" as user "postgres".
+
+=> checkpoint;
+CHECKPOINT
+
+Выполняем изменение и определяем размер журнала.
+
+=> select pg_current_xlog_location() as start_lsn \gset
+
+=> \setenv START_LSN :start_lsn
+
+=> select pg_xlogfile_name(:'start_lsn') as start_seg \gset
+
+=> \setenv START_SEG :start_seg
+
+=> update t set n=n+1;
+UPDATE 1
+
+=> select pg_current_xlog_location() as end_lsn \gset
+
+=> \setenv END_LSN :end_lsn
+
+=> select :'end_lsn'::pg_lsn - :'start_lsn'::pg_lsn;
+ ?column? 
+----------
+      244
+(1 row)
+
+
+Журнал включает запись об изменении строки вместе со сжатой страницей и запись о фиксации изменений.
+
+=> \! pg_xlogdump -p $PGDATA/pg_xlog -s $START_LSN -e $END_LSN $START_SEG
+rmgr: Heap        len (rec/tot):     14/   207, tx:     558107, lsn: 3/FB4E4FF0, prev 3/FB4E4F88, desc: HOT_UPDATE off 2 xmax 558107 ; new off 3 xmax 0, blkref #0: rel 1663/143784/143785 blk 0 FPW
+rmgr: Transaction len (rec/tot):      8/    34, tx:     558107, lsn: 3/FB4E50C0, prev 3/FB4E4FF0, desc: COMMIT 2017-12-14 19:03:53.800838 MSK
+
+
+Параметры (в)
+~~~~~~~~~~~~~
+
+
+=> alter system set full_page_writes = off;
+ALTER SYSTEM
+
+=> \q
+
+pg_ctl restart -w -m fast -l /home/postgres/logfile 
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+psql 
+
+=> \c db8
+You are now connected to database "db8" as user "postgres".
+
+=> checkpoint;
+CHECKPOINT
+
+Выполняем изменение и определяем размер журнала.
+
+=> select pg_current_xlog_location() as start_lsn \gset
+
+=> \setenv START_LSN :start_lsn
+
+=> select pg_xlogfile_name(:'start_lsn') as start_seg \gset
+
+=> \setenv START_SEG :start_seg
+
+=> update t set n=n+1;
+UPDATE 1
+
+=> select pg_current_xlog_location() as end_lsn \gset
+
+=> \setenv END_LSN :end_lsn
+
+=> select :'end_lsn'::pg_lsn - :'start_lsn'::pg_lsn;
+ ?column? 
+----------
+      108
+(1 row)
+
+
+Журнал включает только запись об изменении строки и фиксации.
+
+
+=> \! pg_xlogdump -p $PGDATA/pg_xlog -s $START_LSN -e $END_LSN $START_SEG
+rmgr: Heap        len (rec/tot):     14/    71, tx:     558108, lsn: 3/FB4E51B4, prev 3/FB4E514C, desc: HOT_UPDATE off 3 xmax 558108 ; new off 4 xmax 0, blkref #0: rel 1663/143784/143785 blk 0
+rmgr: Transaction len (rec/tot):      8/    34, tx:     558108, lsn: 3/FB4E51FC, prev 3/FB4E51B4, desc: COMMIT 2017-12-14 19:03:55.980765 MSK
+
+Восстанавливаем настройки
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+=> alter system reset all;
+ALTER SYSTEM
+
+=> \q
+
+pg_ctl restart -w -m fast -l /home/postgres/logfile 
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started

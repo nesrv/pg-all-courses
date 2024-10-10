@@ -1,0 +1,217 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Функция для получения случайной строки заданного размера
+</h1>
+<p class="C">
+Вначале определим вспомогательную функцию для получения случайного целого
+числа в заданном диапазоне. Такую функцию легко написать на чистом SQL,
+но здесь представлен вариант на PL/pgSQL:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">rnd_integer</span><span style="color:#323232">(</span>min_value <span style="color:#a00050">integer</span><span style="color:#323232">,</span> max_value <span style="color:#a00050">integer</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    retval <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">IF</span> max_value <span style="color:#323232">&lt;=</span> min_value <span style="color:#3b6ac8">THEN</span> 
+       <span style="color:#3b6ac8">RETURN NULL</span><span style="color:#323232">;</span> 
+    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+
+    retval <span style="color:#323232">:=</span> <span style="color:#c73a69">floor</span><span style="color:#323232">((</span>max_value<span style="color:#323232">+</span><span style="color:#1094a0">1</span> <span style="color:#323232">-</span> min_value<span style="color:#323232">)*</span><span style="color:#c73a69">random</span><span style="color:#323232">())::</span><span style="color:#a00050">integer</span> <span style="color:#323232">+</span> min_value<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN</span> retval<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STRICT LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Проверяем работу:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">rnd_integer</span><span style="color:#323232">(</span><span style="color:#1094a0">0</span><span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">as</span> <span style="color:#1094a0">&quot;0 - 1&quot;</span><span style="color:#323232">,</span>
+          <span style="color:#c73a69">rnd_integer</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">365</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">as</span> <span style="color:#1094a0">&quot;1 - 365&quot;</span><span style="color:#323232">,</span>
+          <span style="color:#c73a69">rnd_integer</span><span style="color:#323232">(-</span><span style="color:#1094a0">30</span><span style="color:#323232">,</span><span style="color:#1094a0">30</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">as</span> <span style="color:#1094a0">&quot;-30 - +30&quot;</span>
+   <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">10</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ 0 - 1 | 1 - 365 | -30 - +30 
+-------+---------+-----------
+     1 |     284 |        25
+     0 |     330 |        26
+     1 |     112 |       -21
+     0 |     179 |       -21
+     1 |     168 |       -25
+     1 |     140 |         9
+     0 |     307 |        17
+     0 |      48 |       -14
+     1 |      89 |         2
+     0 |      69 |       -14
+(10 rows)
+
+</pre></div>
+<p class="C">
+Функция гарантирует равномерное распределение случайных значений по всему
+диапазону, включая граничные значения:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> rnd_value<span style="color:#323232">,</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#323232">(</span>
+               <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">rnd_integer</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">5</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">as</span> rnd_value 
+               <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">100000</span><span style="color:#323232">)</span>
+   <span style="color:#323232">)</span> <span style="color:#3b6ac8">as</span> t <span style="color:#3b6ac8">GROUP by</span> rnd_value <span style="color:#3b6ac8">ORDER BY</span> rnd_value<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ rnd_value | count 
+-----------+-------
+         1 | 19942
+         2 | 20000
+         3 | 19983
+         4 | 19933
+         5 | 20142
+(5 rows)
+
+</pre></div>
+<p class="C">
+Теперь можно приступить к функции для получения случайной строки заданного
+размера. Будем использовать функцию rnd_integer для получения случайного
+символа из списка.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">rnd_text</span><span style="color:#323232">(</span>
+   len <span style="color:#a00050">int</span><span style="color:#323232">,</span>
+   list_of_chars <span style="color:#a00050">text</span> <span style="color:#3b6ac8">DEFAULT</span> <span style="color:#1094a0">'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯабвгдеёжзийклмнопрстуфхцчшщъыьэюяABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789'</span>
+<span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    len_of_list CONSTANT <span style="color:#a00050">integer</span> <span style="color:#323232">=</span> <span style="color:#c73a69">length</span><span style="color:#323232">(</span>list_of_chars<span style="color:#323232">);</span>
+    i <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    retval <span style="color:#a00050">text</span> <span style="color:#323232">=</span> <span style="color:#1094a0">''</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#1094a0">1</span> .. len <span style="color:#3b6ac8">LOOP</span>
+        <span style="color:#969696">-- добавляем к строке случайный символ</span>
+        retval <span style="color:#323232">:=</span> retval || <span style="color:#c73a69">substr</span><span style="color:#323232">(</span>list_of_chars<span style="color:#323232">,</span> <span style="color:#c73a69">rnd_integer</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span>len_of_list<span style="color:#323232">),</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN</span> retval<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STRICT LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Проверяем:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">rnd_text</span><span style="color:#323232">(</span><span style="color:#c73a69">rnd_integer</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">30</span><span style="color:#323232">))</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">10</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+            rnd_text            
+--------------------------------
+ y&#1099;Qd&#1092;&#1050;&#1065;&#1089;TC&#1076;j&#1048;m&#1058;U&#1042;&#1057;6&#1096;h0NS4XE&#1025;&#1083;&#1094;
+ &#1072;_
+ 9&#1081;h&#1065;d&#1093;c&#1044;&#1067;mq&#1085;&#1099;tA&#1096;&#1079;&#1075;&#1087;12
+ P&#1101;&#1087;80&#1093;&#1070;q&#1053;&#1070;&#1062;
+ &#1095;0&#1078;&#1062;4D8ly&#1097;T&#1091;_8Y&#1105;0QQF&#1055;&#1043;D&#1046;&#1097;ix
+ &#1043;&#1049;&#1096;&#1098;&#1040;hR4&#1105;Pg&#1066;&#1051;&#1092;P&#1042;&#1091;&#1080;
+ &#1081;65w&#1051;9&#1093;&#1059;&#1096;&#1066;
+ &#1043;&#1069;
+ &#1100;Y&#1056;&#1071;&#1083;
+ G8s
+(10 rows)
+
+</pre></div>
+<h1>
+Игра в наперстки
+</h1>
+<p class="C">
+Для загадывания и угадывания наперстка используем rnd_integer(1,3)
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    x <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    choice <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    new_choice <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    remove <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    total_games <span style="color:#a00050">integer</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">1000</span><span style="color:#323232">;</span>
+    old_choice_win_counter <span style="color:#a00050">integer</span> <span style="color:#323232">=</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+    new_choice_win_counter <span style="color:#a00050">integer</span> <span style="color:#323232">=</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#1094a0">1</span> .. total_games <span style="color:#3b6ac8">LOOP</span>
+        <span style="color:#969696">-- Загадываем выигрышный наперсток</span>
+        x <span style="color:#323232">:=</span> <span style="color:#c73a69">rnd_integer</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+    
+        <span style="color:#969696">-- Игрок делает выбор</span>
+        choice <span style="color:#323232">:=</span> <span style="color:#c73a69">rnd_integer</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+        
+        <span style="color:#969696">-- Убираем один неверный ответ, кроме выбора игрока</span>
+        <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#1094a0">1</span> .. <span style="color:#1094a0">3</span> <span style="color:#3b6ac8">LOOP</span>
+            <span style="color:#3b6ac8">IF</span> i <span style="color:#3b6ac8">NOT IN</span> <span style="color:#323232">(</span>x<span style="color:#323232">,</span> choice<span style="color:#323232">)</span> <span style="color:#3b6ac8">THEN</span> 
+                remove <span style="color:#323232">:=</span> i<span style="color:#323232">;</span> 
+                <span style="color:#3b6ac8">EXIT</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    
+        <span style="color:#969696">-- Нужно ли игроку менять свой выбор?    </span>
+        <span style="color:#969696">-- Что лучше оставить choice или заменить его на оставшийся?</span>
+    
+        <span style="color:#969696">-- Измененный выбор</span>
+        <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#1094a0">1</span> .. <span style="color:#1094a0">3</span> <span style="color:#3b6ac8">LOOP</span>
+            <span style="color:#3b6ac8">IF</span> i <span style="color:#3b6ac8">NOT IN</span> <span style="color:#323232">(</span>remove<span style="color:#323232">,</span> choice<span style="color:#323232">)</span> <span style="color:#3b6ac8">THEN</span> 
+                new_choice <span style="color:#323232">:=</span> i<span style="color:#323232">;</span> 
+                <span style="color:#3b6ac8">EXIT</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    
+        <span style="color:#969696">-- Или начальный, или новый выбор обязательно выиграют</span>
+        <span style="color:#3b6ac8">IF</span> choice <span style="color:#323232">=</span> x <span style="color:#3b6ac8">THEN</span>
+            old_choice_win_counter <span style="color:#323232">:=</span> old_choice_win_counter <span style="color:#323232">+</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">ELSIF</span> new_choice <span style="color:#323232">=</span> x <span style="color:#3b6ac8">THEN</span>
+            new_choice_win_counter <span style="color:#323232">:=</span> new_choice_win_counter <span style="color:#323232">+</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+
+    <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Выиграл начальный выбор : % из %'</span><span style="color:#323232">,</span> 
+        old_choice_win_counter<span style="color:#323232">,</span> total_games<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Выиграл измененный выбор: % из %'</span><span style="color:#323232">,</span> 
+        new_choice_win_counter<span style="color:#323232">,</span> total_games<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+NOTICE:  &#1042;&#1099;&#1080;&#1075;&#1088;&#1072;&#1083; &#1085;&#1072;&#1095;&#1072;&#1083;&#1100;&#1085;&#1099;&#1081; &#1074;&#1099;&#1073;&#1086;&#1088; : 332 &#1080;&#1079; 1000
+NOTICE:  &#1042;&#1099;&#1080;&#1075;&#1088;&#1072;&#1083; &#1080;&#1079;&#1084;&#1077;&#1085;&#1077;&#1085;&#1085;&#1099;&#1081; &#1074;&#1099;&#1073;&#1086;&#1088;: 668 &#1080;&#1079; 1000
+DO
+</pre></div>
+<p class="C">
+В начале мы выбираем 1 из 3, поэтому вероятность начального выбора 1/3.
+Если же выбор изменить, то изменится и вероятность на противоположные 2/3.
+</p>
+<p class="C">
+Таким образом, вероятность выиграть при смене выбора выше. Поэтому есть
+смысл выбор поменять.
+</p>
+</body>
+</html>

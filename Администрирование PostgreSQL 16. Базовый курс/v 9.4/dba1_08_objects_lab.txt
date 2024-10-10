@@ -1,0 +1,58 @@
+
+        psql 
+
+База данных и таблица
+~~~~~~~~~~~~~~~~~~~~~
+
+
+        => create database db8;
+        CREATE DATABASE
+
+        => \c db8
+        You are now connected to database "db8" as user "postgres".
+
+        => create table observations(
+        =>   date_taken date not null,
+        =>   temp numeric check( temp between -60 and 60 )
+        => );
+        CREATE TABLE
+
+Добавление записей и проверка ограничений
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => insert into observations values (current_date, 25), (current_date-1, 22);
+        INSERT 0 2
+
+        => insert into observations values (current_date, 70);
+        ERROR:  new row for relation "observations" violates check constraint "observations_temp_check"
+        DETAIL:  Failing row contains (2016-06-16, 70).
+
+        => insert into observations values (null, 20);
+        ERROR:  null value in column "date_taken" violates not-null constraint
+        DETAIL:  Failing row contains (null, 20).
+
+Представление
+~~~~~~~~~~~~~
+
+
+        => create view observ_fahrenheit as
+        =>   select date_taken, temp as celsius, round(temp*5/9+32) as fahrenheit from observations;
+        CREATE VIEW
+
+        => select * from observ_fahrenheit;
+         date_taken | celsius | fahrenheit 
+        ------------+---------+------------
+         2016-06-16 |      25 |         46
+         2016-06-15 |      22 |         44
+        (2 rows)
+        
+
+Индекс
+~~~~~~
+
+
+        => create index observations_date on observations(date_taken);
+        CREATE INDEX
+
+        => \q

@@ -1,0 +1,196 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+База данных и роли
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> access_privileges<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE USER</span> writer<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE ROLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE USER</span> reader<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE ROLE
+</pre></div>
+<h1>
+Привилегии
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> access_privileges
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;access_privileges&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">REVOKE ALL ON SCHEMA</span> public <span style="color:#3b6ac8">FROM</span> public<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+REVOKE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT ALL ON SCHEMA</span> public <span style="color:#3b6ac8">TO</span> writer<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT</span> USAGE <span style="color:#3b6ac8">ON SCHEMA</span> public <span style="color:#3b6ac8">TO</span> reader<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<h1>
+Привилегии по умолчанию
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER DEFAULT PRIVILEGES</span>
+<span style="color:#3b6ac8">FOR ROLE</span> writer
+<span style="color:#3b6ac8">GRANT SELECT ON TABLES TO</span> reader<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER DEFAULT PRIVILEGES
+</pre></div>
+<h1>
+Пользователи
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE ROLE</span> w1 <span style="color:#3b6ac8">LOGIN IN ROLE</span> writer<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE ROLE
+</pre></div>
+<p class="C">
+Конструкция IN ROLE сразу же добавляет новую роль в указанную. То есть такая
+команда эквивалентна:
+</p>
+<ul class="U">
+<li>CREATE ROLE w1 LOGIN;</li>
+<li>GRANT writer TO w1;</li>
+</ul>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE ROLE</span> r1 <span style="color:#3b6ac8">LOGIN IN ROLE</span> reader<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE ROLE
+</pre></div>
+<h1>
+Таблица
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#323232">-</span> writer
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;access_privileges&quot; as user &quot;writer&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<h1>
+Проверка
+</h1>
+<p class="C">
+Роль w1 может вставлять строки:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#323232">-</span> w1
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;access_privileges&quot; as user &quot;w1&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">42</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<p class="C">
+Роль r1 может читать таблицу:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#323232">-</span> r1
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;access_privileges&quot; as user &quot;r1&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ n  
+----
+ 42
+(1 row)
+
+</pre></div>
+<p class="C">
+Но не может изменить:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ERROR:  permission denied for relation t
+</pre></div>
+<p class="C">
+Роль w1 может удалить таблицу:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#323232">-</span> w1
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;access_privileges&quot; as user &quot;w1&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">drop table</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DROP TABLE
+</pre></div>
+</body>
+</html>

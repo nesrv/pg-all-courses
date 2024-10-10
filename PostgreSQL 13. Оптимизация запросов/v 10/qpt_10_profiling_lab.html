@@ -1,0 +1,195 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Отчет
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">qty</span><span style="color:#323232">(</span>aircraft_code <span style="color:#a00050">char</span><span style="color:#323232">,</span> fare_conditions <span style="color:#a00050">varchar</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">bigint</span> <span style="color:#3b6ac8">AS</span> $$
+  <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span>
+  <span style="color:#3b6ac8">FROM</span> flights f 
+    <span style="color:#3b6ac8">JOIN</span> boarding_passes bp <span style="color:#3b6ac8">ON</span> bp.flight_id <span style="color:#323232">=</span> f.flight_id 
+    <span style="color:#3b6ac8">JOIN</span> seats s <span style="color:#3b6ac8">ON</span> s.aircraft_code <span style="color:#323232">=</span> f.aircraft_code <span style="color:#3b6ac8">AND</span> s.seat_no <span style="color:#323232">=</span> bp.seat_no 
+  <span style="color:#3b6ac8">WHERE</span> f.aircraft_code <span style="color:#323232">=</span> qty.aircraft_code <span style="color:#3b6ac8">AND</span> s.fare_conditions <span style="color:#323232">=</span> qty.fare_conditions<span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STABLE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">report</span><span style="color:#323232">()</span>
+<span style="color:#3b6ac8">RETURNS TABLE</span><span style="color:#323232">(</span>model <span style="color:#a00050">text</span><span style="color:#323232">,</span> economy <span style="color:#a00050">bigint</span><span style="color:#323232">,</span> comfort <span style="color:#a00050">bigint</span><span style="color:#323232">,</span> business <span style="color:#a00050">bigint</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+  r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span> 
+  <span style="color:#3b6ac8">FOR</span> r <span style="color:#3b6ac8">IN SELECT</span> a.aircraft_code<span style="color:#323232">,</span> a.model <span style="color:#3b6ac8">FROM</span> aircrafts a <span style="color:#3b6ac8">ORDER BY</span> a.model <span style="color:#3b6ac8">LOOP</span>
+    report.model <span style="color:#323232">:=</span> r.model<span style="color:#323232">;</span>
+    report.economy <span style="color:#323232">:=</span> <span style="color:#c73a69">qty</span><span style="color:#323232">(</span>r.aircraft_code<span style="color:#323232">,</span> <span style="color:#1094a0">'Economy'</span><span style="color:#323232">);</span>
+    report.comfort <span style="color:#323232">:=</span> <span style="color:#c73a69">qty</span><span style="color:#323232">(</span>r.aircraft_code<span style="color:#323232">,</span> <span style="color:#1094a0">'Comfort'</span><span style="color:#323232">);</span>
+    report.business <span style="color:#323232">:=</span> <span style="color:#c73a69">qty</span><span style="color:#323232">(</span>r.aircraft_code<span style="color:#323232">,</span> <span style="color:#1094a0">'Business'</span><span style="color:#323232">);</span>
+    <span style="color:#3b6ac8">RETURN NEXT</span><span style="color:#323232">;</span>
+  <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Включаем вывод операторов и времени их выполнения в журнал:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> log_min_duration_statement <span style="color:#323232">=</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SET
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">report</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+        model        | economy | comfort | business 
+---------------------+---------+---------+----------
+ &#1040;&#1101;&#1088;&#1086;&#1073;&#1091;&#1089; A319-100    |  337129 |       0 |    70232
+ &#1040;&#1101;&#1088;&#1086;&#1073;&#1091;&#1089; A320-200    |       0 |       0 |        0
+ &#1040;&#1101;&#1088;&#1086;&#1073;&#1091;&#1089; A321-200    |  649388 |       0 |   127982
+ &#1041;&#1086;&#1080;&#1085;&#1075; 737-300       |  589901 |       0 |    59829
+ &#1041;&#1086;&#1080;&#1085;&#1075; 767-300       |  817621 |       0 |   127947
+ &#1041;&#1086;&#1080;&#1085;&#1075; 777-300       |  895896 |  132571 |    83080
+ &#1041;&#1086;&#1084;&#1073;&#1072;&#1088;&#1076;&#1100;&#1077; CRJ-200   | 1155683 |       0 |        0
+ &#1057;&#1077;&#1089;&#1089;&#1085;&#1072; 208 &#1050;&#1072;&#1088;&#1072;&#1074;&#1072;&#1085;  |  111096 |       0 |        0
+ &#1057;&#1091;&#1093;&#1086;&#1081; &#1057;&#1091;&#1087;&#1077;&#1088;&#1076;&#1078;&#1077;&#1090;-100 | 2425034 |       0 |   342423
+(9 rows)
+
+</pre></div>
+<h1>
+Сообщения в журнале
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">tail</span> <span style="color:#323232">-</span>n <span style="color:#1094a0">1</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>log<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>postgresql-10-main.log
+</pre>
+</div>
+<div class="R"><pre class="R">
+2019-02-13 13:18:07.598 MSK [15142] postgres@demo LOG:  duration: 26297.018 ms  statement: SELECT * FROM report();
+</pre></div>
+<p class="C">
+Вложенные SQL-операторы не выводятся.
+</p>
+<h1>
+Расширение auto_explain
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">LOAD</span> <span style="color:#1094a0">'auto_explain'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+LOAD
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">RESET</span> log_min_duration_statement<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+RESET
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> auto_explain.log_min_duration <span style="color:#323232">=</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SET
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> auto_explain.log_nested_statements <span style="color:#323232">=</span> <span style="color:#3b6ac8">on</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SET
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">report</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+        model        | economy | comfort | business 
+---------------------+---------+---------+----------
+ &#1040;&#1101;&#1088;&#1086;&#1073;&#1091;&#1089; A319-100    |  337129 |       0 |    70232
+ &#1040;&#1101;&#1088;&#1086;&#1073;&#1091;&#1089; A320-200    |       0 |       0 |        0
+ &#1040;&#1101;&#1088;&#1086;&#1073;&#1091;&#1089; A321-200    |  649388 |       0 |   127982
+ &#1041;&#1086;&#1080;&#1085;&#1075; 737-300       |  589901 |       0 |    59829
+ &#1041;&#1086;&#1080;&#1085;&#1075; 767-300       |  817621 |       0 |   127947
+ &#1041;&#1086;&#1080;&#1085;&#1075; 777-300       |  895896 |  132571 |    83080
+ &#1041;&#1086;&#1084;&#1073;&#1072;&#1088;&#1076;&#1100;&#1077; CRJ-200   | 1155683 |       0 |        0
+ &#1057;&#1077;&#1089;&#1089;&#1085;&#1072; 208 &#1050;&#1072;&#1088;&#1072;&#1074;&#1072;&#1085;  |  111096 |       0 |        0
+ &#1057;&#1091;&#1093;&#1086;&#1081; &#1057;&#1091;&#1087;&#1077;&#1088;&#1076;&#1078;&#1077;&#1090;-100 | 2425034 |       0 |   342423
+(9 rows)
+
+</pre></div>
+<h1>
+Сообщения в журнале
+</h1>
+<p class="C">
+Выведем несколько последних строк:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">tail</span> <span style="color:#323232">-</span>n <span style="color:#1094a0">30</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>log<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>postgresql-10-main.log
+</pre>
+</div>
+<div class="R"><pre class="R">
+	  -&gt;  Gather  (cost=104104.20..104104.41 rows=2 width=8)
+	        Workers Planned: 2
+	        -&gt;  Partial Aggregate  (cost=103104.20..103104.21 rows=1 width=8)
+	              -&gt;  Hash Join  (cost=5453.83..102909.20 rows=78002 width=0)
+	                    Hash Cond: ((bp.seat_no)::text = (s.seat_no)::text)
+	                    -&gt;  Hash Join  (cost=5437.56..101791.98 rows=412799 width=7)
+	                          Hash Cond: (bp.flight_id = f.flight_id)
+	                          -&gt;  Parallel Seq Scan on boarding_passes bp  (cost=0.00..87685.35 rows=3302435 width=7)
+	                          -&gt;  Hash  (cost=5101.84..5101.84 rows=26858 width=8)
+	                                Buckets: 65536 (originally 32768)  Batches: 1 (originally 1)  Memory Usage: 1766kB
+	                                -&gt;  Seq Scan on flights f  (cost=0.00..5101.84 rows=26858 width=8)
+	                                      Filter: (aircraft_code = $1)
+	                    -&gt;  Hash  (cost=15.64..15.64 rows=50 width=7)
+	                          Buckets: 1024  Batches: 1  Memory Usage: 5kB
+	                          -&gt;  Bitmap Heap Scan on seats s  (cost=5.41..15.64 rows=50 width=7)
+	                                Recheck Cond: (aircraft_code = $1)
+	                                Filter: ((fare_conditions)::text = ($2)::text)
+	                                -&gt;  Bitmap Index Scan on seats_pkey  (cost=0.00..5.39 rows=149 width=0)
+	                                      Index Cond: (aircraft_code = $1)
+2019-02-13 13:18:32.977 MSK [15142] postgres@demo CONTEXT:  SQL function &quot;qty&quot; statement 1
+	PL/pgSQL function report() line 9 at assignment
+2019-02-13 13:18:32.978 MSK [15142] postgres@demo LOG:  duration: 0.158 ms  plan:
+	Query Text: SELECT a.aircraft_code, a.model FROM aircrafts a ORDER BY a.model
+	Sort  (cost=3.51..3.53 rows=9 width=48)
+	  Sort Key: ((ml.model -&gt;&gt; lang()))
+	  -&gt;  Seq Scan on aircrafts_data ml  (cost=0.00..3.36 rows=9 width=48)
+2019-02-13 13:18:32.978 MSK [15142] postgres@demo CONTEXT:  PL/pgSQL function report() line 5 at FOR over SELECT rows
+2019-02-13 13:18:32.978 MSK [15142] postgres@demo LOG:  duration: 24922.590 ms  plan:
+	Query Text: SELECT * FROM report();
+	Function Scan on report  (cost=0.25..10.25 rows=1000 width=56)
+</pre></div>
+<p class="C">
+В журнал попадают вложенные запросы и планы выполнения - собственно, это и
+есть основная функция расширения.
+</p>
+</body>
+</html>

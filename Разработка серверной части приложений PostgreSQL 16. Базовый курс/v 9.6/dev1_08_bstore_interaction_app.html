@@ -1,0 +1,57 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Представления
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE VIEW</span> authors_v <span style="color:#3b6ac8">AS</span>
+<span style="color:#3b6ac8">SELECT</span> a.author_id<span style="color:#323232">,</span>
+       a.first_name || <span style="color:#1094a0">' '</span> ||
+	   a.last_name ||
+	   <span style="color:#3b6ac8">coalesce</span><span style="color:#323232">(</span><span style="color:#1094a0">' '</span> || <span style="color:#3b6ac8">nullif</span><span style="color:#323232">(</span>a.middle_name<span style="color:#323232">,</span> <span style="color:#1094a0">''</span><span style="color:#323232">),</span> <span style="color:#1094a0">''</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> display_name
+<span style="color:#3b6ac8">FROM</span>   authors a<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE VIEW
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE VIEW</span> catalog_v <span style="color:#3b6ac8">AS</span>
+<span style="color:#3b6ac8">SELECT</span> b.book_id<span style="color:#323232">,</span>
+       b.title <span style="color:#3b6ac8">AS</span> display_name
+<span style="color:#3b6ac8">FROM</span>   books b<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE VIEW
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE VIEW</span> operations_v <span style="color:#3b6ac8">AS</span>
+<span style="color:#3b6ac8">SELECT</span> book_id<span style="color:#323232">,</span>
+       <span style="color:#3b6ac8">CASE WHEN</span> qty_change <span style="color:#323232">&gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'Поступление'</span> <span style="color:#3b6ac8">ELSE</span> <span style="color:#1094a0">'Покупка'</span> <span style="color:#3b6ac8">END</span> op_type<span style="color:#323232">,</span> 
+       <span style="color:#c73a69">abs</span><span style="color:#323232">(</span>qty_change<span style="color:#323232">)</span> qty_change<span style="color:#323232">,</span> 
+       <span style="color:#c73a69">to_char</span><span style="color:#323232">(</span>date_created<span style="color:#323232">,</span> <span style="color:#1094a0">'DD.MM.YYYY'</span><span style="color:#323232">)</span> date_created
+<span style="color:#3b6ac8">FROM</span>   operations
+<span style="color:#3b6ac8">ORDER BY</span> operation_id<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE VIEW
+</pre></div>
+</body>
+</html>

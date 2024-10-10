@@ -1,0 +1,267 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+База данных и таблица
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> admin_monitoring<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> admin_monitoring
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;admin_monitoring&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n <span style="color:#a00050">numeric</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">1000</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1000
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DELETE FROM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DELETE 1000
+</pre></div>
+<h1>
+Статистика обращений
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;admin_monitoring&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\x</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+Expanded display is on.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> pg_stat_all_tables <span style="color:#3b6ac8">WHERE</span> relid<span style="color:#323232">=</span><span style="color:#1094a0">'t'</span><span style="color:#323232">::</span><span style="color:#a00050">regclass</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+-[ RECORD 1 ]-------+-------
+relid               | 16436
+schemaname          | public
+relname             | t
+seq_scan            | 1
+seq_tup_read        | 1000
+idx_scan            | 
+idx_tup_fetch       | 
+n_tup_ins           | 1000
+n_tup_upd           | 0
+n_tup_del           | 1000
+n_tup_hot_upd       | 0
+n_live_tup          | 0
+n_dead_tup          | 1000
+n_mod_since_analyze | 2000
+last_vacuum         | 
+last_autovacuum     | 
+last_analyze        | 
+last_autoanalyze    | 
+vacuum_count        | 0
+autovacuum_count    | 0
+analyze_count       | 0
+autoanalyze_count   | 0
+
+</pre></div>
+<p class="C">
+Мы вставили 1000 строк (n_tup_ins = 1000), удалили 1000 строк (n_tup_del
+= 1000).
+</p>
+<p class="C">
+После этого не осталось активных версий строк (n_live_tup = 0), все 1000
+строк не актуальны на текущий момент (n_dead_tup = 1000).
+</p>
+<h1>
+Очистка
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+VACUUM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> pg_stat_all_tables <span style="color:#3b6ac8">WHERE</span> relid<span style="color:#323232">=</span><span style="color:#1094a0">'t'</span><span style="color:#323232">::</span><span style="color:#a00050">regclass</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+-[ RECORD 1 ]-------+------------------------------
+relid               | 16436
+schemaname          | public
+relname             | t
+seq_scan            | 1
+seq_tup_read        | 1000
+idx_scan            | 
+idx_tup_fetch       | 
+n_tup_ins           | 1000
+n_tup_upd           | 0
+n_tup_del           | 1000
+n_tup_hot_upd       | 0
+n_live_tup          | 0
+n_dead_tup          | 0
+n_mod_since_analyze | 2000
+last_vacuum         | 2019-03-31 15:24:20.714225+03
+last_autovacuum     | 
+last_analyze        | 
+last_autoanalyze    | 
+vacuum_count        | 1
+autovacuum_count    | 0
+analyze_count       | 0
+autoanalyze_count   | 0
+
+</pre></div>
+<p class="C">
+Неактуальные версии строк убраны при очистке (n_dead_tup = 0), очистка
+обрабатывала таблицу один раз (vacuum_count = 1).
+</p>
+<h1>
+Взаимоблокировка
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">),(</span><span style="color:#1094a0">2</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 2
+</pre></div>
+<p class="C">
+Одна транзакция блокирует первую строку таблицы...
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">postgres$ <span style="color:#00a150">psql</span> 
+</pre>
+</div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> admin_monitoring
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+You are now connected to database &quot;admin_monitoring&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+BEGIN
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n<span style="color:#323232">=</span><span style="color:#1094a0">10</span> <span style="color:#3b6ac8">WHERE</span> n<span style="color:#323232">=</span><span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+UPDATE 1
+</pre></div>
+<p class="C">
+Затем другая транзакция блокирует вторую строку...
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">postgres$ <span style="color:#00a150">psql</span> 
+</pre>
+</div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> admin_monitoring
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+You are now connected to database &quot;admin_monitoring&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+BEGIN
+</pre></div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n<span style="color:#323232">=</span><span style="color:#1094a0">200</span> <span style="color:#3b6ac8">WHERE</span> n<span style="color:#323232">=</span><span style="color:#1094a0">2</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+UPDATE 1
+</pre></div>
+<p class="C">
+Теперь первая транзакция пытается изменить вторую строку и ждет ее
+освобождения...
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n<span style="color:#323232">=</span><span style="color:#1094a0">20</span> <span style="color:#3b6ac8">WHERE</span> n<span style="color:#323232">=</span><span style="color:#1094a0">2</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<p class="C">
+А вторая транзакция пытается изменить первую строку...
+</p>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n<span style="color:#323232">=</span><span style="color:#1094a0">100</span> <span style="color:#3b6ac8">WHERE</span> n<span style="color:#323232">=</span><span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<p class="C">
+...и происходит взаимоблокировка.
+</p>
+<div class="R3"><pre class="R3">
+UPDATE 1
+</pre></div>
+<div class="R2"><pre class="R2">
+ERROR:  deadlock detected
+DETAIL:  Process 12389 waits for ShareLock on transaction 598; blocked by process 12457.
+Process 12457 waits for ShareLock on transaction 597; blocked by process 12389.
+HINT:  See server log for query details.
+CONTEXT:  while updating tuple (0,2) in relation &quot;t&quot;
+</pre></div>
+<h1>
+Информация в журнале
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">tail</span> <span style="color:#323232">-</span>n <span style="color:#1094a0">8</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile
+</pre>
+</div>
+<div class="R"><pre class="R">
+2019-03-31 15:24:25.248 MSK [12389] ERROR:  deadlock detected
+2019-03-31 15:24:25.248 MSK [12389] DETAIL:  Process 12389 waits for ShareLock on transaction 598; blocked by process 12457.
+	Process 12457 waits for ShareLock on transaction 597; blocked by process 12389.
+	Process 12389: UPDATE t SET n=20 WHERE n=2;
+	Process 12457: UPDATE t SET n=100 WHERE n=1;
+2019-03-31 15:24:25.248 MSK [12389] HINT:  See server log for query details.
+2019-03-31 15:24:25.248 MSK [12389] CONTEXT:  while updating tuple (0,2) in relation &quot;t&quot;
+2019-03-31 15:24:25.248 MSK [12389] STATEMENT:  UPDATE t SET n=20 WHERE n=2;
+</pre></div>
+</body>
+</html>

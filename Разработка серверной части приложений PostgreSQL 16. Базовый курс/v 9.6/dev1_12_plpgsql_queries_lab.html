@@ -1,0 +1,225 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Таблица
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">animals</span><span style="color:#323232">(</span>
+    id     <span style="color:#a00050">serial</span>  <span style="color:#3b6ac8">PRIMARY KEY</span><span style="color:#323232">,</span>
+    root   <span style="color:#a00050">boolean</span> <span style="color:#3b6ac8">DEFAULT false</span><span style="color:#323232">,</span>
+    yes_id <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">REFERENCES</span> <span style="color:#c73a69">animals</span><span style="color:#323232">(</span>id<span style="color:#323232">),</span>
+    no_id  <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">REFERENCES</span> <span style="color:#c73a69">animals</span><span style="color:#323232">(</span>id<span style="color:#323232">),</span>
+    name   <span style="color:#a00050">text</span>
+<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">animals</span><span style="color:#323232">(</span>name<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'слон'</span><span style="color:#323232">), (</span><span style="color:#1094a0">'черепаха'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 2
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">animals</span><span style="color:#323232">(</span>name<span style="color:#323232">,</span>root<span style="color:#323232">,</span>yes_id<span style="color:#323232">,</span>no_id<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'млекопитающее'</span><span style="color:#323232">,</span><span style="color:#3b6ac8">true</span><span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">2</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> animals<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ id | root | yes_id | no_id |     name      
+----+------+--------+-------+---------------
+  1 | f    |        |       | &#1089;&#1083;&#1086;&#1085;
+  2 | f    |        |       | &#1095;&#1077;&#1088;&#1077;&#1087;&#1072;&#1093;&#1072;
+  3 | t    |      1 |     2 | &#1084;&#1083;&#1077;&#1082;&#1086;&#1087;&#1080;&#1090;&#1072;&#1102;&#1097;&#1077;&#1077;
+(3 rows)
+
+</pre></div>
+<h1>
+Функции
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">start_game</span><span style="color:#323232">(</span><span style="color:#3b6ac8">OUT</span> context <span style="color:#a00050">integer</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">OUT</span> question <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> name||<span style="color:#1094a0">'?'</span> <span style="color:#3b6ac8">INTO</span> context<span style="color:#323232">,</span> question <span style="color:#3b6ac8">FROM</span> animals <span style="color:#3b6ac8">WHERE</span> root<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">continue_game</span><span style="color:#323232">(</span><span style="color:#3b6ac8">INOUT</span> context <span style="color:#a00050">integer</span><span style="color:#323232">,</span> answer <span style="color:#a00050">boolean</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">OUT</span> you_win <span style="color:#a00050">boolean</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">OUT</span> question <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    new_context <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">SELECT CASE WHEN</span> answer <span style="color:#3b6ac8">THEN</span> yes_id <span style="color:#3b6ac8">ELSE</span> no_id <span style="color:#3b6ac8">END INTO</span> new_context <span style="color:#3b6ac8">FROM</span> animals <span style="color:#3b6ac8">where</span> id <span style="color:#323232">=</span> context<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">IF</span> new_context <span style="color:#3b6ac8">IS NULL THEN</span>
+        you_win <span style="color:#323232">:=</span> <span style="color:#3b6ac8">NOT</span> answer<span style="color:#323232">;</span>
+        question <span style="color:#323232">:=</span> <span style="color:#1094a0">'Вы '</span> || <span style="color:#3b6ac8">CASE WHEN</span> you_win <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'выиграли'</span> <span style="color:#3b6ac8">ELSE</span> <span style="color:#1094a0">'проиграли'</span> <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">ELSE</span>
+        <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> <span style="color:#3b6ac8">null</span><span style="color:#323232">,</span> name||<span style="color:#1094a0">'?'</span> <span style="color:#3b6ac8">into</span> context<span style="color:#323232">,</span> you_win<span style="color:#323232">,</span> question <span style="color:#3b6ac8">from</span> animals <span style="color:#3b6ac8">where</span> id <span style="color:#323232">=</span> new_context<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">end_game</span><span style="color:#323232">(</span>context <span style="color:#a00050">integer</span><span style="color:#323232">,</span> name <span style="color:#a00050">text</span><span style="color:#323232">,</span> question <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">void</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    new_animal_id <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    new_question_id <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">animals</span><span style="color:#323232">(</span>name<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span>name<span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNING</span> id <span style="color:#3b6ac8">INTO</span> new_animal_id<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">animals</span><span style="color:#323232">(</span>name<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span>question<span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNING</span> id <span style="color:#3b6ac8">INTO</span> new_question_id<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">UPDATE</span> animals <span style="color:#3b6ac8">SET</span> yes_id <span style="color:#323232">=</span> new_question_id <span style="color:#3b6ac8">WHERE</span> yes_id <span style="color:#323232">=</span> context<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">UPDATE</span> animals <span style="color:#3b6ac8">SET</span>  no_id <span style="color:#323232">=</span> new_question_id <span style="color:#3b6ac8">WHERE</span>  no_id <span style="color:#323232">=</span> context<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">UPDATE</span> animals <span style="color:#3b6ac8">SET</span> yes_id <span style="color:#323232">=</span> new_animal_id<span style="color:#323232">,</span> no_id <span style="color:#323232">=</span> context <span style="color:#3b6ac8">WHERE</span> id <span style="color:#323232">=</span> new_question_id<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<h1>
+Пример сеанса игры (загадали "кит")
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">start_game</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ context |    question    
+---------+----------------
+       3 | &#1084;&#1083;&#1077;&#1082;&#1086;&#1087;&#1080;&#1090;&#1072;&#1102;&#1097;&#1077;&#1077;?
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">continue_game</span><span style="color:#323232">(</span><span style="color:#1094a0">3</span><span style="color:#323232">,</span><span style="color:#3b6ac8">true</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ context | you_win | question 
+---------+---------+----------
+       1 |         | &#1089;&#1083;&#1086;&#1085;?
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">continue_game</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#3b6ac8">false</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ context | you_win |  question   
+---------+---------+-------------
+       1 | t       | &#1042;&#1099; &#1074;&#1099;&#1080;&#1075;&#1088;&#1072;&#1083;&#1080;
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">end_game</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">'кит'</span><span style="color:#323232">,</span><span style="color:#1094a0">'живет в воде'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ end_game 
+----------
+ 
+(1 row)
+
+</pre></div>
+<p class="C">
+Теперь в таблице:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> animals<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ id | root | yes_id | no_id |     name      
+----+------+--------+-------+---------------
+  1 | f    |        |       | &#1089;&#1083;&#1086;&#1085;
+  2 | f    |        |       | &#1095;&#1077;&#1088;&#1077;&#1087;&#1072;&#1093;&#1072;
+  4 | f    |        |       | &#1082;&#1080;&#1090;
+  3 | t    |      5 |     2 | &#1084;&#1083;&#1077;&#1082;&#1086;&#1087;&#1080;&#1090;&#1072;&#1102;&#1097;&#1077;&#1077;
+  5 | f    |      4 |     1 | &#1078;&#1080;&#1074;&#1077;&#1090; &#1074; &#1074;&#1086;&#1076;&#1077;
+(5 rows)
+
+</pre></div>
+<h1>
+Еще один сеанс (снова загадали "кит")
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">start_game</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ context |    question    
+---------+----------------
+       3 | &#1084;&#1083;&#1077;&#1082;&#1086;&#1087;&#1080;&#1090;&#1072;&#1102;&#1097;&#1077;&#1077;?
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">continue_game</span><span style="color:#323232">(</span><span style="color:#1094a0">3</span><span style="color:#323232">,</span><span style="color:#3b6ac8">true</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ context | you_win |   question    
+---------+---------+---------------
+       5 |         | &#1078;&#1080;&#1074;&#1077;&#1090; &#1074; &#1074;&#1086;&#1076;&#1077;?
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">continue_game</span><span style="color:#323232">(</span><span style="color:#1094a0">5</span><span style="color:#323232">,</span><span style="color:#3b6ac8">true</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ context | you_win | question 
+---------+---------+----------
+       4 |         | &#1082;&#1080;&#1090;?
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">continue_game</span><span style="color:#323232">(</span><span style="color:#1094a0">4</span><span style="color:#323232">,</span><span style="color:#3b6ac8">true</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ context | you_win |   question   
+---------+---------+--------------
+       4 | f       | &#1042;&#1099; &#1087;&#1088;&#1086;&#1080;&#1075;&#1088;&#1072;&#1083;&#1080;
+(1 row)
+
+</pre></div>
+</body>
+</html>

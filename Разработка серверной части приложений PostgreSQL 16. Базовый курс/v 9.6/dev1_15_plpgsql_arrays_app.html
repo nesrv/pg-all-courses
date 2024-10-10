@@ -1,0 +1,47 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Функция add_book
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">add_book</span><span style="color:#323232">(</span>title <span style="color:#a00050">text</span><span style="color:#323232">,</span> authors <span style="color:#a00050">integer</span><span style="color:#323232">[])</span>
+<span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    book_id <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    id <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    seq_num <span style="color:#a00050">integer</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">books</span><span style="color:#323232">(</span>title<span style="color:#323232">)</span>
+        <span style="color:#3b6ac8">VALUES</span><span style="color:#323232">(</span>title<span style="color:#323232">)</span>
+        <span style="color:#3b6ac8">RETURNING</span> books.book_id <span style="color:#3b6ac8">INTO</span> book_id<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">FOREACH</span> id <span style="color:#3b6ac8">IN ARRAY</span> authors <span style="color:#3b6ac8">LOOP</span>
+        <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">authorship</span><span style="color:#323232">(</span>book_id<span style="color:#323232">,</span> author_id<span style="color:#323232">,</span> seq_num<span style="color:#323232">)</span>
+            <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span>book_id<span style="color:#323232">,</span> id<span style="color:#323232">,</span> seq_num<span style="color:#323232">);</span>
+        seq_num <span style="color:#323232">:=</span> seq_num <span style="color:#323232">+</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN</span> book_id<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+</body>
+</html>

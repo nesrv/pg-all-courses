@@ -1,0 +1,53 @@
+
+        psql 
+
+Создание базы данных
+~~~~~~~~~~~~~~~~~~~~
+
+
+        => create database db5 template template0;
+        CREATE DATABASE
+
+        => \c db5
+        You are now connected to database "db5" as user "postgres".
+
+Объем БД
+~~~~~~~~
+
+
+        => select pg_database_size('db5');
+         pg_database_size 
+        ------------------
+                  6434132
+        (1 row)
+        
+
+Создание таблицы
+~~~~~~~~~~~~~~~~
+
+
+        => create table t(n integer);
+        CREATE TABLE
+
+        => insert into t values (1), (2), (3);
+        INSERT 0 3
+
+Новый объем БД и таблицы
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => select pg_table_size('t');
+         pg_table_size 
+        ---------------
+                  8192
+        (1 row)
+        
+
+        => select pg_database_size('db5');
+         pg_database_size 
+        ------------------
+                  6442324
+        (1 row)
+        
+
+        => \q

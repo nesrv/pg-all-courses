@@ -1,0 +1,221 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Try-catch-finally
+</h1>
+<p class="C">
+Решение использует два вложенных блока и фиктивное исключение, которое
+вызывается при нормальном завершении внутреннего блока. Это дает возможность
+поместить операторы finally в одно место - обработчик ошибок внешнего блока.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Операторы try'</span><span style="color:#323232">;</span>
+        <span style="color:#969696">--</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'...нет исключения'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">EXCEPTION</span>
+        <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">no_data_found</span> <span style="color:#3b6ac8">THEN</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Операторы catch'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RAISE</span> <span style="color:#a00050">SQLSTATE</span> <span style="color:#1094a0">'ALLOK'</span><span style="color:#323232">;</span> 
+<span style="color:#3b6ac8">EXCEPTION</span>
+    <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">others</span> <span style="color:#3b6ac8">THEN</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Операторы finally'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">IF</span> <span style="color:#a00050">SQLSTATE</span> <span style="color:#323232">!=</span> <span style="color:#1094a0">'ALLOK'</span> <span style="color:#3b6ac8">THEN</span>
+            <span style="color:#3b6ac8">RAISE</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+NOTICE:  &#1054;&#1087;&#1077;&#1088;&#1072;&#1090;&#1086;&#1088;&#1099; try
+NOTICE:  ...&#1085;&#1077;&#1090; &#1080;&#1089;&#1082;&#1083;&#1102;&#1095;&#1077;&#1085;&#1080;&#1103;
+NOTICE:  &#1054;&#1087;&#1077;&#1088;&#1072;&#1090;&#1086;&#1088;&#1099; finally
+DO
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Операторы try'</span><span style="color:#323232">;</span>
+        <span style="color:#969696">--</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'...исключение, которое обрабатывается'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">RAISE</span> <span style="color:#a00050">no_data_found</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">EXCEPTION</span>
+        <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">no_data_found</span> <span style="color:#3b6ac8">THEN</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Операторы catch'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RAISE</span> <span style="color:#a00050">SQLSTATE</span> <span style="color:#1094a0">'ALLOK'</span><span style="color:#323232">;</span> 
+<span style="color:#3b6ac8">EXCEPTION</span>
+    <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">others</span> <span style="color:#3b6ac8">THEN</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Операторы finally'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">IF</span> <span style="color:#a00050">SQLSTATE</span> <span style="color:#323232">!=</span> <span style="color:#1094a0">'ALLOK'</span> <span style="color:#3b6ac8">THEN</span>
+            <span style="color:#3b6ac8">RAISE</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+NOTICE:  &#1054;&#1087;&#1077;&#1088;&#1072;&#1090;&#1086;&#1088;&#1099; try
+NOTICE:  ...&#1080;&#1089;&#1082;&#1083;&#1102;&#1095;&#1077;&#1085;&#1080;&#1077;, &#1082;&#1086;&#1090;&#1086;&#1088;&#1086;&#1077; &#1086;&#1073;&#1088;&#1072;&#1073;&#1072;&#1090;&#1099;&#1074;&#1072;&#1077;&#1090;&#1089;&#1103;
+NOTICE:  &#1054;&#1087;&#1077;&#1088;&#1072;&#1090;&#1086;&#1088;&#1099; catch
+NOTICE:  &#1054;&#1087;&#1077;&#1088;&#1072;&#1090;&#1086;&#1088;&#1099; finally
+DO
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Операторы try'</span><span style="color:#323232">;</span>
+        <span style="color:#969696">--</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'...исключение, которое не обрабатывается'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">RAISE</span> <span style="color:#a00050">division_by_zero</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">EXCEPTION</span>
+        <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">no_data_found</span> <span style="color:#3b6ac8">THEN</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Операторы catch'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RAISE</span> <span style="color:#a00050">SQLSTATE</span> <span style="color:#1094a0">'ALLOK'</span><span style="color:#323232">;</span> 
+<span style="color:#3b6ac8">EXCEPTION</span>
+    <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">others</span> <span style="color:#3b6ac8">THEN</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Операторы finally'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">IF</span> <span style="color:#a00050">SQLSTATE</span> <span style="color:#323232">!=</span> <span style="color:#1094a0">'ALLOK'</span> <span style="color:#3b6ac8">THEN</span>
+            <span style="color:#3b6ac8">RAISE</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+NOTICE:  &#1054;&#1087;&#1077;&#1088;&#1072;&#1090;&#1086;&#1088;&#1099; try
+NOTICE:  ...&#1080;&#1089;&#1082;&#1083;&#1102;&#1095;&#1077;&#1085;&#1080;&#1077;, &#1082;&#1086;&#1090;&#1086;&#1088;&#1086;&#1077; &#1085;&#1077; &#1086;&#1073;&#1088;&#1072;&#1073;&#1072;&#1090;&#1099;&#1074;&#1072;&#1077;&#1090;&#1089;&#1103;
+NOTICE:  &#1054;&#1087;&#1077;&#1088;&#1072;&#1090;&#1086;&#1088;&#1099; finally
+ERROR:  division_by_zero
+CONTEXT:  PL/pgSQL function inline_code_block line 7 at RAISE
+</pre></div>
+<p class="C">
+Но не стоит забывать о накладных расходах на обработку исключений. Это
+задание - не более, чем просто упражнение.
+</p>
+<h1>
+GET DIAGNOSTICS
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    ctx <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">RAISE</span> <span style="color:#a00050">division_by_zero</span><span style="color:#323232">;</span>                       <span style="color:#969696">-- line 5</span>
+<span style="color:#3b6ac8">EXCEPTION</span>
+    <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">others</span> <span style="color:#3b6ac8">THEN</span>
+        <span style="color:#3b6ac8">GET STACKED DIAGNOSTICS</span> ctx <span style="color:#323232">=</span> pg_exception_context<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> E<span style="color:#1094a0">'stacked =\n%'</span><span style="color:#323232">,</span> ctx<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">GET CURRENT DIAGNOSTICS</span> ctx <span style="color:#323232">=</span> pg_context<span style="color:#323232">;</span> <span style="color:#969696">-- line 10</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> E<span style="color:#1094a0">'current =\n%'</span><span style="color:#323232">,</span> ctx<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+NOTICE:  stacked =
+PL/pgSQL function inline_code_block line 5 at RAISE
+NOTICE:  current =
+PL/pgSQL function inline_code_block line 10 at GET DIAGNOSTICS
+DO
+</pre></div>
+<p class="C">
+GET STACKED DIAGNOSTICS дает стек вызовов, приведший к ошибке.
+</p>
+<p class="C">
+GET [CURRENT] DIAGNOSTICS дает текущий стек вызовов.
+</p>
+<h1>
+Стек вызовов
+</h1>
+<p class="C">
+Собственно функция:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">getstack</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span><span style="color:#323232">[]</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    ctx <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">GET DIAGNOSTICS</span> ctx <span style="color:#323232">=</span> pg_context<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN</span> <span style="color:#323232">(</span><span style="color:#c73a69">regexp_split_to_array</span><span style="color:#323232">(</span>ctx<span style="color:#323232">,</span> E<span style="color:#1094a0">'\n'</span><span style="color:#323232">))[</span><span style="color:#1094a0">2</span><span style="color:#323232">:];</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Чтобы проверить ее работу, создадим несколько функций, которые вызывают
+друг друга:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">f1</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">RETURN</span> <span style="color:#c73a69">f2</span><span style="color:#323232">();</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">f2</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">RETURN</span> <span style="color:#c73a69">f3</span><span style="color:#323232">();</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">f3</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> <span style="color:#c73a69">getstack</span><span style="color:#323232">();</span>
+    <span style="color:#3b6ac8">RETURN</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">f1</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+NOTICE:  {&quot;PL/pgSQL function f3() line 3 at RAISE&quot;,&quot;PL/pgSQL function f2() line 3 at RETURN&quot;,&quot;PL/pgSQL function f1() line 3 at RETURN&quot;}
+ f1 
+----
+  0
+(1 row)
+
+</pre></div>
+</body>
+</html>

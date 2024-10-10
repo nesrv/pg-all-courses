@@ -1,0 +1,197 @@
+psql 
+
+=> \c db19
+You are now connected to database "db19" as user "postgres".
+
+=> set work_mem = '128MB';
+SET
+
+
+Первая попытка
+~~~~~~~~~~~~~~
+
+
+=> explain analyze
+=> select gen.d::date date_ordered, sum(i.amount) amount
+=> from generate_series(now(), now() - interval '9 day', interval '-1 day') gen(d)
+=> left join orders o on (o.date_ordered::date = gen.d::date)
+=> left join items i on (i.order_id = o.id)
+=> group by gen.d::date
+=> order by gen.d::date;
+                                                                        QUERY PLAN                                                                         
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=288604.12..288604.62 rows=200 width=12) (actual time=1461.214..1461.216 rows=10 loops=1)
+   Sort Key: ((gen.d)::date)
+   Sort Method: quicksort  Memory: 17kB
+   ->  HashAggregate  (cost=288593.48..288596.48 rows=200 width=12) (actual time=1461.191..1461.197 rows=10 loops=1)
+         Group Key: (gen.d)::date
+         ->  Hash Right Join  (cost=54353.48..238593.48 rows=10000000 width=12) (actual time=274.614..1457.014 rows=5381 loops=1)
+               Hash Cond: (i.order_id = o.id)
+               ->  Seq Scan on items i  (cost=0.00..41740.00 rows=2000000 width=8) (actual time=0.028..459.177 rows=2000000 loops=1)
+               ->  Hash  (cost=41853.48..41853.48 rows=1000000 width=12) (actual time=273.343..273.343 rows=537 loops=1)
+                     Buckets: 1048576  Batches: 1  Memory Usage: 4113kB
+                     ->  Merge Left Join  (cost=21843.48..41853.48 rows=1000000 width=12) (actual time=272.605..273.084 rows=537 loops=1)
+                           Merge Cond: (((gen.d)::date) = ((o.date_ordered)::date))
+                           ->  Sort  (cost=59.84..62.34 rows=1000 width=8) (actual time=1.008..1.009 rows=10 loops=1)
+                                 Sort Key: ((gen.d)::date)
+                                 Sort Method: quicksort  Memory: 17kB
+                                 ->  Function Scan on generate_series gen  (cost=0.01..10.01 rows=1000 width=8) (actual time=0.982..0.988 rows=10 loops=1)
+                           ->  Sort  (cost=21783.64..22283.64 rows=200000 width=12) (actual time=167.507..224.304 rows=200000 loops=1)
+                                 Sort Key: ((o.date_ordered)::date)
+                                 Sort Method: quicksort  Memory: 11909kB
+                                 ->  Seq Scan on orders o  (cost=0.00..4174.00 rows=200000 width=12) (actual time=0.011..82.036 rows=200000 loops=1)
+ Planning time: 1.303 ms
+ Execution time: 1462.151 ms
+(22 rows)
+
+
+У запроса явная проблема с оценкой кардинальности, и источником ее является
+функция generate_series. Как и для любой другой функции, возвращающей
+набор строк, планировщик считает, что кардинальность равна 1000.
+
+
+Вторая попытка
+~~~~~~~~~~~~~~
+
+Один из вариантов исправления состоит в том, чтобы создать свою функцию
+с указанием нужной кардинальности:
+
+=> create or replace function gen10()
+=> returns setof date
+=> rows 10
+=> as $$
+=>   select d::date from generate_series(now(), now() - interval '9 day', interval '-1 day') gen(d);
+=> $$ language sql;
+CREATE FUNCTION
+
+Здесь конструкция "rows 10" определяет оценку кардинальности.
+Разумеется, можно определить функцию с параметром, но оценка, увы,
+должна быть константой.
+
+=> explain analyze
+=> select gen.d date_ordered, sum(i.amount) amount
+=> from gen10() gen(d)
+=> left join orders o on (o.date_ordered::date = gen.d::date)
+=> left join items i on (i.order_id = o.id)
+=> group by gen.d::date
+=> order by gen.d::date;
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=18301.17..18301.19 rows=10 width=8) (actual time=192.591..192.593 rows=10 loops=1)
+   Sort Key: gen.d
+   Sort Method: quicksort  Memory: 17kB
+   ->  HashAggregate  (cost=18300.88..18301.00 rows=10 width=8) (actual time=192.575..192.580 rows=10 loops=1)
+         Group Key: gen.d
+         ->  Nested Loop Left Join  (cost=0.90..17800.88 rows=100000 width=8) (actual time=0.764..185.261 rows=5381 loops=1)
+               ->  Hash Right Join  (cost=0.47..5274.48 rows=10000 width=8) (actual time=0.739..130.060 rows=537 loops=1)
+                     Hash Cond: ((o.date_ordered)::date = gen.d)
+                     ->  Seq Scan on orders o  (cost=0.00..4174.00 rows=200000 width=12) (actual time=0.003..43.036 rows=200000 loops=1)
+                     ->  Hash  (cost=0.35..0.35 rows=10 width=4) (actual time=0.132..0.132 rows=10 loops=1)
+                           Buckets: 1024  Batches: 1  Memory Usage: 5kB
+                           ->  Function Scan on gen10 gen  (cost=0.25..0.35 rows=10 width=4) (actual time=0.127..0.129 rows=10 loops=1)
+               ->  Index Scan using items_order_id_idx on items i  (cost=0.43..1.14 rows=11 width=8) (actual time=0.024..0.095 rows=10 loops=537)
+                     Index Cond: (order_id = o.id)
+ Planning time: 0.249 ms
+ Execution time: 192.639 ms
+(16 rows)
+
+
+Оценка кардинальности исправлена, однако теперь видна вторая проблема:
+из-за преобразования типа невозможно использовать индекс по дате
+на таблице заказов.
+
+
+Третья попытка
+~~~~~~~~~~~~~~
+
+Создадим функциональный индекс:
+
+=> create index on orders ((date_ordered::date));
+CREATE INDEX
+
+И проанализируем таблицу, чтобы собралась статистика:
+
+=> analyze orders;
+ANALYZE
+
+=> explain analyze
+=> select gen.d date_ordered, sum(i.amount) amount
+=> from gen10() gen(d)
+=> left join orders o on (o.date_ordered::date = gen.d::date)
+=> left join items i on (i.order_id = o.id)
+=> group by gen.d::date
+=> order by gen.d::date;
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=2516.01..2516.03 rows=10 width=8) (actual time=17.165..17.167 rows=10 loops=1)
+   Sort Key: gen.d
+   Sort Method: quicksort  Memory: 17kB
+   ->  HashAggregate  (cost=2515.72..2515.84 rows=10 width=8) (actual time=17.149..17.154 rows=10 loops=1)
+         Group Key: gen.d
+         ->  Nested Loop Left Join  (cost=5.52..2488.32 rows=5480 width=8) (actual time=0.141..14.128 rows=5381 loops=1)
+               ->  Nested Loop Left Join  (cost=5.10..1801.87 rows=548 width=8) (actual time=0.134..1.239 rows=537 loops=1)
+                     ->  Function Scan on gen10 gen  (cost=0.25..0.35 rows=10 width=4) (actual time=0.095..0.102 rows=10 loops=1)
+                     ->  Bitmap Heap Scan on orders o  (cost=4.85..179.60 rows=55 width=12) (actual time=0.021..0.092 rows=54 loops=10)
+                           Recheck Cond: ((date_ordered)::date = gen.d)
+                           Heap Blocks: exact=528
+                           ->  Bitmap Index Scan on orders_date_ordered_idx1  (cost=0.00..4.83 rows=55 width=0) (actual time=0.013..0.013 rows=54 loops=10)
+                                 Index Cond: ((date_ordered)::date = gen.d)
+               ->  Index Scan using items_order_id_idx on items i  (cost=0.43..1.14 rows=11 width=8) (actual time=0.008..0.019 rows=10 loops=537)
+                     Index Cond: (order_id = o.id)
+ Planning time: 0.330 ms
+ Execution time: 17.214 ms
+(17 rows)
+
+
+Теперь запрос выполняется достаточно эффективно.
+
+
+Еще вариант
+~~~~~~~~~~~
+
+Если все-таки запрос будет выполняться для разного числа дней, как можно
+обеспечить правильную оценку кардинальности?
+Есть вариант с использованием временной таблицы, хотя он и подразумевает
+известные накладные расходы.
+
+=> create temporary table gen(d date) on commit preserve rows;
+CREATE TABLE
+
+=> insert into gen(d) select gen.d::date from generate_series(now(), now() - interval '9 day', interval '-1 day') gen(d);
+INSERT 0 10
+
+=> analyze gen;
+ANALYZE
+
+Теперь планировщик будет знать, сколько строк в таблице:
+
+=> explain analyze
+=> select gen.d::date date_ordered, sum(i.amount) amount
+=> from gen
+=> left join orders o on (o.date_ordered::date = gen.d::date)
+=> left join items i on (i.order_id = o.id)
+=> group by gen.d::date
+=> order by gen.d::date;
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=2516.76..2516.78 rows=10 width=8) (actual time=16.243..16.246 rows=10 loops=1)
+   Sort Key: gen.d
+   Sort Method: quicksort  Memory: 17kB
+   ->  HashAggregate  (cost=2516.47..2516.59 rows=10 width=8) (actual time=16.228..16.230 rows=10 loops=1)
+         Group Key: gen.d
+         ->  Nested Loop Left Join  (cost=5.27..2489.07 rows=5480 width=8) (actual time=0.033..13.874 rows=5381 loops=1)
+               ->  Nested Loop Left Join  (cost=4.85..1802.62 rows=548 width=8) (actual time=0.025..1.138 rows=537 loops=1)
+                     ->  Seq Scan on gen  (cost=0.00..1.10 rows=10 width=4) (actual time=0.003..0.008 rows=10 loops=1)
+                     ->  Bitmap Heap Scan on orders o  (cost=4.85..179.60 rows=55 width=12) (actual time=0.017..0.087 rows=54 loops=10)
+                           Recheck Cond: ((date_ordered)::date = gen.d)
+                           Heap Blocks: exact=528
+                           ->  Bitmap Index Scan on orders_date_ordered_idx1  (cost=0.00..4.83 rows=55 width=0) (actual time=0.010..0.010 rows=54 loops=10)
+                                 Index Cond: ((date_ordered)::date = gen.d)
+               ->  Index Scan using items_order_id_idx on items i  (cost=0.43..1.14 rows=11 width=8) (actual time=0.005..0.019 rows=10 loops=537)
+                     Index Cond: (order_id = o.id)
+ Planning time: 0.345 ms
+ Execution time: 16.287 ms
+(17 rows)
+
+
+=> \q

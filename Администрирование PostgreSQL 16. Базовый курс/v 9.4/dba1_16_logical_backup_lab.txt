@@ -1,0 +1,84 @@
+
+        psql 
+
+База данных и таблица
+~~~~~~~~~~~~~~~~~~~~~
+
+
+        => create database db16;
+        CREATE DATABASE
+
+        => \c db16
+        You are now connected to database "db16" as user "postgres".
+
+        => create table t(n numeric);
+        CREATE TABLE
+
+        => insert into t values (1), (2), (3);
+        INSERT 0 3
+
+
+Резервная копия
+~~~~~~~~~~~~~~~
+
+
+pg_dump --format=custom -f /home/postgres/db16.dump -d db16 
+
+
+Удаление таблицы
+~~~~~~~~~~~~~~~~
+
+
+        => drop table t;
+        DROP TABLE
+
+
+Восстановление таблицы в БД postgres
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+pg_restore --table t -d postgres /home/postgres/db16.dump 
+
+        => \c postgres
+        You are now connected to database "postgres" as user "postgres".
+
+        => select * from t;
+         n 
+        ---
+         1
+         2
+         3
+        (3 rows)
+        
+
+        => drop table t;
+        DROP TABLE
+
+
+Удаление БД db16
+~~~~~~~~~~~~~~~~
+
+
+        => drop database db16;
+        DROP DATABASE
+
+
+Восстанавление БД db16
+~~~~~~~~~~~~~~~~~~~~~~
+
+
+pg_restore --create -d postgres /home/postgres/db16.dump 
+
+        => \c db16
+        You are now connected to database "db16" as user "postgres".
+
+        => select * from t;
+         n 
+        ---
+         1
+         2
+         3
+        (3 rows)
+        
+
+        => \q

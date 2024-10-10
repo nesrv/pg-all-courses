@@ -1,0 +1,333 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Роли и таблицы
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">CREATE ROLE</span> alice <span style="color:#3b6ac8">LOGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE ROLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">CREATE ROLE</span> bob <span style="color:#3b6ac8">LOGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE ROLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">CREATE ROLE</span> charlie <span style="color:#3b6ac8">LOGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE ROLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">users_depts</span><span style="color:#323232">(</span>
+    <span style="color:#3b6ac8">login</span> <span style="color:#a00050">text</span><span style="color:#323232">,</span>
+    department <span style="color:#a00050">text</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">INSERT INTO</span> users_depts <span style="color:#3b6ac8">VALUES</span> 
+    <span style="color:#323232">(</span><span style="color:#1094a0">'alice'</span><span style="color:#323232">,</span>  <span style="color:#1094a0">'PR'</span><span style="color:#323232">),</span>
+    <span style="color:#323232">(</span><span style="color:#1094a0">'bob'</span><span style="color:#323232">,</span>    <span style="color:#1094a0">'Sales'</span><span style="color:#323232">),</span>
+    <span style="color:#323232">(</span><span style="color:#1094a0">'charlie'</span><span style="color:#323232">,</span><span style="color:#1094a0">'PR'</span><span style="color:#323232">),</span>
+    <span style="color:#323232">(</span><span style="color:#1094a0">'charlie'</span><span style="color:#323232">,</span><span style="color:#1094a0">'Sales'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 4
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">revenue</span><span style="color:#323232">(</span>
+    department <span style="color:#a00050">text</span><span style="color:#323232">,</span>
+    amount <span style="color:#a00050">numeric</span><span style="color:#323232">(</span><span style="color:#1094a0">10</span><span style="color:#323232">,</span><span style="color:#1094a0">2</span><span style="color:#323232">));</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">INSERT INTO</span> revenue <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">'PR'</span><span style="color:#323232">,   -</span><span style="color:#c73a69">random</span><span style="color:#323232">()*</span> <span style="color:#1094a0">100.00</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">100000</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 100000
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">INSERT INTO</span> revenue <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">'Sales'</span><span style="color:#323232">,</span> <span style="color:#c73a69">random</span><span style="color:#323232">()*</span><span style="color:#1094a0">1000.00</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">10000</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 10000
+</pre></div>
+<h1>
+Политики и привилегии
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">CREATE POLICY</span> departments <span style="color:#3b6ac8">ON</span> revenue
+    <span style="color:#3b6ac8">USING</span> <span style="color:#323232">(</span>department <span style="color:#3b6ac8">IN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">SELECT</span> department <span style="color:#3b6ac8">FROM</span> users_depts <span style="color:#3b6ac8">WHERE login</span> <span style="color:#323232">=</span> <span style="color:#3b6ac8">current_user</span><span style="color:#323232">));</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE POLICY
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">CREATE POLICY</span> amount <span style="color:#3b6ac8">ON</span> revenue <span style="color:#3b6ac8">AS RESTRICTIVE</span>
+    <span style="color:#3b6ac8">USING</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">true</span><span style="color:#323232">)</span>
+    <span style="color:#3b6ac8">WITH CHECK</span> <span style="color:#323232">((</span><span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span> <span style="color:#3b6ac8">FROM</span> users_depts <span style="color:#3b6ac8">WHERE login</span> <span style="color:#323232">=</span> <span style="color:#3b6ac8">current_user</span><span style="color:#323232">) &gt;</span> <span style="color:#1094a0">1</span>
+                <span style="color:#3b6ac8">OR</span> <span style="color:#c73a69">abs</span><span style="color:#323232">(</span>amount<span style="color:#323232">) &lt;=</span> <span style="color:#1094a0">100.00</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE POLICY
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">ALTER TABLE</span> revenue <span style="color:#3b6ac8">ENABLE ROW LEVEL SECURITY</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">GRANT SELECT</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">INSERT ON</span> users_depts<span style="color:#323232">,</span> revenue <span style="color:#3b6ac8">TO</span> alice<span style="color:#323232">,</span> bob<span style="color:#323232">,</span> charlie<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<h1>
+Проверка
+</h1>
+<p class="C">
+Алиса:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#00a150">\c</span> <span style="color:#323232">-</span> alice
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;access_rls&quot; as user &quot;alice&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">alice<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> department<span style="color:#323232">,</span> <span style="color:#c73a69">SUM</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> revenue <span style="color:#3b6ac8">GROUP BY</span> department<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ department |     sum     
+------------+-------------
+ PR         | -5008636.30
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">alice<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> revenue <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'PR'</span><span style="color:#323232">,</span> <span style="color:#1094a0">100.00</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">alice<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> revenue <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'PR'</span><span style="color:#323232">,</span> <span style="color:#1094a0">101.00</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ERROR:  new row violates row-level security policy &quot;amount&quot; for table &quot;revenue&quot;
+</pre></div>
+<p class="C">
+Боб:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">alice<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#323232">-</span> bob
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;access_rls&quot; as user &quot;bob&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">bob<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> department<span style="color:#323232">,</span> <span style="color:#c73a69">SUM</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> revenue <span style="color:#3b6ac8">GROUP BY</span> department<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ department |    sum     
+------------+------------
+ Sales      | 5028638.31
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">bob<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> revenue <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'Sales'</span><span style="color:#323232">,</span> <span style="color:#1094a0">100.00</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">bob<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> revenue <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'Sales'</span><span style="color:#323232">,</span> <span style="color:#1094a0">101.00</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ERROR:  new row violates row-level security policy &quot;amount&quot; for table &quot;revenue&quot;
+</pre></div>
+<p class="C">
+Чарли:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">bob<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#323232">-</span> charlie
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;access_rls&quot; as user &quot;charlie&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">charlie<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> department<span style="color:#323232">,</span> <span style="color:#c73a69">SUM</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> revenue <span style="color:#3b6ac8">GROUP BY</span> department<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ department |     sum     
+------------+-------------
+ PR         | -5008536.30
+ Sales      |  5028738.31
+(2 rows)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">charlie<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> revenue <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'PR'</span><span style="color:#323232">,</span> <span style="color:#1094a0">1000.00</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">charlie<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> revenue <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'Sales'</span><span style="color:#323232">,</span> <span style="color:#1094a0">1000.00</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<h1>
+Накладные расходы
+</h1>
+<p class="C">
+Выполним запрос несколько раз, чтобы оценить среднее значение времени
+выполнения.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">charlie<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\timing</span> <span style="color:#3b6ac8">on</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+Timing is on.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">charlie<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> department<span style="color:#323232">,</span> <span style="color:#c73a69">SUM</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> revenue <span style="color:#3b6ac8">GROUP BY</span> department<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ department |     sum     
+------------+-------------
+ PR         | -5007536.30
+ Sales      |  5029738.31
+(2 rows)
+
+Time: 60,651 ms
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">charlie<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> department<span style="color:#323232">,</span> <span style="color:#c73a69">SUM</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> revenue <span style="color:#3b6ac8">GROUP BY</span> department<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ department |     sum     
+------------+-------------
+ PR         | -5007536.30
+ Sales      |  5029738.31
+(2 rows)
+
+Time: 60,182 ms
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">charlie<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> department<span style="color:#323232">,</span> <span style="color:#c73a69">SUM</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> revenue <span style="color:#3b6ac8">GROUP BY</span> department<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ department |     sum     
+------------+-------------
+ PR         | -5007536.30
+ Sales      |  5029738.31
+(2 rows)
+
+Time: 64,437 ms
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">charlie<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#323232">-</span> postgres
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;access_rls&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">SELECT</span> department<span style="color:#323232">,</span> <span style="color:#c73a69">SUM</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> revenue <span style="color:#3b6ac8">GROUP BY</span> department<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ department |     sum     
+------------+-------------
+ PR         | -5007536.30
+ Sales      |  5029738.31
+(2 rows)
+
+Time: 41,806 ms
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">SELECT</span> department<span style="color:#323232">,</span> <span style="color:#c73a69">SUM</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> revenue <span style="color:#3b6ac8">GROUP BY</span> department<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ department |     sum     
+------------+-------------
+ PR         | -5007536.30
+ Sales      |  5029738.31
+(2 rows)
+
+Time: 40,012 ms
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres<span style="color:#323232">=</span># <span style="color:#3b6ac8">SELECT</span> department<span style="color:#323232">,</span> <span style="color:#c73a69">SUM</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> revenue <span style="color:#3b6ac8">GROUP BY</span> department<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ department |     sum     
+------------+-------------
+ PR         | -5007536.30
+ Sales      |  5029738.31
+(2 rows)
+
+Time: 40,048 ms
+</pre></div>
+<p class="C">
+В данном конкретном случае накладные расходы не драматичны, хотя и вполне
+ощутимы.
+</p>
+</body>
+</html>

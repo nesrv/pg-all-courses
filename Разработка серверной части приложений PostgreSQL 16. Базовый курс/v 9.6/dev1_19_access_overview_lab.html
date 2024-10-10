@@ -1,0 +1,203 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Создание базы, объектов и роли
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> access_overview<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> access_overview
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;access_overview&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE SCHEMA</span> s<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE SCHEMA
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> s.<span style="color:#c73a69">t</span><span style="color:#323232">(</span>
+    <span style="color:#3b6ac8">key</span> <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">PRIMARY KEY</span><span style="color:#323232">,</span>
+    <span style="color:#3b6ac8">value</span> <span style="color:#a00050">text</span>
+<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> s.t <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">'Раз'</span><span style="color:#323232">),(</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span><span style="color:#1094a0">'Два'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 2
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE ROLE</span> r LOGIN <span style="color:#3b6ac8">PASSWORD</span> <span style="color:#1094a0">'rpass'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE ROLE
+</pre></div>
+<h1>
+Настройки подключения
+</h1>
+<p class="C">
+IP-адрес можно узнать из выдачи ifconfig:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ ifconfig
+</pre>
+</div>
+<div class="R"><pre class="R">
+enp0s3    Link encap:Ethernet  HWaddr 08:00:27:a2:2b:71  
+          inet addr:10.0.2.15  Bcast:10.0.2.255  Mask:255.255.255.0
+          inet6 addr: fe80::1b49:d907:3db3:8f69/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:426339 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:156223 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1000 
+          RX bytes:539811987 (539.8 MB)  TX bytes:33025924 (33.0 MB)
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          inet6 addr: ::1/128 Scope:Host
+          UP LOOPBACK RUNNING  MTU:65536  Metric:1
+          RX packets:147858 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:147858 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:1 
+          RX bytes:50242236 (50.2 MB)  TX bytes:50242236 (50.2 MB)
+</pre></div>
+<p class="C">
+В нашем случае это 10.0.2.15 и маска подсети 255.255.255.0.
+</p>
+<p class="C">
+Сохраним текущий файл настроек и добавим нужную строку:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">cp</span> <span style="color:#323232">-</span>n <span style="color:#323232">/</span>etc<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">9.6</span><span style="color:#323232">/</span>main<span style="color:#323232">/</span>pg_hba.conf <span style="color:#323232">/</span>etc<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">9.6</span><span style="color:#323232">/</span>main<span style="color:#323232">/</span>pg_hba.conf.backup
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#a00050">echo</span> <span style="color:#1094a0">'host access_overview r 10.0.2.15 255.255.255.0 md5'</span> <span style="color:#323232">&gt;&gt; /</span>etc<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">9.6</span><span style="color:#323232">/</span>main<span style="color:#323232">/</span>pg_hba.conf
+</pre>
+</div>
+<p class="C">
+Изменяем параметр:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> listen_addresses <span style="color:#323232">=</span> <span style="color:#1094a0">'*'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\q</span>
+</pre>
+</div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ sudo <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">9.6</span> main restart
+</pre>
+</div>
+<p class="C">
+Проверим:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">psql</span> postgresql<span style="color:#323232">://</span>r&#64;<span style="color:#1094a0">10.0.2.15</span><span style="color:#323232">/</span>access_overview?password<span style="color:#323232">=</span>rpass <span style="color:#323232">-</span>c <span style="color:#1094a0">'SELECT now();'</span>
+</pre>
+</div>
+<div class="R"><pre class="R">
+              now              
+-------------------------------
+ 2017-09-01 15:55:03.907936+03
+(1 row)
+</pre></div>
+<h1>
+Разграничение доступа
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>d access_overview
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT ALL ON SCHEMA</span> s <span style="color:#3b6ac8">TO</span> r<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT SELECT ON</span> s.t <span style="color:#3b6ac8">TO</span> r<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT UPDATE</span><span style="color:#323232">(</span><span style="color:#3b6ac8">value</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">ON</span> s.t <span style="color:#3b6ac8">TO</span> r<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<p class="C">
+Проверим:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> postgresql<span style="color:#323232">://</span>r&#64;<span style="color:#1094a0">10.0.2.15</span><span style="color:#323232">/</span>access_overview?password<span style="color:#323232">=</span>rpass
+</pre>
+</div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> s.t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ key | value 
+-----+-------
+   1 | &#1056;&#1072;&#1079;
+   2 | &#1044;&#1074;&#1072;
+(2 rows)
+
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> s.t <span style="color:#3b6ac8">SET value</span> <span style="color:#323232">=</span> <span style="color:#1094a0">'One'</span> <span style="color:#3b6ac8">WHERE key</span> <span style="color:#323232">=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+UPDATE 1
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> s.t <span style="color:#3b6ac8">SET key</span> <span style="color:#323232">=</span> <span style="color:#3b6ac8">key</span><span style="color:#323232">+</span><span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE key</span> <span style="color:#323232">=</span> <span style="color:#1094a0">2</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ERROR:  permission denied for relation t
+</pre></div>
+<p class="C">
+Все работает, как требуется.
+</p>
+</body>
+</html>

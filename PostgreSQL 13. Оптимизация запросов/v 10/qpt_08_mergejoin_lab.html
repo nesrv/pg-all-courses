@@ -1,0 +1,151 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Индекс
+</h1>
+<p class="C">
+Включим журналирование временных файлов и секундомер.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> log_temp_files <span style="color:#323232">=</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SET
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\timing</span> <span style="color:#3b6ac8">on</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+Timing is on.
+</pre></div>
+<p class="C">
+Текущее значение maintenance_work_mem:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SHOW</span> maintenance_work_mem<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ maintenance_work_mem 
+----------------------
+ 64MB
+(1 row)
+
+Time: 1,005 ms
+</pre></div>
+<p class="C">
+Создаем индекс:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE INDEX ON</span> <span style="color:#c73a69">tickets</span><span style="color:#323232">(</span>passenger_name<span style="color:#323232">,</span> passenger_id<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE INDEX
+Time: 18589,492 ms (00:18,589)
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\timing</span> <span style="color:#3b6ac8">off</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+Timing is off.
+</pre></div>
+<p class="C">
+Временный файл понадобился:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">tail</span> <span style="color:#323232">-</span>n <span style="color:#1094a0">2</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>log<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>postgresql-10-main.log
+</pre>
+</div>
+<div class="R"><pre class="R">
+2019-02-13 13:16:46.297 MSK [14387] postgres@demo LOG:  temporary file: path &quot;base/pgsql_tmp/pgsql_tmp14387.0&quot;, size 122847232
+2019-02-13 13:16:46.297 MSK [14387] postgres@demo STATEMENT:  CREATE INDEX ON tickets(passenger_name, passenger_id);
+</pre></div>
+<h1>
+Параметр cursor_tuple_fraction
+</h1>
+<p class="C">
+План выполнения курсора:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN DECLARE</span> c <span style="color:#3b6ac8">CURSOR FOR SELECT</span> <span style="color:#323232">*</span> 
+  <span style="color:#3b6ac8">FROM</span> aircrafts a <span style="color:#3b6ac8">JOIN</span> seats s <span style="color:#3b6ac8">ON</span> a.aircraft_code <span style="color:#323232">=</span> s.aircraft_code
+  <span style="color:#3b6ac8">ORDER BY</span> a.aircraft_code<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Merge Join  (cost=1.51..420.71 rows=1339 width=83)
+   Merge Cond: (s.aircraft_code = ml.aircraft_code)
+   -&gt;  Index Scan using seats_pkey on seats s  (cost=0.28..64.60 rows=1339 width=15)
+   -&gt;  Sort  (cost=1.23..1.26 rows=9 width=52)
+         Sort Key: ml.aircraft_code
+         -&gt;  Seq Scan on aircrafts_data ml  (cost=0.00..1.09 rows=9 width=52)
+(6 rows)
+
+</pre></div>
+<p class="C">
+Текущее значение cursor_tuple_fraction:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SHOW</span> cursor_tuple_fraction<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ cursor_tuple_fraction 
+-----------------------
+ 0.1
+(1 row)
+
+</pre></div>
+<p class="C">
+Уменьшим его:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> cursor_tuple_fraction <span style="color:#323232">=</span> <span style="color:#1094a0">0.01</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SET
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN DECLARE</span> c <span style="color:#3b6ac8">CURSOR FOR SELECT</span> <span style="color:#323232">*</span> 
+  <span style="color:#3b6ac8">FROM</span> aircrafts a <span style="color:#3b6ac8">JOIN</span> seats s <span style="color:#3b6ac8">ON</span> a.aircraft_code <span style="color:#323232">=</span> s.aircraft_code
+  <span style="color:#3b6ac8">ORDER BY</span> a.aircraft_code<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Merge Join  (cost=0.41..431.73 rows=1339 width=83)
+   Merge Cond: (ml.aircraft_code = s.aircraft_code)
+   -&gt;  Index Scan using aircrafts_pkey on aircrafts_data ml  (cost=0.14..12.27 rows=9 width=52)
+   -&gt;  Index Scan using seats_pkey on seats s  (cost=0.28..64.60 rows=1339 width=15)
+(4 rows)
+
+</pre></div>
+<p class="C">
+Теперь планировщик выбирает другой план: его первая компонента стоимости
+меньше (хотя вторая компонента наоборот, больше).
+</p>
+</body>
+</html>

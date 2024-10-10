@@ -1,0 +1,190 @@
+
+СЕКЦИОНИРОВАНИЕ
+~~~~~~~~~~~~~~~
+
+Создадим таблицу dates в базе данных db21
+
+=> create database db21;
+CREATE DATABASE
+
+=> \c db21
+You are now connected to database "db21" as user "postgres".
+
+=> create table dates (ts timestamp);
+CREATE TABLE
+
+Наполним таблицу строками с минутным интервалом за все дни 2016 года
+
+=> insert into dates 
+=>    select t.ts from generate_series (
+=>       '2016-01-01'::timestamp
+=>      ,'2016-12-31'::timestamp
+=>      ,'1 min'::interval
+=>    ) as t (ts);
+INSERT 0 525601
+
+Этап 1. Подготовка.
+Создаем четыре дочерние таблицы для каждого квартала и ограничения проверки
+
+=> create table dates_2016q1 () inherits (dates);
+CREATE TABLE
+
+=> create table dates_2016q2 () inherits (dates);
+CREATE TABLE
+
+=> create table dates_2016q3 () inherits (dates);
+CREATE TABLE
+
+=> create table dates_2016q4 () inherits (dates);
+CREATE TABLE
+
+=> alter table dates_2016q1 add constraint check_ts check (
+=>    ts >= '2016-01-01 00:00:00'::timestamp and 
+=>    ts <  '2016-04-01 00:00:00'::timestamp
+=> );
+ALTER TABLE
+
+=> alter table dates_2016q2 add constraint check_ts check (
+=>    ts >= '2016-04-01 00:00:00'::timestamp and 
+=>    ts <  '2016-07-01 00:00:00'::timestamp
+=> );
+ALTER TABLE
+
+=> alter table dates_2016q3 add constraint check_ts check (
+=>    ts >= '2016-07-01 00:00:00'::timestamp and 
+=>    ts <  '2016-10-01 00:00:00'::timestamp
+=> );
+ALTER TABLE
+
+=> alter table dates_2016q4 add constraint check_ts check (
+=>    ts >= '2016-10-01 00:00:00'::timestamp and 
+=>    ts <  '2017-01-01 00:00:00'::timestamp
+=> );
+ALTER TABLE
+
+Этап 2. Запуск для новых секций
+Создаем триггер на вставку записей в dates
+
+=> create function dates_ins () returns trigger as $$
+=> begin
+=>    if new.ts >= '2016-01-01 00:00:00'::timestamp and 
+=>       new.ts <  '2016-04-01 00:00:00'::timestamp
+=>    then
+=>       insert into dates_2016q1 select new.*;
+=>    elsif new.ts >= '2016-04-01 00:00:00'::timestamp and 
+=>          new.ts <  '2016-07-01 00:00:00'::timestamp
+=>    then
+=>       insert into dates_2016q2 select new.*;
+=>    elsif new.ts >= '2016-07-01 00:00:00'::timestamp and 
+=>          new.ts <  '2016-10-01 00:00:00'::timestamp
+=>    then
+=>       insert into dates_2016q3 select new.*;
+=>    elsif new.ts >= '2016-10-01 00:00:00'::timestamp and 
+=>          new.ts <  '2017-01-01 00:00:00'::timestamp
+=>    then
+=>       insert into dates_2016q4 select new.*;
+=>    end if;
+=>    return null;
+=> end; $$ language plpgsql;
+CREATE FUNCTION
+
+=> create trigger dates_ins_trg
+=>    before insert on dates
+=>    for each row
+=>    execute procedure dates_ins(); 
+CREATE TRIGGER
+
+Теперь секционирование работает для новых записей
+
+=> insert into dates values ('2016-02-01');
+INSERT 0 0
+
+=> insert into dates values ('2016-05-01');
+INSERT 0 0
+
+=> insert into dates values ('2016-08-01');
+INSERT 0 0
+
+=> insert into dates values ('2016-11-01');
+INSERT 0 0
+
+=> select tableoid::regclass, count(*) from dates group by tableoid;
+   tableoid   | count  
+--------------+--------
+ dates_2016q2 |      1
+ dates_2016q3 |      1
+ dates_2016q4 |      1
+ dates_2016q1 |      1
+ dates        | 525601
+(5 rows)
+
+
+Этап 3. Перенос исторических данных
+Осталось перенести все строки из dates в соответствующие секции
+Чтобы лишний раз не вызывать триггер, будем вставлять данные 
+сразу в нужные дочерние таблицы.
+
+=> with del as (
+=>    delete from ONLY dates
+=>     where ts >= '2016-01-01 00:00:00'::timestamp and 
+=>           ts <  '2016-04-01 00:00:00'::timestamp
+=>    returning *
+=> )
+=> insert into dates_2016q1 select * from del;
+INSERT 0 131040
+
+=> with del as (
+=>    delete from ONLY dates
+=>     where ts >= '2016-04-01 00:00:00'::timestamp and 
+=>           ts <  '2016-07-01 00:00:00'::timestamp
+=>    returning *
+=> )
+=> insert into dates_2016q2 select * from del;
+INSERT 0 131040
+
+=> with del as (
+=>    delete from ONLY dates
+=>     where ts >= '2016-07-01 00:00:00'::timestamp and 
+=>           ts <  '2016-10-01 00:00:00'::timestamp
+=>    returning *
+=> )
+=> insert into dates_2016q3 select * from del;
+INSERT 0 132480
+
+=> with del as (
+=>    delete from ONLY dates
+=>     where ts >= '2016-10-01 00:00:00'::timestamp and 
+=>           ts <  '2017-01-01 00:00:00'::timestamp
+=>    returning *
+=> )
+=> insert into dates_2016q4 select * from del;
+INSERT 0 131041
+
+Теперь все данные разложены по своим секциям
+
+=> select tableoid::regclass, count(*) from dates group by tableoid;
+   tableoid   | count  
+--------------+--------
+ dates_2016q2 | 131041
+ dates_2016q3 | 132481
+ dates_2016q4 | 131042
+ dates_2016q1 | 131041
+(4 rows)
+
+
+А запросы обращаются только к нужным
+
+=> explain (costs off) select * from dates where ts < '2016-05-09'::timestamp;
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Append
+   ->  Seq Scan on dates
+         Filter: (ts < '2016-05-09 00:00:00'::timestamp without time zone)
+   ->  Seq Scan on dates_2016q1
+         Filter: (ts < '2016-05-09 00:00:00'::timestamp without time zone)
+   ->  Seq Scan on dates_2016q2
+         Filter: (ts < '2016-05-09 00:00:00'::timestamp without time zone)
+(7 rows)
+
+
+=> \q

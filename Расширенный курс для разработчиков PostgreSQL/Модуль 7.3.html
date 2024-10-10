@@ -1,0 +1,557 @@
+<html><head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+    <style>
+    p.C    { font-size: 80%; }
+    li     { font-size: 80%; }
+    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+    div.E  { padding-left: 0px; font-weight: bold; }
+    div.R  { padding-left: 0px; }
+    </style>
+    </head>
+    <body style="margin: 59.5px;">
+    <!-- body -->
+    <!-- 5 -->
+    <h1>
+    Объявление и открытие
+    </h1>
+    <p class="C">
+    Создадим таблицу:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span><span style="color:#323232">,</span> s <span style="color:#a00050">text</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE TABLE
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Раз'</span><span style="color:#323232">), (</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Два'</span><span style="color:#323232">), (</span><span style="color:#1094a0">3</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Три'</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">INSERT 0 3
+    </pre></div>
+    <p class="C">
+    Несвязанная переменная:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        <span style="color:#969696">-- объявление переменной</span>
+        cur <span style="color:#a00050">refcursor</span><span style="color:#323232">;</span> 
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#969696">-- связывание с запросом и открытие курсора</span>
+        <span style="color:#3b6ac8">OPEN</span> cur <span style="color:#3b6ac8">FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">DO
+    </pre></div>
+    <p class="C">
+    Связанная переменная: запрос указывается уже при объявлении. При этом переменная cur имеет тот же тип refcursor.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        <span style="color:#969696">-- объявление и связывание переменной</span>
+        cur <span style="color:#3b6ac8">CURSOR FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#969696">-- открытие курсора</span>
+        <span style="color:#3b6ac8">OPEN</span> cur<span style="color:#323232">;</span> 
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">DO
+    </pre></div>
+    <p class="C">
+    При использовании связанной переменной курсор можно объявить с параметрами.
+    </p>
+    <p class="C">
+    Обратите внимание на устранение неоднозначности имен в этом и следующем примерах.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        <span style="color:#969696">-- объявление и связывание переменной</span>
+        cur <span style="color:#3b6ac8">CURSOR</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> t.id <span style="color:#323232">=</span> cur.id<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#969696">-- открытие курсора с указанием фактических параметров</span>
+        <span style="color:#3b6ac8">OPEN</span> <span style="color:#c73a69">cur</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">DO
+    </pre></div>
+    <p class="C">
+    Переменные PL/pgSQL также являются (неявными) параметрами курсора.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#00a150">&lt;&lt;local&gt;&gt;</span>
+    <span style="color:#3b6ac8">DECLARE</span>
+        id <span style="color:#a00050">integer</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">3</span><span style="color:#323232">;</span>
+        <span style="color:#969696">-- объявление и связывание переменной</span>
+        cur <span style="color:#3b6ac8">CURSOR FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> t.id <span style="color:#323232">=</span> local.id<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        id <span style="color:#323232">:=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+        <span style="color:#969696">-- открытие курсора (значение id берется на этот момент)</span>
+        <span style="color:#3b6ac8">OPEN</span> cur<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">DO
+    </pre></div>
+    <p class="C">
+    В качестве запроса можно использовать не только команду SELECT, но и любую другую, возвращающую результат (например, INSERT, UPDATE, DELETE с фразой RETURNING).
+    </p>
+    <!-- end -->
+    
+    
+    </body></html>
+
+
+    <html><head>
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+        <style>
+        p.C    { font-size: 80%; }
+        li     { font-size: 80%; }
+        h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+        div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+        div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+        div.R1 { padding-left: 0px; page-break-inside: avoid; }
+        div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+        div.E  { padding-left: 0px; font-weight: bold; }
+        div.R  { padding-left: 0px; }
+        </style>
+        </head>
+        <body style="margin: 59.5px;">
+        <!-- body -->
+        <!-- 7 -->
+        <h1>
+        Операции с курсором
+        </h1>
+        <p class="C">
+        Чтение текущей строки из курсора выполняется командой FETCH. Если нужно только переместиться на следующую строку, можно воспользоваться другой командой — MOVE.
+        </p>
+        <p class="C">
+        Что будет выведено на экран?
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            cur <span style="color:#a00050">refcursor</span><span style="color:#323232">;</span>
+            rec <span style="color:#a00050">record</span><span style="color:#323232">;</span> <span style="color:#969696">-- можно использовать и несколько скалярных переменных</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">OPEN</span> cur <span style="color:#3b6ac8">FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">ORDER BY</span> id<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">MOVE</span> cur<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">FETCH</span> cur <span style="color:#3b6ac8">INTO</span> rec<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> rec<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">CLOSE</span> cur<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  (2,Два)
+        DO
+        </pre></div>
+        <p class="C">
+        Обычно выборка происходит в цикле, который можно организовать так:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            cur <span style="color:#a00050">refcursor</span><span style="color:#323232">;</span>
+            rec <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">OPEN</span> cur <span style="color:#3b6ac8">FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">LOOP</span>
+                <span style="color:#3b6ac8">FETCH</span> cur <span style="color:#3b6ac8">INTO</span> rec<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">EXIT WHEN NOT FOUND</span><span style="color:#323232">;</span> <span style="color:#969696">-- FOUND: выбрана ли очередная строка?</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> rec<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">CLOSE</span> cur<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  (1,Раз)
+        NOTICE:  (2,Два)
+        NOTICE:  (3,Три)
+        DO
+        </pre></div>
+        <p class="C">
+        Но чтобы не писать много команд, используйте цикл FOR по курсору, который делает ровно то же самое:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            cur <span style="color:#3b6ac8">CURSOR FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+            <span style="color:#969696">-- переменная цикла не объявляется</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">FOR</span> rec <span style="color:#3b6ac8">IN</span> cur <span style="color:#3b6ac8">LOOP</span> <span style="color:#969696">-- cur должна быть связана с запросом</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> rec<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  (1,Раз)
+        NOTICE:  (2,Два)
+        NOTICE:  (3,Три)
+        DO
+        </pre></div>
+        <p class="C">
+        Более того, можно вообще обойтись без явной работы с курсором, если цикл — это все, что требуется.
+        </p>
+        <p class="C">
+        Скобки вокруг запроса не обязательны, но удобны.
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            rec <span style="color:#a00050">record</span><span style="color:#323232">;</span> <span style="color:#969696">-- надо объявить явно</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">FOR</span> rec <span style="color:#3b6ac8">IN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">)</span> <span style="color:#3b6ac8">LOOP</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> rec<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  (1,Раз)
+        NOTICE:  (2,Два)
+        NOTICE:  (3,Три)
+        DO
+        </pre></div>
+        <p class="C">
+        Как и для любого цикла, можно указать метку, что может оказаться полезным во вложенных циклах:
+        </p>
+        <p class="C">
+        Что будет выведено?
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            rec_outer <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+            rec_inner <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#00a150">&lt;&lt;outer&gt;&gt;</span>
+            <span style="color:#3b6ac8">FOR</span> rec_outer <span style="color:#3b6ac8">IN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">ORDER BY</span> id<span style="color:#323232">)</span> <span style="color:#3b6ac8">LOOP</span>
+                <span style="color:#00a150">&lt;&lt;inner&gt;&gt;</span>
+                <span style="color:#3b6ac8">FOR</span> rec_inner <span style="color:#3b6ac8">IN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">ORDER BY</span> id<span style="color:#323232">)</span> <span style="color:#3b6ac8">LOOP</span>
+                    <span style="color:#3b6ac8">EXIT</span> outer <span style="color:#3b6ac8">WHEN</span> rec_inner.id <span style="color:#323232">=</span> <span style="color:#1094a0">3</span><span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%, %'</span><span style="color:#323232">,</span> rec_outer<span style="color:#323232">,</span> rec_inner<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END LOOP INNER</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END LOOP</span> outer<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  (1,Раз), (1,Раз)
+        NOTICE:  (1,Раз), (2,Два)
+        DO
+        </pre></div>
+        <p class="C">
+        После выполнения цикла переменная FOUND позволяет узнать, была ли обработана хотя бы одна строка:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            rec <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">FOR</span> rec <span style="color:#3b6ac8">IN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> <span style="color:#00a150">false</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">LOOP</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> rec<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Была ли как минимум одна итерация? %'</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">FOUND</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  Была ли как минимум одна итерация? f
+        DO
+        </pre></div>
+        <p class="C">
+        На текущую строку курсора, связанного с простым запросом (по одной таблице, без группировок и сортировок) можно сослаться с помощью предложения CURRENT OF. Типичный пример — обработка пакета заданий в цикле; для этого по таблице заданий открывается курсор и статус заданий изменяется по мере их выполнения.
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            cur <span style="color:#a00050">refcursor</span><span style="color:#323232">;</span>
+            rec <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">OPEN</span> cur <span style="color:#3b6ac8">FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t
+                <span style="color:#3b6ac8">FOR UPDATE</span><span style="color:#323232">;</span> <span style="color:#969696">-- строки блокируются по мере обработки</span>
+            <span style="color:#3b6ac8">LOOP</span>
+                <span style="color:#3b6ac8">FETCH</span> cur <span style="color:#3b6ac8">INTO</span> rec<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">EXIT WHEN NOT FOUND</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> s || <span style="color:#1094a0">' (обработано)'</span> <span style="color:#3b6ac8">WHERE CURRENT OF</span> cur<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">CLOSE</span> cur<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">DO
+        </pre></div>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1"> id |        s         
+        ----+------------------
+          1 | Раз (обработано)
+          2 | Два (обработано)
+          3 | Три (обработано)
+        (3 rows)
+        
+        </pre></div>
+        <p class="C">
+        Заметим, что CURRENT OF не работает с циклом FOR по запросу, поскольку этот цикл не использует курсор явным образом. Конечно, аналогичный результат можно получить, явно указав в команде UPDATE или DELETE уникальный ключ таблицы (WHERE id = rec.id). Но CURRENT OF работает быстрее и не требует наличия индекса.
+        </p>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        Следует заметить, что в большом числе случаев вместо использования циклов можно выполнить задачу одним оператором SQL — и это будет проще и еще быстрее. Часто циклы используют просто потому, что это более привычный, «процедурный» стиль программирования. Но для базы данных этот стиль не подходит.
+        </p>
+        <p class="C">
+        Например:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            rec <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">FOR</span> rec <span style="color:#3b6ac8">IN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">)</span> <span style="color:#3b6ac8">LOOP</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> rec<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">DELETE FROM</span> t <span style="color:#3b6ac8">WHERE</span> id <span style="color:#323232">=</span> rec.id<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">ROLLBACK</span><span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">BEGIN
+        NOTICE:  (1,"Раз (обработано)")
+        NOTICE:  (2,"Два (обработано)")
+        NOTICE:  (3,"Три (обработано)")
+        DO
+        ROLLBACK
+        </pre></div>
+        <p class="C">
+        Такой цикл заменяется одной простой командой:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">DELETE FROM</span> t <span style="color:#3b6ac8">RETURNING</span> <span style="color:#323232">*;</span>
+        <span style="color:#3b6ac8">ROLLBACK</span><span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">BEGIN
+         id |        s         
+        ----+------------------
+          1 | Раз (обработано)
+          2 | Два (обработано)
+          3 | Три (обработано)
+        (3 rows)
+        
+        DELETE 3
+        ROLLBACK
+        </pre></div>
+        <!-- end -->
+        
+        
+        </body></html>
+
+
+        <html><head>
+            <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+            <style>
+            p.C    { font-size: 80%; }
+            li     { font-size: 80%; }
+            h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+            div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+            div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+            div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+            div.R1 { padding-left: 0px; page-break-inside: avoid; }
+            div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+            div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+            div.E  { padding-left: 0px; font-weight: bold; }
+            div.R  { padding-left: 0px; }
+            </style>
+            </head>
+            <body style="margin: 59.5px;">
+            <!-- body -->
+            <!-- 9 -->
+            <h1>
+            Передача курсора клиенту
+            </h1>
+            <p class="C">
+            Откроем курсор и посмотрим значение курсорной переменной:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                cur <span style="color:#a00050">refcursor</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">OPEN</span> cur <span style="color:#3b6ac8">FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> cur<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">NOTICE:  &lt;unnamed portal 10&gt;
+            DO
+            </pre></div>
+            <p class="C">
+            Это имя курсора (портала), который был открыт на сервере. Имя было сгенерировано автоматически.
+            </p>
+            <p class="C">
+            При желании имя можно задать явно (но оно должно быть уникальным):
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                cur <span style="color:#a00050">refcursor</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">'cursor12345'</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">OPEN</span> cur <span style="color:#3b6ac8">FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> cur<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">NOTICE:  cursor12345
+            DO
+            </pre></div>
+            <p class="C">
+            Пользуясь этим, можно написать функцию, которая откроет курсор и вернет его имя:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">t_cur</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">refcursor</span> 
+            <span style="color:#3b6ac8">AS</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                cur <span style="color:#a00050">refcursor</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">OPEN</span> cur <span style="color:#3b6ac8">FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RETURN</span> cur<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">CREATE FUNCTION
+            </pre></div>
+            <p class="C">
+            Клиент начинает транзакцию, вызывает функцию, узнает имя курсора и получает возможность читать из него данные. Как именно это сделать — зависит от языка программирования. На psql это делается так:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">BEGIN
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">t_cur</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">AS</span> curname <span style="color:#00a150">\gset</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"></pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\echo :curname</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">&lt;unnamed portal 11&gt;
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">FETCH</span> <span style="color:#323232">:</span><span style="color:#1094a0">"curname"</span><span style="color:#323232">;</span> <span style="color:#969696">-- кавычки нужны из-за спецсимволов в имени</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> id |        s         
+            ----+------------------
+              1 | Раз (обработано)
+            (1 row)
+            
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">COMMIT
+            </pre></div>
+            <p class="C">
+            Чтобы клиенту было проще, можно позволить ему самому устанавливать имя курсора:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP FUNCTION</span> <span style="color:#c73a69">t_cur</span><span style="color:#323232">();</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">DROP FUNCTION
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">t_cur</span><span style="color:#323232">(</span>cur <span style="color:#a00050">refcursor</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">void</span> 
+            <span style="color:#3b6ac8">AS</span> $$
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">OPEN</span> cur <span style="color:#3b6ac8">FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">CREATE FUNCTION
+            </pre></div>
+            <p class="C">
+            Клиентский код упрощается:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">BEGIN
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">t_cur</span><span style="color:#323232">(</span><span style="color:#1094a0">'cursor12345'</span><span style="color:#323232">);</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> t_cur 
+            -------
+             
+            (1 row)
+            
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">FETCH</span> cursor12345<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> id |        s         
+            ----+------------------
+              1 | Раз (обработано)
+            (1 row)
+            
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">COMMIT
+            </pre></div>
+            <p class="C">
+            Функция может вернуть и несколько открытых курсоров, используя OUT-параметры. Таким образом можно за один вызов функции обеспечить клиента информацией из разных таблиц, если это необходимо.
+            </p>
+            <p class="C">
+            Альтернативный подход — сразу выбрать все необходимые данные на стороне сервера и сформировать из них документ JSON или XML. Работа с этими форматами рассматривается в курсе DEV2.
+            </p>
+            <!-- end -->
+            
+            
+            </body></html>
+
+
+            
+
+

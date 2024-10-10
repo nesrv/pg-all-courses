@@ -1,0 +1,219 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Создание ролей
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE ROLE</span> employee LOGIN <span style="color:#3b6ac8">PASSWORD</span> <span style="color:#1094a0">'employee'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ERROR:  role &quot;employee&quot; already exists
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE ROLE</span> buyer LOGIN <span style="color:#3b6ac8">PASSWORD</span> <span style="color:#1094a0">'buyer'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE ROLE
+</pre></div>
+<h1>
+Настройки подключения
+</h1>
+<p class="C">
+Настройки по умолчанию разрешают подключение с локального адреса по паролю. Нас
+это устраивает.
+</p>
+<h1>
+Привилегии public
+</h1>
+<p class="C">
+У роли public надо отозвать лишние привилегии.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA</span> bookstore <span style="color:#3b6ac8">FROM</span> public<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+REVOKE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">REVOKE</span> CONNECT <span style="color:#3b6ac8">ON DATABASE</span> bookstore <span style="color:#3b6ac8">FROM</span> public<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+REVOKE
+</pre></div>
+<h1>
+Функции с правами создавшего
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER FUNCTION</span> <span style="color:#c73a69">get_catalog</span><span style="color:#323232">(</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">boolean</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">SECURITY DEFINER</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER FUNCTION</span> <span style="color:#c73a69">update_catalog</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">SECURITY DEFINER</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER FUNCTION</span> <span style="color:#c73a69">add_author</span><span style="color:#323232">(</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">SECURITY DEFINER</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER FUNCTION</span> <span style="color:#c73a69">add_book</span><span style="color:#323232">(</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">integer</span><span style="color:#323232">[])</span> <span style="color:#3b6ac8">SECURITY DEFINER</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER FUNCTION</span> <span style="color:#c73a69">buy_book</span><span style="color:#323232">(</span><span style="color:#a00050">integer</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">SECURITY DEFINER</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER FUNCTION</span> <span style="color:#c73a69">book_name</span><span style="color:#323232">(</span><span style="color:#a00050">integer</span><span style="color:#323232">,</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">integer</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">SECURITY DEFINER</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER FUNCTION</span> <span style="color:#c73a69">authors</span><span style="color:#323232">(</span>books<span style="color:#323232">)</span> <span style="color:#3b6ac8">SECURITY DEFINER</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER FUNCTION
+</pre></div>
+<h1>
+Привилегии покупателя
+</h1>
+<p class="C">
+Покупатель должен иметь доступ к поиску книг и их покупке.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT</span> CONNECT <span style="color:#3b6ac8">ON DATABASE</span> bookstore <span style="color:#3b6ac8">TO</span> buyer<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT</span> USAGE <span style="color:#3b6ac8">ON SCHEMA</span> bookstore <span style="color:#3b6ac8">TO</span> buyer<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT EXECUTE ON FUNCTION</span> <span style="color:#c73a69">get_catalog</span><span style="color:#323232">(</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">boolean</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">TO</span> buyer<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT EXECUTE ON FUNCTION</span> <span style="color:#c73a69">buy_book</span><span style="color:#323232">(</span><span style="color:#a00050">integer</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">TO</span> buyer<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<h1>
+Привилегии сотрудника
+</h1>
+<p class="C">
+Сотрудник должен иметь доступ к просмотру и добавлению книг и авторов,
+а также к каталогу для заказа книг.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT</span> CONNECT <span style="color:#3b6ac8">ON DATABASE</span> bookstore <span style="color:#3b6ac8">TO</span> employee<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT</span> USAGE <span style="color:#3b6ac8">ON SCHEMA</span> bookstore <span style="color:#3b6ac8">TO</span> employee<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT SELECT</span><span style="color:#323232">,</span><span style="color:#3b6ac8">UPDATE</span><span style="color:#323232">(</span>onhand_qty<span style="color:#323232">)</span> <span style="color:#3b6ac8">ON</span> catalog_v <span style="color:#3b6ac8">TO</span> employee<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT SELECT ON</span> authors_v <span style="color:#3b6ac8">TO</span> employee<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT EXECUTE ON FUNCTION</span> <span style="color:#c73a69">book_name</span><span style="color:#323232">(</span><span style="color:#a00050">integer</span><span style="color:#323232">,</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">integer</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">TO</span> employee<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT EXECUTE ON FUNCTION</span> <span style="color:#c73a69">authors</span><span style="color:#323232">(</span>books<span style="color:#323232">)</span> <span style="color:#3b6ac8">TO</span> employee<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT EXECUTE ON FUNCTION</span> <span style="color:#c73a69">author_name</span><span style="color:#323232">(</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">TO</span> employee<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT EXECUTE ON FUNCTION</span> <span style="color:#c73a69">add_book</span><span style="color:#323232">(</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">integer</span><span style="color:#323232">[])</span> <span style="color:#3b6ac8">TO</span> employee<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">GRANT EXECUTE ON FUNCTION</span> <span style="color:#c73a69">add_author</span><span style="color:#323232">(</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">TO</span> employee<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+GRANT
+</pre></div>
+</body>
+</html>

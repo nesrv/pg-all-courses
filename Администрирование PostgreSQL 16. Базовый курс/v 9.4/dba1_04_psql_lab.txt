@@ -1,0 +1,92 @@
+psql 
+
+Список доступных БД
+~~~~~~~~~~~~~~~~~~~
+
+
+        => \l
+                                          List of databases
+           Name    |  Owner   | Encoding |   Collate   |    Ctype    |   Access privileges   
+        -----------+----------+----------+-------------+-------------+-----------------------
+         postgres  | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | 
+         template0 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres          +
+                   |          |          |             |             | postgres=CTc/postgres
+         template1 | postgres | UTF8     | en_US.UTF-8 | en_US.UTF-8 | =c/postgres          +
+                   |          |          |             |             | postgres=CTc/postgres
+        (3 rows)
+        
+
+Подключение к template1
+~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => \c template1 postgres
+        You are now connected to database "template1" as user "postgres".
+
+Таблица pg_class
+~~~~~~~~~~~~~~~~
+
+
+        => \x
+        Expanded display is on.
+
+        => select * from pg_class limit 1;
+        -[ RECORD 1 ]--+----------------------------
+        relname        | pg_statistic
+        relnamespace   | 11
+        reltype        | 10912
+        reloftype      | 0
+        relowner       | 10
+        relam          | 0
+        relfilenode    | 11907
+        reltablespace  | 0
+        relpages       | 15
+        reltuples      | 399
+        relallvisible  | 15
+        reltoastrelid  | 2840
+        relhasindex    | t
+        relisshared    | f
+        relpersistence | p
+        relkind        | r
+        relnatts       | 26
+        relchecks      | 0
+        relhasoids     | f
+        relhaspkey     | f
+        relhasrules    | f
+        relhastriggers | f
+        relhassubclass | f
+        relispopulated | t
+        relreplident   | n
+        relfrozenxid   | 713
+        relminmxid     | 1
+        relacl         | {postgres=arwdDxt/postgres}
+        reloptions     | 
+        
+
+Печать времени выполнения
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => \! echo "\\\timing on" >> ~/.psqlrc
+
+
+Выход из psql и повторный вход
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => \q
+
+        psql 
+
+        => select count(*) from pg_class;
+        Timing is on.
+         count 
+        -------
+           327
+        (1 row)
+        
+        Time: 0,497 ms
+
+        => \q
+
+rm /home/postgres/.psqlrc 

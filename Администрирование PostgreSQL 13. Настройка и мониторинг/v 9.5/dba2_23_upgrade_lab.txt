@@ -1,0 +1,281 @@
+
+Создание БД и пользователя
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+psql -h localhost -p 5435 -U postgres
+
+=> create database db23;
+CREATE DATABASE
+
+=> create user usr password 'mypassword';
+CREATE ROLE
+
+Исправим pg_hba.conf (добавим нужную строку в начало файла,
+если ее еще нет):
+
+postgres4> /bin/bash -c "cd /usr/local/pgsql4/data; grep -q \"local all usr md5\" pg_hba.conf || { echo \"local all usr md5\"; cat pg_hba.conf; } > pg_hba.conf.new; mv pg_hba.conf{.new,}" 
+
+Вот что получилось (не считая комментариев):
+
+postgres4> egrep ^[^#] /usr/local/pgsql4/data/pg_hba.conf 
+local all usr md5
+local   all             all                                     trust
+host    all             all             127.0.0.1/32            trust
+host    all             all             ::1/128                 trust
+
+Добавим пароль в .pgpass, чтобы не вводить его вручную (выполняя
+задание, этот шаг лучше пропустить; иначе непонятно, срабатывает
+аутентификация по паролю или безусловный доступ, включенный по умолчанию).
+
+postgres4> /bin/bash -c "echo \"*:*:*:usr:mypassword\" > /home/postgres4/.pgpass" 
+postgres4> chmod 0600 /home/postgres4/.pgpass 
+
+
+Расширение и таблица
+~~~~~~~~~~~~~~~~~~~~
+
+=> \c db23
+You are now connected to database "db23" as user "postgres".
+
+=> create extension hstore;
+CREATE EXTENSION
+
+=> \q
+
+psql -h localhost -p 5435 -d db23 -U usr
+
+=> \conninfo
+You are connected to database "db23" as user "usr" on host "localhost" at port "5435".
+
+=> create table test(id serial, kv hstore);
+CREATE TABLE
+
+=> insert into test(kv) values ('a=>1,b=>2'::hstore);
+INSERT 0 1
+
+=> insert into test(kv) values ('c=>3,d=>4'::hstore);
+INSERT 0 1
+
+
+Резервная копия
+~~~~~~~~~~~~~~~
+
+postgres4> /bin/bash -c "pg_dumpall > /home/postgres4/dump.sql" 
+
+Добавим табличное пространство по умолчанию:
+
+postgres4> grep "CREATE DATABASE db23" /home/postgres4/dump.sql 
+CREATE DATABASE db23 WITH TEMPLATE = template0 OWNER = postgres;
+postgres4> sed -i "s/\\'(CREATE DATABASE db23 WITH\\')/\\'1 TABLESPACE = ts/" /home/postgres4/dump.sql 
+postgres4> grep "CREATE DATABASE db23" /home/postgres4/dump.sql 
+CREATE DATABASE db23 WITH TABLESPACE = ts TEMPLATE = template0 OWNER = postgres;
+
+
+Обновление на 9.5
+~~~~~~~~~~~~~~~~~
+
+Останавливаем сервер и переносим кластер в другой каталог:
+
+=> \q
+
+postgres4> pg_ctl stop 
+waiting for server to shut down.... done
+server stopped
+
+
+
+sudo rm -rf /usr/local/pgsql4_9.4 
+sudo mv /usr/local/pgsql4/ /usr/local/pgsql4_9.4/ 
+
+Устанавливаем версию 9.5 и расширение hstore (вывод перенаправлен
+в /dev/null, чтобы не занимать место в этом документе):
+
+sudo sh -c "make -C /home/student/postgresql-9.5.3 install > /dev/null" 
+sudo sh -c "make -C /home/student/postgresql-9.5.3/contrib/hstore install > /dev/null" 
+
+Инициализируем кластер 9.5.
+
+sudo mkdir -p /usr/local/pgsql4/data 
+sudo chown postgres4 /usr/local/pgsql4/data 
+postgres4> pg_ctl -o "-U postgres" initdb 
+The files belonging to this database system will be owned by user "postgres4".
+This user must also own the server process.
+
+The database cluster will be initialized with locales
+  COLLATE:  en_US.UTF-8
+  CTYPE:    en_US.UTF-8
+  MESSAGES: en_US.UTF-8
+  MONETARY: ru_RU.UTF-8
+  NUMERIC:  ru_RU.UTF-8
+  TIME:     ru_RU.UTF-8
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /usr/local/pgsql4/data ... ok
+creating subdirectories ... ok
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting dynamic shared memory implementation ... posix
+creating configuration files ... ok
+creating template1 database in /usr/local/pgsql4/data/base/1 ... ok
+initializing pg_authid ... ok
+initializing dependencies ... ok
+creating system views ... ok
+loading system objects' descriptions ... ok
+creating collations ... ok
+creating conversions ... ok
+creating dictionaries ... ok
+setting privileges on built-in objects ... ok
+creating information schema ... ok
+loading PL/pgSQL server-side language ... ok
+vacuuming database template1 ... ok
+copying template1 to template0 ... ok
+copying template1 to postgres ... ok
+syncing data to disk ... ok
+
+WARNING: enabling "trust" authentication for local connections
+You can change this by editing pg_hba.conf or using the option -A, or
+--auth-local and --auth-host, the next time you run initdb.
+
+Success. You can now start the database server using:
+
+    /usr/local/pgsql4/bin/pg_ctl -D /usr/local/pgsql4/data -l logfile start
+
+
+Восстанавливаем pg_hba.conf:
+
+postgres4> cp /usr/local/pgsql4_9.4/data/pg_hba.conf /usr/local/pgsql4/data/ 
+
+Настройки postgresql.conf не копируем, но в реальной жизни это, конечно, необходимо.
+
+Стартуем кластер и создаем табличное пространство:
+
+postgres4> rm -rf /home/postgres4/ts_dir 
+postgres4> mkdir /home/postgres4/ts_dir 
+postgres4> pg_ctl start -w -l /home/postgres4/logfile 
+waiting for server to start.... done
+server started
+psql -h localhost -p 5435 -U postgres
+
+=> create tablespace ts location '/home/postgres4/ts_dir';
+CREATE TABLESPACE
+
+=> \q
+
+Восстанавливаем из резервной копии:
+
+postgres4> psql -f /home/postgres4/dump.sql 
+SET
+SET
+SET
+psql:/home/postgres4/dump.sql:14: ERROR:  role "postgres" already exists
+ALTER ROLE
+CREATE ROLE
+ALTER ROLE
+CREATE DATABASE
+REVOKE
+REVOKE
+GRANT
+GRANT
+You are now connected to database "db23" as user "postgres".
+SET
+SET
+SET
+SET
+SET
+SET
+SET
+CREATE EXTENSION
+COMMENT
+CREATE EXTENSION
+COMMENT
+SET
+SET
+SET
+CREATE TABLE
+ALTER TABLE
+CREATE SEQUENCE
+ALTER TABLE
+ALTER SEQUENCE
+ALTER TABLE
+COPY 2
+ setval 
+--------
+      2
+(1 row)
+
+REVOKE
+REVOKE
+GRANT
+GRANT
+You are now connected to database "postgres" as user "postgres".
+SET
+SET
+SET
+SET
+SET
+SET
+SET
+COMMENT
+CREATE EXTENSION
+COMMENT
+REVOKE
+REVOKE
+GRANT
+GRANT
+You are now connected to database "template1" as user "postgres".
+SET
+SET
+SET
+SET
+SET
+SET
+SET
+COMMENT
+CREATE EXTENSION
+COMMENT
+REVOKE
+REVOKE
+GRANT
+GRANT
+
+При создании роли postgres выдается ошибка, поскольку такая роль уже
+существует, но это не проблема.
+
+Проверка работоспособности
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+psql -h localhost -p 5435 -d db23 -U usr
+
+=> \conninfo
+You are connected to database "db23" as user "usr" on host "localhost" at port "5435".
+
+=> select version();
+                                              version                                               
+----------------------------------------------------------------------------------------------------
+ PostgreSQL 9.5.3 on i686-pc-linux-gnu, compiled by gcc (Ubuntu 4.8.4-2ubuntu1~14.04) 4.8.4, 32-bit
+(1 row)
+
+
+=> select * from test;
+ id |         kv         
+----+--------------------
+  1 | "a"=>"1", "b"=>"2"
+  2 | "c"=>"3", "d"=>"4"
+(2 rows)
+
+
+=> select pg_relation_filepath('test');
+             pg_relation_filepath             
+----------------------------------------------
+ pg_tblspc/16384/PG_9.5_201510051/16386/16510
+(1 row)
+
+
+=> \q
+waiting for server to shut down.... done
+server stopped

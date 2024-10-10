@@ -1,0 +1,196 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Настройка контрольной точки
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> checkpoint_timeout <span style="color:#323232">=</span> <span style="color:#1094a0">'30s'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> min_wal_size <span style="color:#323232">=</span> <span style="color:#1094a0">'16MB'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> max_wal_size <span style="color:#323232">=</span> <span style="color:#1094a0">'16MB'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_reload_conf</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+</pre></div>
+<h1>
+Нагрузка
+</h1>
+<p class="C">
+Инициализируем таблицы.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> wal_checkpoint<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pgbench</span> <span style="color:#323232">-</span>i wal_checkpoint
+</pre>
+</div>
+<div class="R"><pre class="R">
+NOTICE:  table &quot;pgbench_history&quot; does not exist, skipping
+NOTICE:  table &quot;pgbench_tellers&quot; does not exist, skipping
+NOTICE:  table &quot;pgbench_accounts&quot; does not exist, skipping
+NOTICE:  table &quot;pgbench_branches&quot; does not exist, skipping
+creating tables...
+100000 of 100000 tuples (100%) done (elapsed 0.13 s, remaining 0.00 s)
+vacuum...
+set primary keys...
+done.
+</pre></div>
+<p class="C">
+Сбросим статистику.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_stat_reset_shared</span><span style="color:#323232">(</span><span style="color:#1094a0">'bgwriter'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_stat_reset_shared 
+----------------------
+ 
+(1 row)
+
+</pre></div>
+<p class="C">
+Запускаем pgbench, предварительно запомнив позицию в журнале.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_current_wal_insert_lsn</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_current_wal_insert_lsn 
+---------------------------
+ 0/2D0B6BF8
+(1 row)
+
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pgbench</span> <span style="color:#323232">-</span>T <span style="color:#1094a0">180</span> <span style="color:#323232">-</span>R <span style="color:#1094a0">100</span> wal_checkpoint
+</pre>
+</div>
+<div class="R"><pre class="R">
+starting vacuum...end.
+transaction type: &lt;builtin: TPC-B (sort of)&gt;
+scaling factor: 1
+query mode: simple
+number of clients: 1
+number of threads: 1
+duration: 180 s
+number of transactions actually processed: 17838
+latency average = 2.358 ms
+latency stddev = 1.637 ms
+rate limit schedule lag: avg 0.526 (max 41.345) ms
+tps = 99.112160 (including connections establishing)
+tps = 99.113887 (excluding connections establishing)
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_current_wal_insert_lsn</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_current_wal_insert_lsn 
+---------------------------
+ 0/327F3210
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#1094a0">'0/327F3210'</span><span style="color:#323232">::</span><span style="color:#a00050">pg_lsn</span> <span style="color:#323232">-</span> <span style="color:#1094a0">'0/2D0B6BF8'</span><span style="color:#323232">::</span><span style="color:#a00050">pg_lsn</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_size_pretty 
+----------------
+ 87 MB
+(1 row)
+
+</pre></div>
+<p class="C">
+Статистика:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> checkpoints_timed<span style="color:#323232">,</span> checkpoints_req <span style="color:#3b6ac8">FROM</span> pg_stat_bgwriter<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ checkpoints_timed | checkpoints_req 
+-------------------+-----------------
+                 3 |               5
+(1 row)
+
+</pre></div>
+<p class="C">
+Несмотря на то, что в среднем объем журнальных записей за контрольную точку
+не превосходит установленного предела, часть контрольных точек выполнялась
+не по расписанию. Это говорит о неравномерности потока журнальных записей
+(вызванной выполнением автоочистки и другими причинами).
+</p>
+<p class="C">
+Поэтому в реальной системе замеры лучше выполнять на достаточно больших
+интервалах времени.
+</p>
+<h1>
+Возвращаем настройки по умолчанию
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM RESET ALL</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_reload_conf</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+</pre></div>
+</body>
+</html>

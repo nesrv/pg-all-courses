@@ -1,0 +1,396 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Физическая потоковая репликация в синхронном режиме
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">rm</span> <span style="color:#323232">-</span>rf <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql2<span style="color:#323232">/</span>data<span style="color:#323232">/*</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_basebackup</span> <span style="color:#323232">--</span>pgdata<span style="color:#323232">=/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql2<span style="color:#323232">/</span>data <span style="color:#323232">-</span>R
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'port = 5433'</span> <span style="color:#323232">&gt;&gt; /</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql2<span style="color:#323232">/</span>data<span style="color:#323232">/</span>postgresql.auto.conf
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'hot_standby = on'</span> <span style="color:#323232">&gt;&gt; /</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql2<span style="color:#323232">/</span>data<span style="color:#323232">/</span>postgresql.auto.conf
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'standby_mode = on'</span> <span style="color:#323232">&gt; /</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql2<span style="color:#323232">/</span>data<span style="color:#323232">/</span>recovery.conf
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">&quot;primary_conninfo = 'user=postgres port=5432 application_name=replica'&quot;</span> <span style="color:#323232">&gt;&gt; /</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql2<span style="color:#323232">/</span>data<span style="color:#323232">/</span>recovery.conf
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>l <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile2 <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql2<span style="color:#323232">/</span>data start
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to start.... done
+server started
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">postgres$ <span style="color:#00a150">psql</span> 
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> synchronous_commit <span style="color:#323232">=</span> <span style="color:#3b6ac8">on</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> synchronous_standby_names <span style="color:#323232">=</span> <span style="color:#1094a0">'replica'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data reload
+</pre>
+</div>
+<div class="R"><pre class="R">
+server signaled
+</pre></div>
+<h1>
+Проверка физической репликации
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> replica_overview<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> replica_overview
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;replica_overview&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> pg_stat_replication <span style="color:#00a150">\gx</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+-[ RECORD 1 ]----+------------------------------
+pid              | 15915
+usesysid         | 10
+usename          | postgres
+application_name | replica
+client_addr      | 
+client_hostname  | 
+client_port      | -1
+backend_start    | 2019-03-31 15:24:47.086152+03
+backend_xmin     | 
+state            | streaming
+sent_lsn         | 0/B01ADD8
+write_lsn        | 0/B01ADD8
+flush_lsn        | 0/B01ADD8
+replay_lsn       | 0/B01ADD8
+write_lag        | 00:00:00.000126
+flush_lag        | 00:00:00.000733
+replay_lag       | 00:00:00.000807
+sync_priority    | 1
+sync_state       | sync
+
+</pre></div>
+<p class="C">
+sync_state: sync говорит о том, что репликация работает в синхронном режиме.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">postgres$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span> <span style="color:#323232">-</span>d replica_overview
+</pre>
+</div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+ n 
+---
+ 1
+(1 row)
+
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql2<span style="color:#323232">/</span>data stop
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to shut down.... done
+server stopped
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+BEGIN
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">2</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<p class="C">
+Фиксация ждет появления синхронной реплики.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>l <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile2 <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql2<span style="color:#323232">/</span>data start
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to start.... done
+server started
+
+</pre></div>
+<div class="R1"><pre class="R1">
+COMMIT
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">postgres$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span> <span style="color:#323232">-</span>d replica_overview
+</pre>
+</div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+ n 
+---
+ 1
+ 2
+(2 rows)
+
+</pre></div>
+<h1>
+Окончание восстановления
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql2<span style="color:#323232">/</span>data promote
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to promote.... done
+server promoted
+</pre></div>
+<p class="C">
+У первого сервера необходимо отменить синхронный режим:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM RESET</span> synchronous_standby_names<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data reload
+</pre>
+</div>
+<div class="R"><pre class="R">
+server signaled
+</pre></div>
+<h1>
+Таблицы для проверки логической репликации
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">a</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">b</span><span style="color:#323232">(</span>s <span style="color:#a00050">text</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">a</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+CREATE TABLE
+</pre></div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">b</span><span style="color:#323232">(</span>s <span style="color:#a00050">text</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+CREATE TABLE
+</pre></div>
+<h1>
+Настройка логической репликации
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> wal_level <span style="color:#323232">=</span> logical<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>l <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data restart
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+</pre></div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> wal_level <span style="color:#323232">=</span> logical<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+ALTER SYSTEM
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>l <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile2 <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql2<span style="color:#323232">/</span>data restart
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">postgres$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>d replica_overview
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PUBLICATION</span> a_pub <span style="color:#3b6ac8">FOR TABLE</span> a<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE PUBLICATION
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">postgres$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span> <span style="color:#323232">-</span>d replica_overview
+</pre>
+</div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PUBLICATION</span> b_pub <span style="color:#3b6ac8">FOR TABLE</span> b<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+CREATE PUBLICATION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE SUBSCRIPTION</span> b_sub
+<span style="color:#3b6ac8">CONNECTION</span> <span style="color:#1094a0">'host=localhost port=5433 user=postgres dbname=replica_overview'</span>
+<span style="color:#3b6ac8">PUBLICATION</span> b_pub<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+NOTICE:  created replication slot &quot;b_sub&quot; on publisher
+CREATE SUBSCRIPTION
+</pre></div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE SUBSCRIPTION</span> a_sub
+<span style="color:#3b6ac8">CONNECTION</span> <span style="color:#1094a0">'host=localhost port=5432 user=postgres dbname=replica_overview'</span>
+<span style="color:#3b6ac8">PUBLICATION</span> a_pub<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+NOTICE:  created replication slot &quot;a_sub&quot; on publisher
+CREATE SUBSCRIPTION
+</pre></div>
+<h1>
+Проверка логической репликации
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> a <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> a<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+ id 
+----
+  1
+(1 row)
+
+</pre></div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> b <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'Раз'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+INSERT 0 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> b<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+  s  
+-----
+ &#1056;&#1072;&#1079;
+(1 row)
+
+</pre></div>
+<h1>
+Завершение логической репликации
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP SUBSCRIPTION</span> b_sub<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+NOTICE:  dropped replication slot &quot;b_sub&quot; on publisher
+DROP SUBSCRIPTION
+</pre></div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP SUBSCRIPTION</span> a_sub<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+NOTICE:  dropped replication slot &quot;a_sub&quot; on publisher
+DROP SUBSCRIPTION
+</pre></div>
+</body>
+</html>

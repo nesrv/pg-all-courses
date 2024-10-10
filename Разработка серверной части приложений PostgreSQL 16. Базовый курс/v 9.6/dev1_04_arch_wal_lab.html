@@ -1,0 +1,99 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Процессы операционной системы
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">ps</span> <span style="color:#323232">-</span>o pid<span style="color:#323232">,</span>command <span style="color:#323232">--</span>ppid <span style="color:#1094a0">`head -n 1</span> <span style="color:#7376c4">$PGDATA</span><span style="color:#1094a0">/postmaster.pid`</span>
+</pre>
+</div>
+<div class="R"><pre class="R">
+  PID COMMAND
+11442 postgres: 9.6/main: checkpointer process   
+11443 postgres: 9.6/main: writer process   
+11444 postgres: 9.6/main: wal writer process   
+11445 postgres: 9.6/main: autovacuum launcher process   
+11446 postgres: 9.6/main: stats collector process   
+23142 postgres: 9.6/main: autovacuum worker process   plpgsql_exceptions
+</pre></div>
+<p class="C">
+К процессам, обслуживающим буферный кэш и журнал, можно отнести:
+</p>
+<ul class="U">
+<li>checkpointer</li>
+<li>writer</li>
+<li>wal writer</li>
+</ul>
+<h1>
+Остановка в режиме fast
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">rm</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>log<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>postgresql-9.6<span style="color:#323232">-</span>main.log
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">student$ sudo <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">9.6</span> main restart
+</pre>
+</div>
+<p class="C">
+Журнал сообщений сервера:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">cat</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>log<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>postgresql-9.6<span style="color:#323232">-</span>main.log
+</pre>
+</div>
+<div class="R"><pre class="R">
+2017-09-01 15:53:37 MSK [26546-1] LOG:  database system was shut down at 2017-09-01 15:53:36 MSK
+2017-09-01 15:53:37 MSK [26546-2] LOG:  MultiXact member wraparound protections are now enabled
+2017-09-01 15:53:37 MSK [26545-1] LOG:  database system is ready to accept connections
+2017-09-01 15:53:37 MSK [26550-1] LOG:  autovacuum launcher started
+2017-09-01 15:53:38 MSK [26552-1] [unknown]@[unknown] LOG:  incomplete startup packet
+</pre></div>
+<h1>
+Остановка в режиме immediate
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">rm</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>log<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>postgresql-9.6<span style="color:#323232">-</span>main.log
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">student$ sudo <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">9.6</span> main stop <span style="color:#323232">-</span>m immediate <span style="color:#323232">--</span>skip-systemctl-redirect
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">student$ sudo <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">9.6</span> main restart
+</pre>
+</div>
+<p class="C">
+Журнал сообщений сервера:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">cat</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>log<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>postgresql-9.6<span style="color:#323232">-</span>main.log
+</pre>
+</div>
+<div class="R"><pre class="R">
+2017-09-01 15:53:40 MSK [26624-1] LOG:  database system was interrupted; last known up at 2017-09-01 15:53:37 MSK
+2017-09-01 15:53:40 MSK [26625-1] [unknown]@[unknown] LOG:  incomplete startup packet
+2017-09-01 15:53:41 MSK [26628-1] postgres@postgres FATAL:  the database system is starting up
+2017-09-01 15:53:41 MSK [26624-2] LOG:  database system was not properly shut down; automatic recovery in progress
+2017-09-01 15:53:41 MSK [26624-3] LOG:  invalid record length at F/992EB1CC: wanted 24, got 0
+2017-09-01 15:53:41 MSK [26624-4] LOG:  redo is not required
+2017-09-01 15:53:41 MSK [26624-5] LOG:  MultiXact member wraparound protections are now enabled
+2017-09-01 15:53:41 MSK [26623-1] LOG:  database system is ready to accept connections
+2017-09-01 15:53:41 MSK [26632-1] LOG:  autovacuum launcher started
+</pre></div>
+<p class="C">
+Перед тем, как начать принимать соединения, СУБД выполнила восстановление
+(automatic recovery in progress).
+</p>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Изменение настроек
+</h1>
+<p class="C">
+Сохраним исходный файл настроек.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cp</span> <span style="color:#323232">-</span>n <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data<span style="color:#323232">/</span>pg_hba.conf pg_hba.conf.orig
+</pre>
+</div>
+<p class="C">
+Теперь перезапишем pg_hba.conf с нуля:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'local  all  postgres       trust'</span>  <span style="color:#323232">&gt; /</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data<span style="color:#323232">/</span>pg_hba.conf
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'host   all  all       all  md5'</span>   <span style="color:#323232">&gt;&gt; /</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data<span style="color:#323232">/</span>pg_hba.conf
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> line_number<span style="color:#323232">,</span> <span style="color:#3b6ac8">type</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">database</span><span style="color:#323232">,</span> user_name<span style="color:#323232">,</span> address<span style="color:#323232">,</span> auth_method
+<span style="color:#3b6ac8">FROM</span> pg_hba_file_rules<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ line_number | type  | database | user_name  | address | auth_method 
+-------------+-------+----------+------------+---------+-------------
+           1 | local | {all}    | {postgres} |         | trust
+           2 | host  | {all}    | {all}      | all     | md5
+(2 rows)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_reload_conf</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+</pre></div>
+<h1>
+Создание ролей
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SHOW</span> password_encryption<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ password_encryption 
+---------------------
+ md5
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE ROLE</span> alice <span style="color:#3b6ac8">LOGIN PASSWORD</span> <span style="color:#1094a0">'alice'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE ROLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> password_encryption<span style="color:#323232">=</span><span style="color:#1094a0">'scram-sha-256'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SET
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE ROLE</span> bob <span style="color:#3b6ac8">LOGIN PASSWORD</span> <span style="color:#1094a0">'bob'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE ROLE
+</pre></div>
+<h1>
+Проверка подключения
+</h1>
+<p class="C">
+Поскольку настройки требуют ввода пароля, мы укажем его явно в строке
+подключения.
+</p>
+<p class="C">
+При выполнении этого задания лучше ввести пароль вручную, чтобы убедиться
+в том, что он запрашивается.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#1094a0">&quot;dbname=postgres user=alice host=localhost password=alice&quot;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;postgres&quot; as user &quot;alice&quot; on host &quot;localhost&quot; at port &quot;5432&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#1094a0">&quot;dbname=postgres user=bob host=localhost password=bob&quot;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;postgres&quot; as user &quot;bob&quot;.
+</pre></div>
+<h1>
+Просмотр паролей
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\q</span>
+</pre>
+</div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">postgres$ <span style="color:#00a150">psql</span> 
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> rolname<span style="color:#323232">,</span> rolpassword <span style="color:#3b6ac8">FROM</span> pg_authid <span style="color:#3b6ac8">WHERE</span> rolname <span style="color:#3b6ac8">IN</span> <span style="color:#323232">(</span><span style="color:#1094a0">'alice'</span><span style="color:#323232">,</span><span style="color:#1094a0">'bob'</span><span style="color:#323232">)</span> <span style="color:#00a150">\gx</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+-[ RECORD 1 ]--------------------------------------------------------------------------------------------------------------------------------------
+rolname     | alice
+rolpassword | md5579e43b423b454623383471aeb85cd87
+-[ RECORD 2 ]--------------------------------------------------------------------------------------------------------------------------------------
+rolname     | bob
+rolpassword | SCRAM-SHA-256$4096:LJSJCEAao8rYQ2l+UtPqbg==$7YlL1mVri2SGvLopDPy7AMCCMkvCdh8Qr8PENh43UQw=:eEGzsFJo22F5NDagf1IyLf1aqMGrVRbM/xIwfxS6MTM=
+
+</pre></div>
+<p class="C">
+Пароли хранятся как значение хеш-функции, не допускающее расшифровки. Сервер
+всегда сравнивает между собой зашифрованные значения - введенный пароль и
+значение из pg_authid.
+</p>
+<h1>
+Восстанавливаем настройки
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cp</span> pg_hba.conf.orig <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data<span style="color:#323232">/</span>pg_hba.conf
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_reload_conf</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+</pre></div>
+</body>
+</html>

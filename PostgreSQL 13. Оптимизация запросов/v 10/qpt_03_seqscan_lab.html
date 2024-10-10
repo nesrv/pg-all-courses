@@ -1,0 +1,148 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Средняя стоимость перелета
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#c73a69">avg</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> ticket_flights<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=110786.07..110786.08 rows=1 width=32)
+   -&gt;  Gather  (cost=110785.85..110786.06 rows=2 width=32)
+         Workers Planned: 2
+         -&gt;  Partial Aggregate  (cost=109785.85..109785.86 rows=1 width=32)
+               -&gt;  Parallel Seq Scan on ticket_flights  (cost=0.00..101044.27 rows=3496628 width=6)
+(5 rows)
+
+</pre></div>
+<p class="C">
+Планировщик выбирает параллельный план.
+</p>
+<h1>
+Общее табличное выражение
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN</span>
+  <span style="color:#3b6ac8">WITH</span> tf <span style="color:#3b6ac8">AS</span> <span style="color:#323232">(</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> ticket_flights <span style="color:#323232">)</span>
+  <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">avg</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> tf<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Aggregate  (cost=338814.95..338814.96 rows=1 width=32)
+   CTE tf
+     -&gt;  Seq Scan on ticket_flights  (cost=0.00..149997.06 rows=8391906 width=32)
+   -&gt;  CTE Scan on tf  (cost=0.00..167838.12 rows=8391906 width=16)
+(4 rows)
+
+</pre></div>
+<p class="C">
+Здесь узел CTE представляет подзапрос в общем табличном выражении.
+</p>
+<p class="C">
+Затем выполняется узел CTE Scan: по сути он работает так же, как и Seq Scan,
+но просматривает не таблицу, а полученный и материализованный результат
+выполнения подзапроса. Эта операция выполняется последовательно.
+</p>
+<p class="C">
+При этом сам подзапрос в общем табличном выражении может работать параллельно:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN</span>
+  <span style="color:#3b6ac8">WITH</span> x <span style="color:#3b6ac8">AS</span> <span style="color:#323232">(</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">avg</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> ticket_flights <span style="color:#323232">)</span>
+  <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> x<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                                 QUERY PLAN                                                 
+------------------------------------------------------------------------------------------------------------
+ CTE Scan on x  (cost=110786.08..110786.10 rows=1 width=32)
+   CTE x
+     -&gt;  Finalize Aggregate  (cost=110786.07..110786.08 rows=1 width=32)
+           -&gt;  Gather  (cost=110785.85..110786.06 rows=2 width=32)
+                 Workers Planned: 2
+                 -&gt;  Partial Aggregate  (cost=109785.85..109785.86 rows=1 width=32)
+                       -&gt;  Parallel Seq Scan on ticket_flights  (cost=0.00..101044.27 rows=3496628 width=6)
+(7 rows)
+
+</pre></div>
+<h1>
+Последовательный план
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> flights<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                           QUERY PLAN                           
+----------------------------------------------------------------
+ Seq Scan on flights  (cost=0.00..4564.67 rows=214867 width=63)
+(1 row)
+
+</pre></div>
+<p class="C">
+Размер таблицы достаточно большой, чтобы планировщик рассмотрел параллельный
+план:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_table_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'flights'</span><span style="color:#323232">))</span> size<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ size  
+-------
+ 19 MB
+(1 row)
+
+</pre></div>
+<p class="C">
+Используя конфигурационный параметр можно убедиться, что запрос в принципе
+не запрещает параллельное выполнение, но планировщик отказывается от такой
+возможности из-за ее неэффективности:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> force_parallel_mode <span style="color:#323232">=</span> <span style="color:#3b6ac8">on</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SET
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> flights<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Gather  (cost=1000.00..27051.37 rows=214867 width=63)
+   Workers Planned: 1
+   Single Copy: true
+   -&gt;  Seq Scan on flights  (cost=0.00..4564.67 rows=214867 width=63)
+(4 rows)
+
+</pre></div>
+<p class="C">
+В данном случае дело в том, что пересылка всех строк таблицы между процессами
+невыгодна.
+</p>
+</body>
+</html>

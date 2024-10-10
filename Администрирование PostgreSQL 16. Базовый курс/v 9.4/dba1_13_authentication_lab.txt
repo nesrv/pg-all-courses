@@ -1,0 +1,98 @@
+
+        psql 
+
+Сохранение исходного файла
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+cd /usr/local/pgsql/data 
+cp pg_hba.conf pg_hba.conf.default 
+
+
+Изменение настроек
+~~~~~~~~~~~~~~~~~~
+
+
+bash -c "echo 'local  all  postgres       trust'  > pg_hba.conf" 
+bash -c "echo 'host   all  all       all  md5'   >> pg_hba.conf" 
+
+
+
+cat pg_hba.conf 
+local  all  postgres       trust
+host   all  all       all  md5
+
+
+
+pg_ctl -w reload 
+server signaled
+
+
+Пользователи
+~~~~~~~~~~~~
+
+
+        => create user enc encrypted password 'enc';
+        CREATE ROLE
+
+        => create user unenc unencrypted password 'unenc';
+        CREATE ROLE
+
+
+Подключение под enc
+~~~~~~~~~~~~~~~~~~~
+
+Поскольку настройки требуют пароля для enc, мы укажем его явно в строке подключения.
+При выполнении этого задания лучше использовать команду
+\c - enc localhost
+и ввести пароль вручную, чтобы убедиться в том, что он запрашивается.
+
+
+        => \c "dbname=postgres user=enc host=localhost password=enc"
+        You are now connected to database "postgres" as user "enc" on host "localhost" at port "5432".
+
+
+Попытка получить пароль
+~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => select rolpassword from pg_authid where rolname='unenc';
+        ERROR:  permission denied for relation pg_authid
+
+У пользователя enc нет доступа к этой таблице:
+
+        => \dp pg_catalog.pg_authid
+                                           Access privileges
+           Schema   |   Name    | Type  |     Access privileges     | Column access privileges 
+        ------------+-----------+-------+---------------------------+--------------------------
+         pg_catalog | pg_authid | table | postgres=arwdDxt/postgres | 
+        (1 row)
+        
+
+
+Получение пароля из-под postgres
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => \q
+
+        psql 
+
+        => select rolname, rolpassword from pg_authid where rolname like '%enc';
+         rolname |             rolpassword             
+        ---------+-------------------------------------
+         enc     | md59ad9487992ed433fd63349ea544f41d7
+         unenc   | unenc
+        (2 rows)
+        
+
+
+Восстанавливаем настройки
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => \q
+
+cp pg_hba.conf.default pg_hba.conf 
+pg_ctl -w reload 
+server signaled

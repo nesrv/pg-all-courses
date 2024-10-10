@@ -1,0 +1,155 @@
+<html><head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+  <style>
+  p.C    { font-size: 80%; }
+  li     { font-size: 80%; }
+  h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+  div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+  div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+  div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+  div.R1 { padding-left: 0px; page-break-inside: avoid; }
+  div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+  div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+  div.E  { padding-left: 0px; font-weight: bold; }
+  div.R  { padding-left: 0px; }
+  </style>
+  </head>
+  <body style="margin: 59.5px;">
+  <!-- body -->
+  <!--  -->
+  <h1>
+  1. Табличные пространства и таблица
+  </h1>
+  <p class="C">
+  Создаем базу данных:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> data_physical<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">CREATE DATABASE
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> data_physical
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">You are now connected to database "data_physical" as user "student".
+  </pre></div>
+  <p class="C">
+  Табличное пространство:
+  </p>
+  <div class="E">
+  <pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">mkdir</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>ts_dir
+  </pre>
+  </div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLESPACE</span> ts <span style="color:#3b6ac8">LOCATION</span> <span style="color:#1094a0">'/var/lib/postgresql/ts_dir'</span><span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">CREATE TABLESPACE
+  </pre></div>
+  <p class="C">
+  Создаем таблицу:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">TABLESPACE</span> ts<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">CREATE TABLE
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">1000</span><span style="color:#323232">);</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">INSERT 0 1000
+  </pre></div>
+  <h1>
+  2. Размер данных
+  </h1>
+  <p class="C">
+  Объем базы данных:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_database_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'data_physical'</span><span style="color:#323232">))</span> <span style="color:#3b6ac8">AS</span> db_size<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1"> db_size 
+  ---------
+   8041 kB
+  (1 row)
+  
+  </pre></div>
+  <p class="C">
+  Размер таблицы:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_total_relation_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">))</span> <span style="color:#3b6ac8">AS</span> t_size<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1"> t_size 
+  --------
+   64 kB
+  (1 row)
+  
+  </pre></div>
+  <p class="C">
+  Объем табличных пространств:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span>
+      <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_tablespace_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'pg_default'</span><span style="color:#323232">))</span> <span style="color:#3b6ac8">AS</span> pg_default_size<span style="color:#323232">,</span>
+      <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_tablespace_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'ts'</span><span style="color:#323232">))</span> <span style="color:#3b6ac8">AS</span> ts_size<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1"> pg_default_size | ts_size 
+  -----------------+---------
+   188 MB          | 68 kB
+  (1 row)
+  
+  </pre></div>
+  <p class="C">
+  Размер табличного пространства несколько больше размера таблицы за счет служебных файлов, хранящихся в каталоге табличного пространства.
+  </p>
+  <h1>
+  3. Перенос таблицы
+  </h1>
+  <p class="C">
+  Перенесем таблицу:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER TABLE</span> t <span style="color:#3b6ac8">SET TABLESPACE</span> pg_default<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">ALTER TABLE
+  </pre></div>
+  <p class="C">
+  Новый объем табличных пространств:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span>
+      <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_tablespace_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'pg_default'</span><span style="color:#323232">))</span> <span style="color:#3b6ac8">AS</span> pg_default_size<span style="color:#323232">,</span>
+      <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_tablespace_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'ts'</span><span style="color:#323232">))</span> <span style="color:#3b6ac8">AS</span> ts_size<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1"> pg_default_size |  ts_size   
+  -----------------+------------
+   188 MB          | 4096 bytes
+  (1 row)
+  
+  </pre></div>
+  <h1>
+  4. Удаление табличного пространства
+  </h1>
+  <p class="C">
+  Удаляем табличное пространство:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP TABLESPACE</span> ts<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">DROP TABLESPACE
+  </pre></div>
+  <!-- end -->
+  
+  
+  </body></html>

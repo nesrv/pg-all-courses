@@ -1,0 +1,382 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+HOT-обновление
+</h1>
+<p class="C">
+Создадим таблицу с двумя полями и индекс.
+</p>
+<p class="C">
+Параметр fillfactor установим в 75 %.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> mvcc_hot<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> mvcc_hot
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;mvcc_hot&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span><span style="color:#323232">,</span> s <span style="color:#a00050">char</span><span style="color:#323232">(</span><span style="color:#1094a0">2000</span><span style="color:#323232">))</span>
+<span style="color:#3b6ac8">WITH</span> <span style="color:#323232">(</span>fillfactor <span style="color:#323232">=</span> <span style="color:#1094a0">75</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE INDEX</span> t_id <span style="color:#3b6ac8">ON</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE INDEX
+</pre></div>
+<p class="C">
+Как обычно, используем pageinspect.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE EXTENSION</span> pageinspect<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE EXTENSION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE VIEW</span> t_v <span style="color:#3b6ac8">AS</span>
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">'(0,'</span>||lp||<span style="color:#1094a0">')'</span> <span style="color:#3b6ac8">AS</span> <span style="color:#a00050">ctid</span><span style="color:#323232">,</span>
+       <span style="color:#3b6ac8">CASE</span> lp_flags
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'unused'</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'normal'</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">2</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'redirect to '</span>||lp_off
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">3</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'dead'</span>
+       <span style="color:#3b6ac8">END AS</span> state<span style="color:#323232">,</span>
+       t_xmin || <span style="color:#3b6ac8">CASE</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#323232">(</span>t_infomask <span style="color:#323232">&amp;</span> <span style="color:#1094a0">256</span><span style="color:#323232">) &gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">' (c)'</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#323232">(</span>t_infomask <span style="color:#323232">&amp;</span> <span style="color:#1094a0">512</span><span style="color:#323232">) &gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">' (a)'</span>
+         <span style="color:#3b6ac8">ELSE</span> <span style="color:#1094a0">''</span>
+       <span style="color:#3b6ac8">END AS</span> <span style="color:#a00050">xmin</span><span style="color:#323232">,</span>
+       t_xmax || <span style="color:#3b6ac8">CASE</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#323232">(</span>t_infomask <span style="color:#323232">&amp;</span> <span style="color:#1094a0">1024</span><span style="color:#323232">) &gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">' (c)'</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#323232">(</span>t_infomask <span style="color:#323232">&amp;</span> <span style="color:#1094a0">2048</span><span style="color:#323232">) &gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">' (a)'</span>
+         <span style="color:#3b6ac8">ELSE</span> <span style="color:#1094a0">''</span>
+       <span style="color:#3b6ac8">END AS</span> <span style="color:#a00050">xmax</span><span style="color:#323232">,</span>
+       <span style="color:#3b6ac8">CASE WHEN</span> <span style="color:#323232">(</span>t_infomask2 <span style="color:#323232">&amp;</span> <span style="color:#1094a0">16384</span><span style="color:#323232">) &gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'t'</span> <span style="color:#3b6ac8">END AS</span> hhu<span style="color:#323232">,</span>
+       <span style="color:#3b6ac8">CASE WHEN</span> <span style="color:#323232">(</span>t_infomask2 <span style="color:#323232">&amp;</span> <span style="color:#1094a0">32768</span><span style="color:#323232">) &gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'t'</span> <span style="color:#3b6ac8">END AS</span> hot<span style="color:#323232">,</span>
+       t_ctid
+<span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">heap_page_items</span><span style="color:#323232">(</span><span style="color:#c73a69">get_raw_page</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">,</span><span style="color:#1094a0">0</span><span style="color:#323232">))</span>
+<span style="color:#3b6ac8">ORDER BY</span> lp<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE VIEW
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE VIEW</span> t_id_v <span style="color:#3b6ac8">AS</span>
+<span style="color:#3b6ac8">SELECT</span> itemoffset<span style="color:#323232">,</span>
+       <span style="color:#a00050">ctid</span>
+<span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">bt_page_items</span><span style="color:#323232">(</span><span style="color:#1094a0">'t_id'</span><span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE VIEW
+</pre></div>
+<p class="C">
+Вставляем строку и обновляем ее.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>s<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'A'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'B'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'C'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'D'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<p class="C">
+В индексной странице только одна ссылка на таблицу:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t_id_v<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ itemoffset | ctid  
+------------+-------
+          1 | (0,1)
+(1 row)
+
+</pre></div>
+<p class="C">
+В табличной странице - версии строки, объединенные в список:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t_v<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ ctid  | state  |   xmin    |   xmax    | hhu | hot | t_ctid 
+-------+--------+-----------+-----------+-----+-----+--------
+ (0,1) | normal | 55487 (c) | 55488 (c) | t   |     | (0,2)
+ (0,2) | normal | 55488 (c) | 55489 (c) | t   | t   | (0,3)
+ (0,3) | normal | 55489 (c) | 55490     | t   | t   | (0,4)
+ (0,4) | normal | 55490     | 0 (a)     |     | t   | (0,4)
+(4 rows)
+
+</pre></div>
+<h1>
+HOT-очистка
+</h1>
+<p class="C">
+Как и в демонстрации, еще одно обновление строки приводит к внутристраничной
+очистке:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'E'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t_v<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ ctid  |     state     |   xmin    | xmax  | hhu | hot | t_ctid 
+-------+---------------+-----------+-------+-----+-----+--------
+ (0,1) | redirect to 4 |           |       |     |     | 
+ (0,2) | normal        | 55491     | 0 (a) |     | t   | (0,2)
+ (0,3) | unused        |           |       |     |     | 
+ (0,4) | normal        | 55490 (c) | 55491 | t   | t   | (0,2)
+(4 rows)
+
+</pre></div>
+<p class="C">
+Обратите внимание, что:
+</p>
+<ul class="U">
+<li>версии (0,1), (0,2) и (0,3) были очищены,</li>
+<li>указатель (0,1) остался, но получил статут redirect,</li>
+<li>новая версия строки записана на место (0,2), поскольку на эту версию гарантированно не было ссылок из индексов и указатель был освобожден (unused).</li>
+</ul>
+<p class="C">
+Выполним обновление еще несколько раз:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'F'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'G'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t_v<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ ctid  |     state     |   xmin    |   xmax    | hhu | hot | t_ctid 
+-------+---------------+-----------+-----------+-----+-----+--------
+ (0,1) | redirect to 4 |           |           |     |     | 
+ (0,2) | normal        | 55491 (c) | 55492 (c) | t   | t   | (0,3)
+ (0,3) | normal        | 55492 (c) | 55493     | t   | t   | (0,5)
+ (0,4) | normal        | 55490 (c) | 55491 (c) | t   | t   | (0,2)
+ (0,5) | normal        | 55493     | 0 (a)     |     | t   | (0,5)
+(5 rows)
+
+</pre></div>
+<p class="C">
+Следующее обновление снова вызывает очистку:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'H'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t_v<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ ctid  |     state     |   xmin    | xmax  | hhu | hot | t_ctid 
+-------+---------------+-----------+-------+-----+-----+--------
+ (0,1) | redirect to 5 |           |       |     |     | 
+ (0,2) | normal        | 55494     | 0 (a) |     | t   | (0,2)
+ (0,3) | unused        |           |       |     |     | 
+ (0,4) | unused        |           |       |     |     | 
+ (0,5) | normal        | 55493 (c) | 55494 | t   | t   | (0,2)
+(5 rows)
+
+</pre></div>
+<h1>
+Разрыв HOT-цепочки
+</h1>
+<p class="C">
+Теперь, чтобы HOT-очистка не смогла освободить место, начнем параллельную
+транзакцию и построим в ней снимок данных.
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> mvcc_hot
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+You are now connected to database &quot;mvcc_hot&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN ISOLATION LEVEL REPEATABLE READ</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+BEGIN
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ count 
+-------
+     1
+(1 row)
+
+</pre></div>
+<p class="C">
+Теперь выполняем обновление в первом сеансе:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'I'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'J'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'K'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t_v<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ ctid  |     state     |   xmin    |   xmax    | hhu | hot | t_ctid 
+-------+---------------+-----------+-----------+-----+-----+--------
+ (0,1) | redirect to 2 |           |           |     |     | 
+ (0,2) | normal        | 55494 (c) | 55495 (c) | t   | t   | (0,3)
+ (0,3) | normal        | 55495 (c) | 55496 (c) | t   | t   | (0,4)
+ (0,4) | normal        | 55496 (c) | 55497     | t   | t   | (0,5)
+ (0,5) | normal        | 55497     | 0 (a)     |     | t   | (0,5)
+(5 rows)
+
+</pre></div>
+<p class="C">
+Следующее обновление уже не сможет освободить место на странице:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'L'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t_v<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ ctid  |     state     |   xmin    |   xmax    | hhu | hot | t_ctid 
+-------+---------------+-----------+-----------+-----+-----+--------
+ (0,1) | redirect to 2 |           |           |     |     | 
+ (0,2) | normal        | 55494 (c) | 55495 (c) | t   | t   | (0,3)
+ (0,3) | normal        | 55495 (c) | 55496 (c) | t   | t   | (0,4)
+ (0,4) | normal        | 55496 (c) | 55497 (c) | t   | t   | (0,5)
+ (0,5) | normal        | 55497 (c) | 55498     |     | t   | (1,1)
+(5 rows)
+
+</pre></div>
+<p class="C">
+Видим ссылку (1,1), ведущую на страницу 1.
+</p>
+<p class="C">
+Теперь в индексе - две строки, каждая указывает на начало своей HOT-цепочки:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t_id_v<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ itemoffset | ctid  
+------------+-------
+          1 | (1,1)
+          2 | (0,1)
+(2 rows)
+
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+COMMIT
+</pre></div>
+</body>
+</html>

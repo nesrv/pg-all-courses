@@ -1,0 +1,172 @@
+
+        psql 
+
+База данных и таблица
+~~~~~~~~~~~~~~~~~~~~~
+
+
+        => create database db14;
+        CREATE DATABASE
+
+        => \c db14
+        You are now connected to database "db14" as user "postgres".
+
+        => create table t(n numeric);
+        CREATE TABLE
+
+        => insert into t select 1 from generate_series(1,1000);
+        INSERT 0 1000
+
+        => delete from t;
+        DELETE 1000
+
+
+Статистика обращений
+~~~~~~~~~~~~~~~~~~~~
+
+
+        => \c
+        You are now connected to database "db14" as user "postgres".
+
+        => \x
+        Expanded display is on.
+
+        => select * from pg_stat_all_tables where relid='t'::regclass;
+        -[ RECORD 1 ]-------+-------
+        relid               | 16445
+        schemaname          | public
+        relname             | t
+        seq_scan            | 1
+        seq_tup_read        | 1000
+        idx_scan            | 
+        idx_tup_fetch       | 
+        n_tup_ins           | 1000
+        n_tup_upd           | 0
+        n_tup_del           | 1000
+        n_tup_hot_upd       | 0
+        n_live_tup          | 0
+        n_dead_tup          | 1000
+        n_mod_since_analyze | 2000
+        last_vacuum         | 
+        last_autovacuum     | 
+        last_analyze        | 
+        last_autoanalyze    | 
+        vacuum_count        | 0
+        autovacuum_count    | 0
+        analyze_count       | 0
+        autoanalyze_count   | 0
+        
+
+Мы вставили 1000 строк: n_tup_ins = 1000
+Удалили 1000 строк: n_tup_del = 1000
+После этого не осталось активных версий строк: n_live_tup = 0
+Все 1000 строк не актуальны на текущий момент: n_dead_tup = 1000
+
+
+Очистка
+~~~~~~~
+
+
+        => vacuum;
+        VACUUM
+
+        => select * from pg_stat_all_tables where relid='t'::regclass;
+        -[ RECORD 1 ]-------+------------------------------
+        relid               | 16445
+        schemaname          | public
+        relname             | t
+        seq_scan            | 1
+        seq_tup_read        | 1000
+        idx_scan            | 
+        idx_tup_fetch       | 
+        n_tup_ins           | 1000
+        n_tup_upd           | 0
+        n_tup_del           | 1000
+        n_tup_hot_upd       | 0
+        n_live_tup          | 0
+        n_dead_tup          | 0
+        n_mod_since_analyze | 2000
+        last_vacuum         | 2016-06-16 17:22:46.425857+03
+        last_autovacuum     | 
+        last_analyze        | 
+        last_autoanalyze    | 
+        vacuum_count        | 1
+        autovacuum_count    | 0
+        analyze_count       | 0
+        autoanalyze_count   | 0
+        
+
+Неактуальные версии строк убраны при очистке: n_dead_tup = 0
+Очистка обрабатывала таблицу один раз: vacuum_count = 1
+
+
+Взаимоблокировка
+~~~~~~~~~~~~~~~~
+
+
+        => insert into t values (1), (2);
+        INSERT 0 2
+
+Одна транзакция блокирует первую строку таблицы...
+
+        |  psql 
+
+        |  => \c db14
+        |  You are now connected to database "db14" as user "postgres".
+
+        |  => begin;
+        |  BEGIN
+
+        |  => update t set n=10 where n=1;
+        |  UPDATE 1
+
+Затем другая транзакция блокирует вторую строку...
+
+        ||     psql 
+
+        ||     => \c db14
+        ||     You are now connected to database "db14" as user "postgres".
+
+        ||     => begin;
+        ||     BEGIN
+
+        ||     => update t set n=200 where n=2;
+        ||     UPDATE 1
+
+Теперь первая транзакция пытается изменить вторую строку и ждет ее освобождения...
+
+        |  => update t set n=20 where n=2;
+
+А вторая транзакция пытается изменить первую строку...
+
+        ||     => update t set n=100 where n=1;
+
+И происходит взаимоблокировка.
+
+        ||     UPDATE 1
+
+
+        |  ERROR:  deadlock detected
+        |  DETAIL:  Process 15595 waits for ShareLock on transaction 772; blocked by process 15620.
+        |  Process 15620 waits for ShareLock on transaction 771; blocked by process 15595.
+        |  HINT:  See server log for query details.
+        |  CONTEXT:  while updating tuple (0,2) in relation "t"
+
+
+Информация в журнале
+~~~~~~~~~~~~~~~~~~~~
+
+
+tail -n 8 /home/postgres/logfile 
+ERROR:  deadlock detected
+DETAIL:  Process 15595 waits for ShareLock on transaction 772; blocked by process 15620.
+	Process 15620 waits for ShareLock on transaction 771; blocked by process 15595.
+	Process 15595: update t set n=20 where n=2;
+	Process 15620: update t set n=100 where n=1;
+HINT:  See server log for query details.
+CONTEXT:  while updating tuple (0,2) in relation "t"
+STATEMENT:  update t set n=20 where n=2;
+
+        ||     => \q
+        |  => \q
+        => \q

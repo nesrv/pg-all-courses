@@ -1,0 +1,188 @@
+
+        psql 
+
+Отклчение автоочистки
+~~~~~~~~~~~~~~~~~~~~~
+
+
+        => alter system set autovacuum = off;
+        ALTER SYSTEM
+
+        => select pg_reload_conf();
+         pg_reload_conf 
+        ----------------
+         t
+        (1 row)
+        
+
+        => show autovacuum;
+         autovacuum 
+        ------------
+         off
+        (1 row)
+        
+
+Также можно проверить, что среди процессов нет autovacuum launcher:
+
+ps -o pid,command --ppid `head -n 1 $PGDATA/postmaster.pid`
+  PID COMMAND
+15299 postgres: checkpointer process  
+15300 postgres: writer process     
+15301 postgres: wal writer process  
+15303 postgres: stats collector process  
+15694 postgres: postgres postgres [local] idle
+
+База данных, таблица и индекс
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => create database db15;
+        CREATE DATABASE
+
+        => \c db15
+        You are now connected to database "db15" as user "postgres".
+
+        => create table t(n numeric);
+        CREATE TABLE
+
+        => create index t_n on t(n);
+        CREATE INDEX
+
+
+Вставка строк
+~~~~~~~~~~~~~
+
+
+        => insert into t select random() from generate_series(1,100000);
+        INSERT 0 100000
+
+        => select pg_size_pretty(pg_table_size('t')),
+        =>        pg_size_pretty(pg_indexes_size('t'));
+         pg_size_pretty | pg_size_pretty 
+        ----------------+----------------
+         3960 kB        | 3472 kB
+        (1 row)
+        
+
+
+Изменение строк без очистки
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => update t set n=n where n < 0.5;
+        UPDATE 50081
+
+        => select pg_size_pretty(pg_table_size('t')),
+        =>        pg_size_pretty(pg_indexes_size('t'));
+         pg_size_pretty | pg_size_pretty 
+        ----------------+----------------
+         5936 kB        | 5200 kB
+        (1 row)
+        
+
+        => update t set n=n where n < 0.5;
+        UPDATE 50081
+
+        => select pg_size_pretty(pg_table_size('t')),
+        =>        pg_size_pretty(pg_indexes_size('t'));
+         pg_size_pretty | pg_size_pretty 
+        ----------------+----------------
+         7904 kB        | 6976 kB
+        (1 row)
+        
+
+        => update t set n=n where n < 0.5;
+        UPDATE 50081
+
+        => select pg_size_pretty(pg_table_size('t')),
+        =>        pg_size_pretty(pg_indexes_size('t'));
+         pg_size_pretty | pg_size_pretty 
+        ----------------+----------------
+         9872 kB        | 8688 kB
+        (1 row)
+        
+
+Размер таблицы и индекса постоянно растет.
+
+
+Полная очистка
+~~~~~~~~~~~~~~
+
+
+        => vacuum full t;
+        VACUUM
+
+        => select pg_size_pretty(pg_table_size('t')),
+        =>        pg_size_pretty(pg_indexes_size('t'));
+         pg_size_pretty | pg_size_pretty 
+        ----------------+----------------
+         3944 kB        | 2664 kB
+        (1 row)
+        
+
+Размер таблицы вернулся к начальному, индекс стал компактнее.
+
+Изменение строк с очисткой
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => update t set n=n where n < 0.5;
+        UPDATE 50081
+
+        => vacuum t;
+        VACUUM
+
+        => select pg_size_pretty(pg_table_size('t')),
+        =>        pg_size_pretty(pg_indexes_size('t'));
+         pg_size_pretty | pg_size_pretty 
+        ----------------+----------------
+         5944 kB        | 3992 kB
+        (1 row)
+        
+
+        => update t set n=n where n < 0.5;
+        UPDATE 50081
+
+        => vacuum t;
+        VACUUM
+
+        => select pg_size_pretty(pg_table_size('t')),
+        =>        pg_size_pretty(pg_indexes_size('t'));
+         pg_size_pretty | pg_size_pretty 
+        ----------------+----------------
+         5944 kB        | 3992 kB
+        (1 row)
+        
+
+        => update t set n=n where n < 0.5;
+        UPDATE 50081
+
+        => vacuum t;
+        VACUUM
+
+        => select pg_size_pretty(pg_table_size('t')),
+        =>        pg_size_pretty(pg_indexes_size('t'));
+         pg_size_pretty | pg_size_pretty 
+        ----------------+----------------
+         5944 kB        | 3992 kB
+        (1 row)
+        
+
+Размер увеличился один раз и затем стабилизировался.
+
+
+Восстанавливаем автоочистку
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => alter system set autovacuum = off;
+        ALTER SYSTEM
+
+        => select pg_reload_conf();
+         pg_reload_conf 
+        ----------------
+         t
+        (1 row)
+        
+
+        => \q

@@ -1,0 +1,213 @@
+<html><head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+  <style>
+  p.C    { font-size: 80%; }
+  li     { font-size: 80%; }
+  h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+  div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+  div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+  div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+  div.R1 { padding-left: 0px; page-break-inside: avoid; }
+  div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+  div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+  div.E  { padding-left: 0px; font-weight: bold; }
+  div.R  { padding-left: 0px; }
+  </style>
+  </head>
+  <body style="margin: 59.5px;">
+  <!-- body -->
+  <!-- 5 -->
+  <h1>
+  Влияние буферного кеша на выполнение запросов
+  </h1>
+  <p class="C">
+  Создадим базу данных и в ней таблицу:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> arch_wal_overview<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">CREATE DATABASE
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> arch_wal_overview
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">You are now connected to database "arch_wal_overview" as user "student".
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">CREATE TABLE
+  </pre></div>
+  <p class="C">
+  Заполним таблицу некоторым количеством строк:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">SELECT</span> id <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">100000</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> id<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">INSERT 0 100000
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM ANALYZE</span> t<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">VACUUM
+  </pre></div>
+  <p class="C">
+  Теперь перезапустим сервер, чтобы содержимое буферного кеша сбросилось.
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\q</span>
+  </pre>
+  </div>
+  <div class="E">
+  <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">12</span> main restart
+  </pre>
+  <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">psql</span> arch_wal_overview
+  </pre>
+  </div>
+  <p class="C">
+  Сравним, что происходит при первом и при втором выполнении одного и того же запроса. В этом курсе мы не рассматриваем подробно планы запросов, но иногда будем в них заглядывать. Сейчас мы воспользуемся командой EXPLAIN ANALYZE, которая выполняет запрос и выводит не только план выполнения, но и дополнительную информацию:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN</span> <span style="color:#323232">(</span>analyze<span style="color:#323232">,</span> buffers<span style="color:#323232">,</span> costs off<span style="color:#323232">,</span> timing off<span style="color:#323232">)</span>
+  <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">                 QUERY PLAN                 
+  --------------------------------------------
+   Seq Scan on t (actual rows=100000 loops=1)
+     Buffers: shared read=443
+   Planning Time: 0.252 ms
+   Execution Time: 11.338 ms
+  (4 rows)
+  
+  </pre></div>
+  <p class="C">
+  Строка «Buffers: shared»  показывает использование буферного кеша.
+  </p>
+  <ul class="U">
+  <li>
+  read — количество буферов, в которые пришлось прочитать страницы с диска.
+  </li>
+  </ul>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN</span> <span style="color:#323232">(</span>analyze<span style="color:#323232">,</span> buffers<span style="color:#323232">,</span> costs off<span style="color:#323232">,</span> timing off<span style="color:#323232">)</span>
+  <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">                 QUERY PLAN                 
+  --------------------------------------------
+   Seq Scan on t (actual rows=100000 loops=1)
+     Buffers: shared hit=443
+   Planning Time: 0.029 ms
+   Execution Time: 5.709 ms
+  (4 rows)
+  
+  </pre></div>
+  <ul class="U">
+  <li>
+  hit — количество буферов, в которых нашлись нужные для запроса страницы.
+  </li>
+  </ul>
+  <p class="C">
+  Обратите внимание, что во второй раз, скорее всего, уменьшилось не только время выполнения запроса, но и время его планирования, потому что таблицы системного каталога тоже кешируются. (Однако гарантировать ускорение нельзя, время выполнения зависит от многих факторов. Это обсуждается в теме «Профилирование» курса «QPT. Оптимизация запросов».)
+  </p>
+  <!-- end -->
+  
+  
+  </body></html>
+
+  <html><head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+    <style>
+    p.C    { font-size: 80%; }
+    li     { font-size: 80%; }
+    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+    div.E  { padding-left: 0px; font-weight: bold; }
+    div.R  { padding-left: 0px; }
+    </style>
+    </head>
+    <body style="margin: 59.5px;">
+    <!-- body -->
+    <!-- 8 -->
+    <h1>
+    Восстановление при помощи журнала
+    </h1>
+    <p class="C">
+    Файлы журнала хранятся в отдельном каталоге; они не являются частью какой-либо базы данных. В этот каталог можно заглянуть в файловой системе, а можно воспользоваться функцией:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">pg_ls_waldir</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">ORDER BY</span> name<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">           name           |   size   |      modification      
+    --------------------------+----------+------------------------
+     000000010000000000000001 | 16777216 | 2023-07-26 11:03:47+03
+     000000010000000000000002 | 16777216 | 2023-07-26 11:03:47+03
+    (2 rows)
+    
+    </pre></div>
+    <p class="C">
+    PostgreSQL удаляет файлы, не требующиеся для восстановления, по мере необходимости после выполнения контрольной точки.
+    </p>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Внесем какие-нибудь изменения:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DELETE FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">DELETE 100000
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">0</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">INSERT 0 1
+    </pre></div>
+    <p class="C">
+    Измененные табличные страницы находятся в буферном кеше, но еще не записаны на диск. Сымитируем сбой системы, остановив ее в режиме immediate. При обычной остановке сервер выполняет контрольную точку, чтобы записать все грязные страницы на диск, но в режиме immediate сервер выключается без контрольной точки.
+    </p>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">12</span> main stop <span style="color:#323232">-</span>m immediate <span style="color:#323232">--</span>skip-systemctl-redirect
+    </pre>
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">12</span> main start
+    </pre>
+    </div>
+    <p class="C">
+    При старте происходит восстановление согласованности данных с помощью журнала. Проверим:
+    </p>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">psql</span> arch_wal_overview
+    </pre>
+    </div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> n 
+    ---
+     0
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    Все изменения были восстановлены.
+    </p>
+    <!-- end -->
+    
+    
+    </body></html>
+
+    

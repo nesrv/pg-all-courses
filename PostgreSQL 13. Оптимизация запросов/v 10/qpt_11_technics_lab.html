@@ -1,0 +1,178 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Оптимизация запроса
+</h1>
+<p class="C">
+Отключим параллельное выполнение.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> max_parallel_workers_per_gather <span style="color:#323232">=</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SET
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">ANALYZE</span><span style="color:#323232">,</span> TIMING <span style="color:#3b6ac8">OFF</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">SELECT</span> t.<span style="color:#323232">*</span>
+<span style="color:#3b6ac8">FROM</span>  tickets t<span style="color:#323232">,</span>
+      ticket_flights tf<span style="color:#323232">,</span>
+      flights f
+<span style="color:#3b6ac8">WHERE</span> tf.ticket_no <span style="color:#323232">=</span> t.ticket_no
+  <span style="color:#3b6ac8">AND</span> f.flight_id <span style="color:#323232">=</span> tf.flight_id
+  <span style="color:#3b6ac8">AND</span> tf.fare_conditions <span style="color:#323232">=</span> <span style="color:#1094a0">'Business'</span>
+  <span style="color:#3b6ac8">AND</span> f.actual_departure <span style="color:#323232">&gt;</span> f.scheduled_departure <span style="color:#323232">+</span> <span style="color:#3b6ac8">interval</span> <span style="color:#1094a0">'5 hour'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Merge Join  (cost=210524.16..361374.43 rows=285603 width=104) (actual rows=2 loops=1)
+   Merge Cond: (t.ticket_no = tf.ticket_no)
+   -&gt;  Index Scan using tickets_pkey on tickets t  (cost=0.43..138478.98 rows=2949570 width=104) (actual rows=1336684 loops=1)
+   -&gt;  Materialize  (cost=210523.63..211951.65 rows=285603 width=14) (actual rows=2 loops=1)
+         -&gt;  Sort  (cost=210523.63..211237.64 rows=285603 width=14) (actual rows=2 loops=1)
+               Sort Key: tf.ticket_no
+               Sort Method: quicksort  Memory: 17kB
+               -&gt;  Hash Join  (cost=6534.28..179760.29 rows=285603 width=14) (actual rows=2 loops=1)
+                     Hash Cond: (tf.flight_id = f.flight_id)
+                     -&gt;  Seq Scan on ticket_flights tf  (cost=0.00..170976.83 rows=856814 width=18) (actual rows=859656 loops=1)
+                           Filter: ((fare_conditions)::text = 'Business'::text)
+                           Rows Removed by Filter: 7532196
+                     -&gt;  Hash  (cost=5639.00..5639.00 rows=71622 width=4) (actual rows=1 loops=1)
+                           Buckets: 131072  Batches: 1  Memory Usage: 513kB
+                           -&gt;  Seq Scan on flights f  (cost=0.00..5639.00 rows=71622 width=4) (actual rows=1 loops=1)
+                                 Filter: (actual_departure &gt; (scheduled_departure + '05:00:00'::interval))
+                                 Rows Removed by Filter: 214866
+ Planning time: 18.513 ms
+ Execution time: 4485.808 ms
+(19 rows)
+
+</pre></div>
+<p class="C">
+Здесь мы имеем дело с запросом, характерным для OLTP - небольшое число строк,
+для получения которых надо выбрать только небольшую часть данных. Поэтому
+общее направление оптимизации - переход от полного сканирования и соединения
+хешированием к индексам и вложенным циклам.
+</p>
+<p class="C">
+Заметим, что рейс, задержанный более чем на 5 часов, всего один, а планировщик
+сканирует всю таблицу. Можно построить функциональный индекс на разности
+двух столбцов и немного переписать условие:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE INDEX ON</span> <span style="color:#c73a69">flights</span> <span style="color:#323232">((</span>actual_departure <span style="color:#323232">-</span> scheduled_departure<span style="color:#323232">));</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE INDEX
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ANALYZE</span> flights<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ANALYZE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">ANALYZE</span><span style="color:#323232">,</span> TIMING <span style="color:#3b6ac8">OFF</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">SELECT</span> t.<span style="color:#323232">*</span>
+<span style="color:#3b6ac8">FROM</span>  tickets t<span style="color:#323232">,</span>
+      ticket_flights tf<span style="color:#323232">,</span>
+      flights f
+<span style="color:#3b6ac8">WHERE</span> tf.ticket_no <span style="color:#323232">=</span> t.ticket_no
+  <span style="color:#3b6ac8">AND</span> f.flight_id <span style="color:#323232">=</span> tf.flight_id
+  <span style="color:#3b6ac8">AND</span> tf.fare_conditions <span style="color:#323232">=</span> <span style="color:#1094a0">'Business'</span>
+  <span style="color:#3b6ac8">AND</span> f.actual_departure <span style="color:#323232">-</span> f.scheduled_departure <span style="color:#323232">&gt;</span> <span style="color:#3b6ac8">interval</span> <span style="color:#1094a0">'5 hour'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=31.97..173277.94 rows=28 width=104) (actual rows=2 loops=1)
+   -&gt;  Hash Join  (cost=31.54..173257.54 rows=28 width=14) (actual rows=2 loops=1)
+         Hash Cond: (tf.flight_id = f.flight_id)
+         -&gt;  Seq Scan on ticket_flights tf  (cost=0.00..170976.83 rows=856814 width=18) (actual rows=859656 loops=1)
+               Filter: ((fare_conditions)::text = 'Business'::text)
+               Rows Removed by Filter: 7532196
+         -&gt;  Hash  (cost=31.45..31.45 rows=7 width=4) (actual rows=1 loops=1)
+               Buckets: 1024  Batches: 1  Memory Usage: 5kB
+               -&gt;  Bitmap Heap Scan on flights f  (cost=4.47..31.45 rows=7 width=4) (actual rows=1 loops=1)
+                     Recheck Cond: ((actual_departure - scheduled_departure) &gt; '05:00:00'::interval)
+                     Heap Blocks: exact=1
+                     -&gt;  Bitmap Index Scan on flights_expr_idx  (cost=0.00..4.47 rows=7 width=0) (actual rows=1 loops=1)
+                           Index Cond: ((actual_departure - scheduled_departure) &gt; '05:00:00'::interval)
+   -&gt;  Index Scan using tickets_pkey on tickets t  (cost=0.43..0.73 rows=1 width=104) (actual rows=1 loops=2)
+         Index Cond: (ticket_no = tf.ticket_no)
+ Planning time: 6.338 ms
+ Execution time: 2097.192 ms
+(17 rows)
+
+</pre></div>
+<p class="C">
+Теперь займемся таблицей ticket_flights, которая тоже сканируется полностью,
+хотя из нее читается незначительная часть строк.
+</p>
+<p class="C">
+Помог бы индекс по классам обслуживания fare_conditions, но лучше создать
+индекс по столбцу flight_id, что позволит эффективно выполнять соединение
+вложенным циклом с flights:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE INDEX ON</span> <span style="color:#c73a69">ticket_flights</span><span style="color:#323232">(</span>flight_id<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE INDEX
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">ANALYZE</span><span style="color:#323232">,</span> TIMING <span style="color:#3b6ac8">OFF</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">SELECT</span> t.<span style="color:#323232">*</span>
+<span style="color:#3b6ac8">FROM</span>  tickets t<span style="color:#323232">,</span>
+      ticket_flights tf<span style="color:#323232">,</span>
+      flights f
+<span style="color:#3b6ac8">WHERE</span> tf.ticket_no <span style="color:#323232">=</span> t.ticket_no
+  <span style="color:#3b6ac8">AND</span> f.flight_id <span style="color:#323232">=</span> tf.flight_id
+  <span style="color:#3b6ac8">AND</span> tf.fare_conditions <span style="color:#323232">=</span> <span style="color:#1094a0">'Business'</span>
+  <span style="color:#3b6ac8">AND</span> f.actual_departure <span style="color:#323232">-</span> f.scheduled_departure <span style="color:#323232">&gt;</span> <span style="color:#3b6ac8">interval</span> <span style="color:#1094a0">'5 hour'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=5.34..2801.29 rows=28 width=104) (actual rows=2 loops=1)
+   -&gt;  Nested Loop  (cost=4.91..2780.90 rows=28 width=14) (actual rows=2 loops=1)
+         -&gt;  Bitmap Heap Scan on flights f  (cost=4.47..31.45 rows=7 width=4) (actual rows=1 loops=1)
+               Recheck Cond: ((actual_departure - scheduled_departure) &gt; '05:00:00'::interval)
+               Heap Blocks: exact=1
+               -&gt;  Bitmap Index Scan on flights_expr_idx  (cost=0.00..4.47 rows=7 width=0) (actual rows=1 loops=1)
+                     Index Cond: ((actual_departure - scheduled_departure) &gt; '05:00:00'::interval)
+         -&gt;  Index Scan using ticket_flights_flight_id_idx on ticket_flights tf  (cost=0.43..392.68 rows=10 width=18) (actual rows=2 loops=1)
+               Index Cond: (flight_id = f.flight_id)
+               Filter: ((fare_conditions)::text = 'Business'::text)
+               Rows Removed by Filter: 10
+   -&gt;  Index Scan using tickets_pkey on tickets t  (cost=0.43..0.73 rows=1 width=104) (actual rows=1 loops=2)
+         Index Cond: (ticket_no = tf.ticket_no)
+ Planning time: 7.072 ms
+ Execution time: 6.965 ms
+(15 rows)
+
+</pre></div>
+<p class="C">
+Время выполнения уменьшилось до миллисекунд.
+</p>
+</body>
+</html>

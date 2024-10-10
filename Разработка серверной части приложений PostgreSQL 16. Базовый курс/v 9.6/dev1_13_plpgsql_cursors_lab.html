@@ -1,0 +1,213 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Функция distribute_expenses
+</h1>
+<p class="C">
+Таблица:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">depts</span><span style="color:#323232">(</span>
+    id <span style="color:#a00050">serial</span> <span style="color:#3b6ac8">PRIMARY KEY</span><span style="color:#323232">,</span>
+    employees <span style="color:#a00050">integer</span><span style="color:#323232">,</span>
+    expenses <span style="color:#a00050">numeric</span><span style="color:#323232">(</span><span style="color:#1094a0">10</span><span style="color:#323232">,</span><span style="color:#1094a0">2</span><span style="color:#323232">)</span>
+<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">depts</span><span style="color:#323232">(</span>employees<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">10</span><span style="color:#323232">),(</span><span style="color:#1094a0">10</span><span style="color:#323232">),(</span><span style="color:#1094a0">10</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 3
+</pre></div>
+<p class="C">
+Функция:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">distribute_expenses</span><span style="color:#323232">(</span>amount <span style="color:#a00050">numeric</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">void</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    depts_cur <span style="color:#3b6ac8">CURSOR FOR</span>
+        <span style="color:#3b6ac8">SELECT</span> employees <span style="color:#3b6ac8">FROM</span> depts <span style="color:#3b6ac8">FOR UPDATE</span><span style="color:#323232">;</span>
+    total_employees <span style="color:#a00050">numeric</span><span style="color:#323232">;</span>
+    expense <span style="color:#a00050">numeric</span><span style="color:#323232">;</span>
+    rounding_err <span style="color:#a00050">numeric</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">0.0</span><span style="color:#323232">;</span>
+    cent <span style="color:#a00050">numeric</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">sum</span><span style="color:#323232">(</span>employees<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> depts <span style="color:#3b6ac8">INTO</span> total_employees<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">FOR</span> dept <span style="color:#3b6ac8">IN</span> depts_cur <span style="color:#3b6ac8">LOOP</span>
+        expense <span style="color:#323232">:=</span> amount <span style="color:#323232">* (</span>dept.employees <span style="color:#323232">/</span> total_employees<span style="color:#323232">);</span>
+        rounding_err <span style="color:#323232">:=</span> rounding_err <span style="color:#323232">+ (</span>expense <span style="color:#323232">-</span> <span style="color:#c73a69">round</span><span style="color:#323232">(</span>expense<span style="color:#323232">,</span><span style="color:#1094a0">2</span><span style="color:#323232">));</span>
+
+        cent <span style="color:#323232">:=</span> <span style="color:#c73a69">round</span><span style="color:#323232">(</span>rounding_err<span style="color:#323232">,</span><span style="color:#1094a0">2</span><span style="color:#323232">);</span>
+        expense <span style="color:#323232">:=</span> expense <span style="color:#323232">+</span> cent<span style="color:#323232">;</span>
+        rounding_err <span style="color:#323232">:=</span> rounding_err <span style="color:#323232">-</span> cent<span style="color:#323232">;</span>
+
+        <span style="color:#3b6ac8">UPDATE</span> depts <span style="color:#3b6ac8">SET</span> expenses <span style="color:#323232">=</span> <span style="color:#c73a69">round</span><span style="color:#323232">(</span>expense<span style="color:#323232">,</span><span style="color:#1094a0">2</span><span style="color:#323232">)</span>
+        <span style="color:#3b6ac8">WHERE CURRENT OF</span> depts_cur<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Проверка:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">distribute_expenses</span><span style="color:#323232">(</span><span style="color:#1094a0">100.0</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ distribute_expenses 
+---------------------
+ 
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> depts<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ id | employees | expenses 
+----+-----------+----------
+  1 |        10 |    33.33
+  2 |        10 |    33.34
+  3 |        10 |    33.33
+(3 rows)
+
+</pre></div>
+<p class="C">
+Разумеется, возможны и другие алгоритмы, например, перенос всех ошибок
+округления на одну строку и т. п.
+</p>
+<h1>
+Функция merge
+</h1>
+<p class="C">
+Эта реализация предполагает, что числа не могут быть NULL.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">merge</span><span style="color:#323232">(</span>c1 refcursor<span style="color:#323232">,</span> c2 refcursor<span style="color:#323232">)</span>
+<span style="color:#3b6ac8">RETURNS SETOF</span> <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    a <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    b <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">FETCH</span> c1 <span style="color:#3b6ac8">INTO</span> a<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">FETCH</span> c2 <span style="color:#3b6ac8">INTO</span> b<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">LOOP</span>
+        <span style="color:#3b6ac8">EXIT WHEN</span> a <span style="color:#3b6ac8">IS NULL AND</span> b <span style="color:#3b6ac8">IS NULL</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">IF</span> a <span style="color:#323232">&lt;</span> b <span style="color:#3b6ac8">OR</span> b <span style="color:#3b6ac8">IS NULL THEN</span>
+            <span style="color:#3b6ac8">RETURN NEXT</span> a<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">FETCH</span> c1 <span style="color:#3b6ac8">INTO</span> a<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">ELSE</span>
+            <span style="color:#3b6ac8">RETURN NEXT</span> b<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">FETCH</span> c2 <span style="color:#3b6ac8">INTO</span> b<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Проверяем.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t1</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t2</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t1 <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">),(</span><span style="color:#1094a0">3</span><span style="color:#323232">),(</span><span style="color:#1094a0">5</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 3
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t2 <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">2</span><span style="color:#323232">),(</span><span style="color:#1094a0">3</span><span style="color:#323232">),(</span><span style="color:#1094a0">4</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 3
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+BEGIN
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DECLARE</span> c1 <span style="color:#3b6ac8">CURSOR FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t1 <span style="color:#3b6ac8">ORDER BY</span> n<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DECLARE CURSOR
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DECLARE</span> c2 <span style="color:#3b6ac8">CURSOR FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t2 <span style="color:#3b6ac8">ORDER BY</span> n<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DECLARE CURSOR
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">merge</span><span style="color:#323232">(</span><span style="color:#1094a0">'c1'</span><span style="color:#323232">,</span><span style="color:#1094a0">'c2'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ merge 
+-------
+     1
+     2
+     3
+     3
+     4
+     5
+(6 rows)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+COMMIT
+</pre></div>
+</body>
+</html>

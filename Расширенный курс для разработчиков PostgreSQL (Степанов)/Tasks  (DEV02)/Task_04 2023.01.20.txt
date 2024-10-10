@@ -1,0 +1,741 @@
+CREATE TABLE t1(
+	n int CHECK(fact(n) > 10)
+)
+
+
+
+CREATE FUNCTION fname(a int INOUT)
+RETURNS void
+AS $$
+	BEGIN;
+	SELECT * FROM t1;
+	COMMIT;
+	VACUUM;
+	CREATE INDEX ...;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION sumab(
+	a int,
+	b int
+) RETURNS int
+AS $$
+	SELECT a + b;
+$$ LANGUAGE sql;
+
+CREATE FUNCTION sumab(
+	IN a int,
+	b int INOUT,
+	OUT int
+) 
+AS $$
+	SELECT a + b;
+$$ LANGUAGE sql;
+
+SELECT sumab(1,2);
+
+int f1(int a, int &b);
+void f1(int a, int &b);
+
+
+f1(2, n);
+
+CREATE FUNCTION f1(
+	IN a int,
+	OUT int,
+	OUT int
+) AS $$
+	SELECT 1, 4;
+$$;
+
+CREATE FUNCTION cnt() RETURNS int
+AS $$
+	SELECT count(*) FROM t1;
+$$ VOLATILE LANGUAGE sql;
+STABLE
+IMMUTABLE
+
+
+SELECT * FROM t1 WHERE a = cnt();
+
+SELECT * FROM t1 WHERE a = (SELECT count(*) FROM t1) AND b < cnt();
+
+CREATE PROCEDURE pname(a int, OUT int)
+AS $$
+	INSERT INTO t1 VALUES ('1');
+	TRUNCATE t1;
+	SELECT a;
+$$ LANGUAGE sql;
+
+CALL pname(a => 1);
+
+CREATE FUNCTION sumab(
+	IN a int,
+	b int IN,
+	OUT int
+) 
+AS $$
+	SELECT a + b;
+$$ LANGUAGE sql;
+
+CREATE FUNCTION sumab(
+	IN a text,
+	b text IN,
+	OUT text
+) 
+AS $$
+	SELECT a || b;
+$$ LANGUAGE sql;
+
+SELECT sumab(1::text, '3');
+
+CREATE OR REPLACE FUNCTION sumab(
+	IN a int,
+	b text IN,
+	OUT text
+) 
+AS $$
+	SELECT a || b;
+$$ LANGUAGE sql;
+
+CREATE FUNCTION sumab(
+	IN a ANYELEMENT,
+	b ANYELEMENT IN,
+	OUT int
+) 
+AS $$
+	SELECT a + b;
+$$ LANGUAGE sql;
+
+
+SELECT sumab(1::int, 3::bigint);
+
+CREATE FUNCTION sumab(
+	IN a ANYELEMENT,
+	b ANYELEMENT IN
+) RETURNS ANYELEMENT
+AS $$
+	SELECT a + b;
+$$ LANGUAGE sql;
+
+DROP FUNCTION sumab(int, int);
+
+CREATE FUNCTION sumab(
+	IN a text,
+	b text IN DEFAULT '',
+	OUT text
+) 
+AS $$
+	SELECT a || b;
+$$ LANGUAGE sql;
+
+CREATE TYPE str AS (
+	a int NOT NULL,
+	b int
+);
+
+CREATE FUNCTION fstr(a str) RETURNS int
+AS $$
+	SELECT a.b;
+$$;
+
+SELECT fstr(ROW(1,5)::str);
+
+CREATE TABLE tstr(
+	a int NOT NULL,
+	b int
+);
+
+SELECT fstr(t), t.fstr FROM tstr t;
+
+CREATE TABLE t1(
+	n str GENERATED ALWAYS AS (fstr(ROW(...)))
+);
+
+
+CREATE TYPE ts AS (
+	a int, b text
+);
+
+CREATE FUNCTION s(a int, b text)
+RETURNS ts
+AS $$
+	SELECT ROW(a, b)::ts; 
+$$ IMMUTABLE LANGUAGE sql;
+
+SELECT * FROM s(1, 'a');
+
+CREATE FUNCTION s(INOUT a int, INOUT b text)
+AS $$
+	SELECT a, b; 
+$$ IMMUTABLE LANGUAGE sql;
+
+CREATE FUNCTION s(a int, b text)
+RETURNS record
+AS $$
+	SELECT a, b; 
+$$ IMMUTABLE LANGUAGE sql;
+
+SELECT * FROM s(1, 'a') AS s1(a int, b text);
+
+CREATE FUNCTION gen_table(max_string int)
+RETURNS SETOF ts
+AS $$
+	SELECT i AS a, 'value ' || i::text AS b
+	FROM generate_series(1, max_string) AS t(i);
+$$ LANGUAGE sql;
+
+SELECT * FROM gen_table(20);
+
+CREATE FUNCTION gen_table(max_string int)
+RETURNS SETOF record
+AS $$
+	SELECT i AS a, 'value ' || i::text AS b
+	FROM generate_series(1, max_string) AS t(i);
+$$ LANGUAGE sql;
+
+SELECT * FROM gen_table(20) AS gt(a int, b text);
+
+CREATE FUNCTION gen_table(max_string int)
+RETURNS TABLE(a int, b text)
+AS $$
+	SELECT i AS a, 'value ' || i::text AS b
+	FROM generate_series(1, max_string) AS t(i);
+$$ LANGUAGE sql;
+
+
+<<l1>>
+DECLARE
+	
+BEGIN
+
+EXCEPTION
+
+END l1;
+
+DO $$
+DECLARE
+	t text NOT NULL DEFAULT 'Hello'; -- := =
+	pi CONSTANT float = 3.1415926;
+BEGIN
+	t := 'Hello';
+	RAISE NOTICE '%', t;
+	pi := 3;
+END;
+$$;
+
+DO $$
+<<l1>>
+DECLARE
+	a int = 0;
+BEGIN
+	RAISE NOTICE '%', a;
+	
+	<<l2>>
+	DECLARE
+		a int;
+	BEGIN
+		RAISE NOTICE '%', a;
+		a := 10;
+		RAISE NOTICE '%', a;
+	END l2;
+	
+	RAISE NOTICE '%', a;
+END l1;
+$$;
+
+
+
+CREATE FUNCTION sumab(a int, b int)
+RETURNS int
+AS $$
+BEGIN
+	RETURN a + b;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE FUNCTION sumab(a int, b int INOUT)
+RETURNS int
+AS $$
+BEGIN
+	b := a + b;
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+IF a > b THEN
+	c := a + b;
+END IF;
+
+IF a > b THEN
+	c := a + b;
+ELSE
+	c := a - b;
+END IF;
+
+IF a > b THEN
+	c := a + b;
+ELSIF a < b THEN
+	c := a - b;
+ELSE
+	c := 0;
+END IF;
+
+CASE 
+	WHEN a > b THEN
+		c := a + b;
+	ELSE
+		NULL;
+END CASE;
+
+DO $$
+DECLARE
+	a int = 5;
+	c int;
+	b int;
+BEGIN
+	CASE a
+		WHEN 1, 2, 3 THEN
+			c := a + b;
+		ELSE
+			NULL;
+	END CASE;
+END;
+$$;
+
+
+
+LOOP
+	i := i + 1;
+END LOOP;
+
+FOR i IN 1 .. 100 BY 2
+LOOP
+	i := i + 1;
+END LOOP;
+
+FOR i IN REVERSE 100 .. 1
+LOOP
+	i := i + 1;
+END LOOP;
+
+WHILE a > 0
+LOOP
+	a := a - 1;
+END LOOP;
+
+<<loop1>
+LOOP
+	i := i + 1;
+	EXIT loop1 WHEN i < 0;
+END LOOP;
+
+DO $$
+<<l1>>
+	
+BEGIN
+	RAISE NOTICE '%', 1 +a;
+	PERFORM sumab(1, 3);
+END l1;
+$$;
+
+
+SELECT * INTO a
+FROM t1;
+
+UPDATE t SET c1 = 0 WHERE id = 1 RETURNING * INTO r;
+
+DO $$
+DECLARE
+-- 	TYPE rec_t AS (id int, user_account text, content text);
+	r record;
+BEGIN
+	SELECT * INTO r 
+		FROM article 
+		LIMIT 1;
+	
+	RAISE NOTICE '%', r;
+	
+	UPDATE article SET user_account = 'user' WHERE id = 1 RETURNING * INTO r;
+	
+	RAISE NOTICE '%', r;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION fa (a int) RETURNS int
+AS $$
+DECLARE
+	a int;
+BEGIN
+	RAISE NOTICE '%', a;
+	RETURN a;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT fa(1);
+
+
+DO $$
+DECLARE
+	r record;
+	rc int;
+BEGIN
+	SELECT * INTO r 
+		FROM article;
+		
+	GET DIAGNOSTICS rc = row_count;
+	
+	RAISE NOTICE '%, %, %', r, rc, FOUND;
+	
+	UPDATE article SET user_account = 'user' WHERE id = 1 RETURNING * INTO r;
+	
+	RAISE NOTICE '%', r;
+END;
+$$;
+
+CREATE FUNCTION f_article_order() RETURNS TABLE(LIKE article)
+AS $$
+BEGIN
+	RETURN QUERY SELECT * FROM article ORDER BY content;
+END;
+$$ STABLE LANGUAGE plpgsql;
+
+DROP FUNCTION f1_article_order();
+CREATE OR REPLACE FUNCTION f1_article_order() RETURNS SETOF int
+AS $$
+BEGIN
+	FOR i IN 1 .. 3
+	LOOP
+		RETURN NEXT (SELECT id FROM article WHERE id = i);
+	END LOOP;
+END;
+$$ STABLE LANGUAGE plpgsql;
+
+EXPLAIN SELECT * FROM f1_article_order();
+
+
+DO $$
+DECLARE
+	id int = 2;
+	
+	cur refcursor;
+	cur1 CURSOR FOR SELECT * FROM article;
+	cur2 CURSOR(id int) FOR SELECT * FROM article a WHERE a.id = cur2.id;
+	cur3 CURSOR FOR SELECT * FROM article a WHERE a.id = local.id;
+	
+	rec record;
+BEGIN
+	OPEN cur FOR SELECT * FROM article;
+	OPEN cur1;
+	OPEN cur2(1);
+	
+	FETCH cur INTO rec;
+	
+	UPDATE article SET content='' WHERE CURRENT OF cur;
+	
+	OPEN cur FOR SELECT * FROM article;
+	LOOP
+		FETCH cur INTO rec;
+		EXIT WHEN NOT FOUND;
+		RAISE NOTICE '%', rec;
+	END LOOP;
+	
+	FOR rec IN cur 
+	LOOP
+		RAISE NOTICE '%', rec;
+	END LOOP;
+	
+	FOR rec IN (SELECT * FROM article)
+	LOOP
+		RAISE NOTICE '%', rec;
+	END LOOP;
+	
+	MOVE cur;
+	
+	CLOSE cur;
+END;
+$$;
+
+
+DO $$
+DECLARE
+	cur refcursor = 'cur_123';
+BEGIN
+	OPEN cur FOR SELECT * FROM article;
+	RAISE NOTICE '%', cur;
+END;
+$$;
+
+CREATE FUNCTION get_cur() RETURNS refcursor
+AS $$
+DECLARE
+	cur refcursor;
+BEGIN
+	OPEN cur FOR SELECT * FROM article;
+	RETURN cur;
+END;
+$$ LANGUAGE plpgsql;
+
+DO $$
+DECLARE
+	c refcursor;
+	rec record;
+BEGIN
+	c := get_cur();
+	FETCH c INTO rec;
+END;
+$$;
+
+
+DO $$
+DECLARE
+	cmd text = 'CREATE TABLE $1 (id $2)';
+BEGIN
+	EXECUTE cmd USING 't1', 'serial';
+END;
+$$;
+
+
+
+'SELECT * FROM $1'
+
+'users;DROP TABLE users;'
+
+
+'SELECT ' || list_columns || ' FROM ' || table_name;
+
+cmd := 'SELECT ' || format('%I', list_columns[1]) || ', ' || quote_ident(list_columns[2]) 
+|| ' FROM ' || format('%I', table_name) || ' WHERE ' || format('%I', list_columns[1])
+|| ' = ' || format('%L', text_value);
+
+WHERE c = 'text'
+
+DECLARE
+	cmd := 'SELECT %I, %I FROM %I WHERE %I = %L';
+BEGIN
+	EXECUTE format(cmd, list_columns[1],list_columns[2],table_name, list_columns[1], text_value);
+
+1;drop table users;
+
+
+"1;drop table users;"
+
+
+
+
+
+DECLARE
+	a integer[2];
+BEGIN
+	a := ARRAY[10, 20, 30];
+	a[1]
+	a[2,3]
+	a[2] := 10;
+	
+	a := ARRAY(SELECT id FROM t1);
+	
+	SELECT unnest(a);
+	
+	FOR i IN array_lower(a, 1)..array_upper(a, 1)
+	LOOP
+		a[i];
+	END LOOP;
+	
+	FOREACH x IN ARRAY a
+	LOOP
+		x;
+	END LOOP;
+	
+	
+	
+DO $$
+DECLARE
+	a integer[][] = ARRAY[
+		ARRAY[1, 2, 3],
+		ARRAY[4, 5, 6]
+	];
+	x int;
+BEGIN
+	FOR i IN array_lower(a, 1)..array_upper(a, 1) LOOP
+		FOR j IN array_lower(a, 2)..array_upper(a, 2) LOOP
+			a[i][j];
+		END LOOP;
+	END LOOP;
+	
+	FOREACH x IN ARRAY a LOOP
+		x;
+	END LOOP;
+END;
+$$;
+
+
+CREATE FUNCTION max_value(VARIADIC a integer[]) RETURNS integer
+AS $$
+DECLARE
+	x integer;
+	maxval integer;
+BEGIN
+	FOREACH x IN ARRAY a LOOP
+		IF x IS NOT NULL AND (maxval IS NULL OR x > maxval) THEN
+			maxval := x;
+		END IF;
+	END LOOP;
+	
+	RETURN maxval;
+END;
+$$ LANGUAGE plpgsql;
+	
+SELECT max_value(10, 12, 7), max_value(9, 0, 3, 2, 6, 8, 19);	
+	
+CREATE FUNCTION max_value(VARIADIC a anyarray, maxval OUT anyelement)
+AS $$
+DECLARE
+	x maxval%TYPE;
+BEGIN
+	FOREACH x IN ARRAY a LOOP
+		IF x IS NOT NULL AND (maxval IS NULL OR x > maxval) THEN
+			maxval := x;
+		END IF;
+	END LOOP;
+	
+	RETURN maxval;
+END;
+$$ LANGUAGE plpgsql;	
+	
+	
+	
+	
+DO $$
+DECLARE
+	n int;
+-- 	d int = 1/0;
+BEGIN
+	SELECT id INTO STRICT n FROM article;
+	
+	RAISE SQLSTATE 'ERR01' USING
+		message = 'error',
+		detail = 'detail message',
+		hint = 'reset server';
+	
+EXCEPTION
+	WHEN no_data_found OR SQLSTATE '23000' THEN
+		RAISE NOTICE 'No Data: %, %', SQLSTATE, SQLERRM;
+	WHEN too_many_rows THEN
+		RAISE NOTICE 'Too Many Rows: %, %', SQLSTATE, SQLERRM;
+	WHEN division_by_zero THEN
+		RAISE NOTICE 'div by 0';
+	WHEN others THEN
+		RAISE NOTICE 'others';
+END;
+$$;
+	
+	
+	
+CREATE FUNCTION tr_d() RETURNS trigger
+AS $$
+DECLARE
+	rec record;
+	str text = '';
+BEGIN
+	IF TG_LEVEL='ROW' THEN
+		CASE TG_OP
+			WHEN 'INSERT' THEN 
+				rec := NEW; 
+				str := str || 'insert ' || NEW::text;
+			WHEN 'UPDATE' THEN
+				rec := NEW;
+				str := str || 'update ' || OLD::text || ' TO ' || NEW::text;
+			WHEN 'DELETE' THEN
+				rec := OLD;
+				str := str || 'delete ' || OLD::text;
+		END CASE;
+	END IF;
+	RAISE NOTICE '%, %, %, %, %', 
+		str, TG_TABLE_NAME, TG_WHEN, TG_OP, TG_LEVEL;
+	RETURN rec;
+END;
+$$ LANGUAGE plpgsql;
+	
+CREATE TRIGGER t_before_st_article
+BEFORE
+INSERT OR UPDATE OR DELETE
+ON article
+FOR EACH STATEMENT
+EXECUTE FUNCTION tr_d();
+	
+CREATE TRIGGER t_before_r_article
+BEFORE
+INSERT OR UPDATE OR DELETE
+ON article
+FOR EACH ROW
+EXECUTE FUNCTION tr_d();	
+	
+CREATE TRIGGER t_after_r_article
+AFTER
+INSERT OR UPDATE OR DELETE
+ON article
+FOR EACH ROW
+EXECUTE FUNCTION tr_d();
+
+CREATE TRIGGER t_after_st_article
+AFTER
+INSERT OR UPDATE OR DELETE
+ON article
+FOR EACH STATEMENT
+EXECUTE FUNCTION tr_d();
+
+INSERT INTO article (content) VALUES ('tr1');
+
+UPDATE article SET content = 'tr2' WHERE id=0;
+
+
+
+
+CREATE TRIGGER t_before_st_article
+BEFORE
+UPDATE
+ON article
+REFERENCING
+	OLD TABLE AS old_table
+	NEW TABLE AS new_table
+FOR EACH STATEMENT
+EXECUTE FUNCTION tr_d();
+
+
+CREATE FUNCTION tr_d() RETURNS event_trigger
+AS $$
+DECLARE
+	rec record;
+	str text = '';
+BEGIN
+	pg_event_trigger_ddl_commands()
+END;
+$$ LANGUAGE plpgsql;
+
+
+CREATE EVENT TRIGGER after_ddl
+ON DDL_COMMAND_START
+EXECUTE FUNCTION tr_d();
+
+
+CREATE FUNCTION f1(n int) RETURNS int
+AS $$
+BEGIN
+	ASSERT n > 0,
+		'No actual parameter';
+	RETURN n;
+END;
+$$ LANGUAGE plpgsql;
+
+SELECT f1(-1);
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,133 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Таблица
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> bstore_interaction<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> bstore_interaction
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;bstore_interaction&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> big <span style="color:#3b6ac8">AS</span>
+  <span style="color:#3b6ac8">SELECT</span> gen.id <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">1000000</span><span style="color:#323232">)</span> <span style="color:#c73a69">gen</span><span style="color:#323232">(</span>id<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SELECT 1000000
+</pre></div>
+<p class="C">
+Чтобы избавиться от непредсказуемости, связанной с работой очистки, лучше
+выполнить ее заранее вручную:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM</span> big<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+VACUUM
+</pre></div>
+<h1>
+Чтение по 1 строке
+</h1>
+<p class="C">
+Циклов в SQL нет, но мы можем сгенерировать нужные команды средствами
+командного интерпретатора bash и подать на вход psql.
+</p>
+<p class="C">
+В начале открываем курсор, в конце закрываем курсор:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#a00050">echo</span> <span style="color:#1094a0">'BEGIN; DECLARE c CURSOR FOR SELECT * FROM big;'</span> <span style="color:#323232">&gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>declare.sql
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#a00050">echo</span> <span style="color:#1094a0">'CLOSE c; COMMIT;'</span> <span style="color:#323232">&gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>close.sql
+</pre>
+</div>
+<p class="C">
+По одной строке 1000000 раз:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#323232">(</span><span style="color:#3b6ac8">for</span> i <span style="color:#3b6ac8">in</span> <span style="color:#323232">{</span><span style="color:#1094a0">1</span>.<span style="color:#1094a0">.1000000</span><span style="color:#323232">};</span> <span style="color:#3b6ac8">do</span> <span style="color:#a00050">echo</span> <span style="color:#1094a0">'FETCH 1 c;'</span><span style="color:#323232">;</span> <span style="color:#3b6ac8">done</span><span style="color:#323232">;) &gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>fetch_1.sql
+</pre>
+</div>
+<p class="C">
+Замеряем время (вывод psql игнорируем - миллион строк выводить на консоль
+бессмысленно и очень долго).
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#a00050">cd</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">; /</span>usr<span style="color:#323232">/</span>bin<span style="color:#323232">/</span><span style="color:#3b6ac8">time</span> <span style="color:#323232">-</span>f <span style="color:#1094a0">'%E'</span> <span style="color:#323232">-</span>o t <span style="color:#00a150">cat</span> declare.sql fetch_1.sql close.sql | <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>d bstore_interaction <span style="color:#323232">&gt;/</span>dev<span style="color:#323232">/</span>null<span style="color:#323232">;</span> <span style="color:#00a150">cat</span> t
+</pre>
+</div>
+<div class="R"><pre class="R">
+0:35.97
+</pre></div>
+<h1>
+Чтение по 10 строк
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#323232">(</span><span style="color:#3b6ac8">for</span> i <span style="color:#3b6ac8">in</span> <span style="color:#323232">{</span><span style="color:#1094a0">1</span>.<span style="color:#1094a0">.100000</span><span style="color:#323232">};</span> <span style="color:#3b6ac8">do</span> <span style="color:#a00050">echo</span> <span style="color:#1094a0">'FETCH 10 c;'</span><span style="color:#323232">;</span> <span style="color:#3b6ac8">done</span><span style="color:#323232">;) &gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>fetch_10.sql
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#a00050">cd</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">; /</span>usr<span style="color:#323232">/</span>bin<span style="color:#323232">/</span><span style="color:#3b6ac8">time</span> <span style="color:#323232">-</span>f <span style="color:#1094a0">'%E'</span> <span style="color:#323232">-</span>o t <span style="color:#00a150">cat</span> declare.sql fetch_10.sql close.sql | <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>d bstore_interaction <span style="color:#323232">&gt;/</span>dev<span style="color:#323232">/</span>null<span style="color:#323232">;</span> <span style="color:#00a150">cat</span> t
+</pre>
+</div>
+<div class="R"><pre class="R">
+0:04.70
+</pre></div>
+<h1>
+Чтение по 100 строк
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#323232">(</span><span style="color:#3b6ac8">for</span> i <span style="color:#3b6ac8">in</span> <span style="color:#323232">{</span><span style="color:#1094a0">1</span>.<span style="color:#1094a0">.10000</span><span style="color:#323232">};</span> <span style="color:#3b6ac8">do</span> <span style="color:#a00050">echo</span> <span style="color:#1094a0">'FETCH 100 c;'</span><span style="color:#323232">;</span> <span style="color:#3b6ac8">done</span><span style="color:#323232">;) &gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>fetch_100.sql
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#a00050">cd</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">; /</span>usr<span style="color:#323232">/</span>bin<span style="color:#323232">/</span><span style="color:#3b6ac8">time</span> <span style="color:#323232">-</span>f <span style="color:#1094a0">'%E'</span> <span style="color:#323232">-</span>o t <span style="color:#00a150">cat</span> declare.sql fetch_100.sql close.sql | <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>d bstore_interaction <span style="color:#323232">&gt;/</span>dev<span style="color:#323232">/</span>null<span style="color:#323232">;</span> <span style="color:#00a150">cat</span> t
+</pre>
+</div>
+<div class="R"><pre class="R">
+0:00.95
+</pre></div>
+<h1>
+Чтение по 1000 строк
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#323232">(</span><span style="color:#3b6ac8">for</span> i <span style="color:#3b6ac8">in</span> <span style="color:#323232">{</span><span style="color:#1094a0">1</span>.<span style="color:#1094a0">.1000</span><span style="color:#323232">};</span> <span style="color:#3b6ac8">do</span> <span style="color:#a00050">echo</span> <span style="color:#1094a0">'FETCH 1000 c;'</span><span style="color:#323232">;</span> <span style="color:#3b6ac8">done</span><span style="color:#323232">;) &gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>fetch_1000.sql
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#a00050">cd</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">; /</span>usr<span style="color:#323232">/</span>bin<span style="color:#323232">/</span><span style="color:#3b6ac8">time</span> <span style="color:#323232">-</span>f <span style="color:#1094a0">'%E'</span> <span style="color:#323232">-</span>o t <span style="color:#00a150">cat</span> declare.sql fetch_1000.sql close.sql | <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>d bstore_interaction <span style="color:#323232">&gt;/</span>dev<span style="color:#323232">/</span>null<span style="color:#323232">;</span> <span style="color:#00a150">cat</span> t
+</pre>
+</div>
+<div class="R"><pre class="R">
+0:00.00
+</pre></div>
+<h1>
+Выводы
+</h1>
+<ul class="U">
+<li>Построчная выборка большого объема данных крайне неэффективна.</li>
+<li>Даже небольшое увеличение выборки дает значительный эффект, при этом насыщение наступает достаточно быстро - слишком большой буфер избыточен.</li>
+<li>Работу с большим объемом данных лучше выполнять внутри базы данных, а не в приложении, если есть такая возможность.</li>
+</ul>
+</body>
+</html>

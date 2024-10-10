@@ -1,0 +1,422 @@
+<html><head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+  <style>
+  p.C    { font-size: 80%; }
+  li     { font-size: 80%; }
+  h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+  div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+  div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+  div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+  div.R1 { padding-left: 0px; page-break-inside: avoid; }
+  div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+  div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+  div.E  { padding-left: 0px; font-weight: bold; }
+  div.R  { padding-left: 0px; }
+  </style>
+  </head>
+  <body style="margin: 59.5px;">
+  <!-- body -->
+  <!-- 5 -->
+  <h1>
+  Использование табличных пространств
+  </h1>
+  <p class="C">
+  Изначально в кластере присутствуют два табличных пространства. Информация о них содержится в системном каталоге:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> spcname <span style="color:#3b6ac8">FROM</span> pg_tablespace<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">  spcname   
+  ------------
+   pg_default
+   pg_global
+  (2 rows)
+  
+  </pre></div>
+  <p class="C">
+  Конечно, это одна из глобальных для всего кластера таблиц.
+  </p>
+  <p class="C">
+  Аналогичная команда psql:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\db</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">       List of tablespaces
+      Name    |  Owner   | Location 
+  ------------+----------+----------
+   pg_default | postgres | 
+   pg_global  | postgres | 
+  (2 rows)
+  
+  </pre></div>
+  <p class="C">
+  Чтобы создать новое табличное пространство, надо подготовить пустой каталог, владельцем которого является пользователь, запускающий сервер СУБД (команда выполняется от имени postgres):
+  </p>
+  <div class="E">
+  <pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">mkdir</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>ts_dir
+  </pre>
+  </div>
+  <p class="C">
+  Теперь выполняем команду, указывая каталог:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLESPACE</span> ts <span style="color:#3b6ac8">LOCATION</span> <span style="color:#1094a0">'/var/lib/postgresql/ts_dir'</span><span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">CREATE TABLESPACE
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\db</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">                List of tablespaces
+      Name    |  Owner   |          Location          
+  ------------+----------+----------------------------
+   pg_default | postgres | 
+   pg_global  | postgres | 
+   ts         | student  | /var/lib/postgresql/ts_dir
+  (3 rows)
+  
+  </pre></div>
+  <p class="C">
+  При создании базы данных можно указать табличное пространство по умолчанию:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> data_physical <span style="color:#3b6ac8">TABLESPACE</span> ts<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">CREATE DATABASE
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> data_physical
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">You are now connected to database "data_physical" as user "student".
+  </pre></div>
+  <p class="C">
+  Это означает, что все объекты будут создаваться именно в этом табличном пространстве, если другое не указано явно.
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">PRIMARY KEY</span><span style="color:#323232">,</span> s <span style="color:#a00050">text</span><span style="color:#323232">);</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">CREATE TABLE
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id<span style="color:#323232">,</span> s<span style="color:#323232">)</span>
+      <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> id<span style="color:#323232">::</span><span style="color:#a00050">text</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">100000</span><span style="color:#323232">)</span> id<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">INSERT 0 100000
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM</span> t<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">VACUUM
+  </pre></div>
+  <!-- end -->
+  
+  
+  </body></html>
+
+
+  <html><head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+    <style>
+    p.C    { font-size: 80%; }
+    li     { font-size: 80%; }
+    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+    div.E  { padding-left: 0px; font-weight: bold; }
+    div.R  { padding-left: 0px; }
+    </style>
+    </head>
+    <body style="margin: 59.5px;">
+    <!-- body -->
+    <!-- 7 -->
+    <h1>
+    Слои и файлы
+    </h1>
+    <p class="C">
+    Узнать расположение файлов, относящихся к объекту, можно так:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_relation_filepath</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">            pg_relation_filepath             
+    ---------------------------------------------
+     pg_tblspc/16411/PG_12_201909212/16412/16413
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    Посмотрим на сами файлы (имя и размер в байтах):
+    </p>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#3b6ac8">find</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">12</span><span style="color:#323232">/</span>main<span style="color:#323232">/</span>pg_tblspc<span style="color:#323232">/</span><span style="color:#1094a0">16411</span><span style="color:#323232">/</span>PG_12_201909212<span style="color:#323232">/</span><span style="color:#1094a0">16412</span> <span style="color:#323232">-</span>name <span style="color:#1094a0">16413</span><span style="color:#323232">* -</span><span style="color:#3b6ac8">printf</span> <span style="color:#1094a0">'%f</span><span style="color:#dc6816">\t</span><span style="color:#1094a0">%s</span><span style="color:#dc6816">\n</span><span style="color:#1094a0">'</span>
+    </pre>
+    </div>
+    <div class="R"><pre class="R">16413_vm	8192
+    16413_fsm	24576
+    16413	4423680
+    </pre></div>
+    <p class="C">
+    Видно, что они относятся к трем слоям: основному, fsm и vm.
+    </p>
+    <p class="C">
+    Объекты можно перемещать между табличными пространствами, но (в отличие от перемещения между схемами) это приводит к физическому переносу данных:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER TABLE</span> t <span style="color:#3b6ac8">SET TABLESPACE</span> pg_default<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">ALTER TABLE
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_relation_filepath</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> pg_relation_filepath 
+    ----------------------
+     base/16412/16421
+    (1 row)
+    
+    </pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <h1>
+    Размер объектов
+    </h1>
+    <p class="C">
+    Узнать размер, занимаемый базой данных и объектами в ней, можно с помощью ряда функций.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_database_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'data_physical'</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> pg_database_size 
+    ------------------
+             14902127
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    Для упрощения восприятия можно вывести число в отформатированном виде:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_database_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'data_physical'</span><span style="color:#323232">));</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> pg_size_pretty 
+    ----------------
+     14 MB
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    Полный размер таблицы (вместе со всеми индексами):
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_total_relation_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">));</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> pg_size_pretty 
+    ----------------
+     6568 kB
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    И отдельно размер таблицы...
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_table_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">));</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> pg_size_pretty 
+    ----------------
+     4360 kB
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    ...и индексов:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_indexes_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">));</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> pg_size_pretty 
+    ----------------
+     2208 kB
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    При желании можно узнать и размер отдельных слоев таблицы, например:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_relation_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">,</span><span style="color:#1094a0">'main'</span><span style="color:#323232">));</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> pg_size_pretty 
+    ----------------
+     4320 kB
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    Размер табличного пространства показывает другая функция:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_tablespace_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'ts'</span><span style="color:#323232">));</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> pg_size_pretty 
+    ----------------
+     10209 kB
+    (1 row)
+    
+    </pre></div>
+    <!-- end -->
+    
+    
+    </body></html>
+
+
+    <html><head>
+      <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+      <style>
+      p.C    { font-size: 80%; }
+      li     { font-size: 80%; }
+      h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+      div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+      div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+      div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+      div.R1 { padding-left: 0px; page-break-inside: avoid; }
+      div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+      div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+      div.E  { padding-left: 0px; font-weight: bold; }
+      div.R  { padding-left: 0px; }
+      </style>
+      </head>
+      <body style="margin: 59.5px;">
+      <!-- body -->
+      <!-- 9 -->
+      <h1>
+      TOAST
+      </h1>
+      <p class="C">
+      Добавим в таблицу очень длинную строку:
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id<span style="color:#323232">,</span> s<span style="color:#323232">)</span>
+      <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">0</span><span style="color:#323232">,</span> <span style="color:#c73a69">string_agg</span><span style="color:#323232">(</span>id<span style="color:#323232">::</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#1094a0">'.'</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">10000</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> id<span style="color:#323232">;</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1">INSERT 0 1
+      </pre></div>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM</span><span style="color:#323232">;</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1">VACUUM
+      </pre></div>
+      <p class="C">
+      Изменится ли размер таблицы?
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_table_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">));</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1"> pg_size_pretty 
+      ----------------
+       4440 kB
+      (1 row)
+      
+      </pre></div>
+      <p class="C">
+      Да. А размер основного слоя, в котором хранятся данные?
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_relation_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">,</span><span style="color:#1094a0">'main'</span><span style="color:#323232">));</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1"> pg_size_pretty 
+      ----------------
+       4320 kB
+      (1 row)
+      
+      </pre></div>
+      <p class="C">
+      Нет.
+      </p>
+      <p class="C">
+      Поскольку строка не помещается в одну страницу, значение атрибута s будет разрезано на части и помещено в отдельную toast-таблицу. Ее можно отыскать в системном каталоге (мы используем тип regclass, чтобы преобразовать oid в имя отношения):
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> reltoastrelid<span style="color:#323232">::</span><span style="color:#a00050">regclass</span><span style="color:#323232">::</span><span style="color:#a00050">text</span> <span style="color:#3b6ac8">FROM</span> pg_class <span style="color:#3b6ac8">WHERE</span> relname<span style="color:#323232">=</span><span style="color:#1094a0">'t'</span><span style="color:#323232">;</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1">      reltoastrelid      
+      -------------------------
+       pg_toast.pg_toast_16413
+      (1 row)
+      
+      </pre></div>
+      <p class="C">
+      Наша строка хранится по частям, из которых PostgreSQL при необходимости склеивает полное значение:
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> chunk_id<span style="color:#323232">,</span> chunk_seq<span style="color:#323232">,</span> <span style="color:#c73a69">left</span><span style="color:#323232">(</span>chunk_data<span style="color:#323232">::</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#1094a0">45</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> chunk_data
+      <span style="color:#3b6ac8">FROM</span> pg_toast.pg_toast_16413 <span style="color:#3b6ac8">LIMIT</span> <span style="color:#1094a0">5</span><span style="color:#323232">;</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1"> chunk_id | chunk_seq |                  chunk_data                   
+      ----------+-----------+-----------------------------------------------
+          16424 |         0 | \xfdbe000000312e322e332e342e00352e362e372e382
+          16424 |         1 | \x392e353161ff31002e3531322e353133002e3531342
+          16424 |         2 | \xe215e216e217e218abe219e11a30e11b30e11c30e11
+          16424 |         3 | \x11f4aa3611f43611f43611f43611f4aa3611f43611f
+          16424 |         4 | \xf43211f4325511f43211f43211f43211f4325511f43
+      (5 rows)
+      
+      </pre></div>
+      <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+      <p class="C">
+      В заключение удалим базу данных.
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> postgres
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1">You are now connected to database "postgres" as user "student".
+      </pre></div>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP DATABASE</span> data_physical<span style="color:#323232">;</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1">DROP DATABASE
+      </pre></div>
+      <p class="C">
+      После того, как в табличном пространстве не осталось объектов, можно удалить и его:
+      </p>
+      <div class="S1">
+      <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP TABLESPACE</span> ts<span style="color:#323232">;</span>
+      </pre>
+      </div>
+      <div class="R1"><pre class="R1">DROP TABLESPACE
+      </pre></div>
+      <!-- end -->
+      
+      
+      </body></html>

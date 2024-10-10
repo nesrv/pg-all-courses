@@ -1,0 +1,181 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Нежурналируемая таблица
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cd</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">mkdir</span> ts_dir
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLESPACE</span> ts <span style="color:#3b6ac8">LOCATION</span> <span style="color:#1094a0">'/home/postgres/ts_dir'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLESPACE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> data_lowlevel<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> data_lowlevel
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;data_lowlevel&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE UNLOGGED TABLE</span> <span style="color:#c73a69">u</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">TABLESPACE</span> ts<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_relation_filepath</span><span style="color:#323232">(</span><span style="color:#1094a0">'u'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+            pg_relation_filepath             
+---------------------------------------------
+ pg_tblspc/16423/PG_10_201707211/16424/16425
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\!</span> ls <span style="color:#323232">-</span>l <span style="color:#323232">/</span>usr<span style="color:#323232">/</span><span style="color:#3b6ac8">local</span><span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span><span style="color:#3b6ac8">data</span><span style="color:#323232">/</span>pg_tblspc<span style="color:#323232">/</span><span style="color:#1094a0">16423</span><span style="color:#323232">/</span>PG_10_201707211<span style="color:#323232">/</span><span style="color:#1094a0">16424</span><span style="color:#323232">/</span><span style="color:#1094a0">16425</span><span style="color:#323232">*</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+-rw------- 1 postgres postgres 0 &#1084;&#1072;&#1088; 31 15:24 /usr/local/pgsql/data/pg_tblspc/16423/PG_10_201707211/16424/16425
+-rw------- 1 postgres postgres 0 &#1084;&#1072;&#1088; 31 15:24 /usr/local/pgsql/data/pg_tblspc/16423/PG_10_201707211/16424/16425_init
+</pre></div>
+<h1>
+Удаление табличного пространства
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP TABLE</span> u<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DROP TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP TABLESPACE</span> ts<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DROP TABLESPACE
+</pre></div>
+<h1>
+Таблица с текстовым столбцом
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>s <span style="color:#a00050">text</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\d</span><span style="color:#323232">+</span> t
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                    Table &quot;public.t&quot;
+ Column | Type | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------+------+-----------+----------+---------+----------+--------------+-------------
+ s      | text |           |          |         | extended |              | 
+
+</pre></div>
+<p class="C">
+По умолчанию для типа text используется стратегия extended.
+</p>
+<h1>
+Изменение стратегии
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER TABLE</span> t <span style="color:#3b6ac8">ALTER COLUMN</span> s <span style="color:#3b6ac8">SET STORAGE external</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>s<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'Короткая строка.'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>s<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#c73a69">repeat</span><span style="color:#323232">(</span><span style="color:#1094a0">'A'</span><span style="color:#323232">,</span><span style="color:#1094a0">3456</span><span style="color:#323232">));</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<h1>
+TOAST-таблица
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> relname <span style="color:#3b6ac8">FROM</span> pg_class <span style="color:#3b6ac8">WHERE</span> <span style="color:#a00050">OID</span> <span style="color:#323232">= (</span>
+  <span style="color:#3b6ac8">SELECT</span> reltoastrelid <span style="color:#3b6ac8">FROM</span> pg_class <span style="color:#3b6ac8">WHERE</span> relname<span style="color:#323232">=</span><span style="color:#1094a0">'t'</span>
+<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+    relname     
+----------------
+ pg_toast_16428
+(1 row)
+
+</pre></div>
+<p class="C">
+TOAST-таблица "спрятана", так как находится в схеме, которой нет в пути. И это
+правильно, поскольку TOAST работает прозрачно для пользователя. Но заглянуть
+в нее все-таки можно:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> chunk_id<span style="color:#323232">,</span> chunk_seq<span style="color:#323232">,</span> <span style="color:#c73a69">length</span><span style="color:#323232">(</span>chunk_data<span style="color:#323232">)</span>
+<span style="color:#3b6ac8">FROM</span> pg_toast.pg_toast_16428
+<span style="color:#3b6ac8">ORDER BY</span> chunk_id<span style="color:#323232">,</span> chunk_seq<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ chunk_id | chunk_seq | length 
+----------+-----------+--------
+    16434 |         0 |   2000
+    16434 |         1 |   1456
+(2 rows)
+
+</pre></div>
+<p class="C">
+Видно, что в TOAST-таблицу попала только длинная строчка (два фрагмента,
+общий размер совпадает с длиной строки). Короткая строчка не вынесена в
+TOAST просто потому, что в этом нет необходимости - версия строки и без
+этого помещается в страницу.
+</p>
+</body>
+</html>

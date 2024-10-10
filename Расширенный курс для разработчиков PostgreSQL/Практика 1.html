@@ -1,0 +1,158 @@
+<html><head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.C    { font-size: 80%; }
+li     { font-size: 80%; }
+h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+div.R1 { padding-left: 0px; page-break-inside: avoid; }
+div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+div.E  { padding-left: 0px; font-weight: bold; }
+div.R  { padding-left: 0px; }
+</style>
+</head>
+<body style="margin: 59.5px;">
+<!-- body -->
+<!--  -->
+<h1>
+1. Параметры конфигурации
+</h1>
+<p class="C">
+Добавим в конец конфигурационного файла строку:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'work_mem = 8MB'</span> | <span style="color:#a00050">sudo</span> <span style="color:#3b6ac8">tee</span> <span style="color:#323232">-</span>a <span style="color:#323232">/</span>etc<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">12</span><span style="color:#323232">/</span>main<span style="color:#323232">/</span>postgresql.conf
+</pre>
+</div>
+<div class="R"><pre class="R">work_mem = 8MB
+</pre></div>
+<p class="C">
+Это можно сделать и любым текстовым редактором.
+</p>
+<p class="C">
+Обновляем конфигурацию:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">12</span> main reload
+</pre>
+</div>
+<p class="C">
+Проверяем:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">psql</span> 
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">current_setting</span><span style="color:#323232">(</span><span style="color:#1094a0">'work_mem'</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> work_mem<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1"> work_mem 
+----------
+ 8MB
+(1 row)
+
+</pre></div>
+<h1>
+2. Выполнение скриптов в psql
+</h1>
+<p class="C">
+Запишем в файл ddl.sql команду на создание таблицы с ключевыми словами PostgreSQL (для этого можно использовать и любой текстовый редактор):
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">cat</span> <span style="color:#323232">&gt;</span>ddl.sql <span style="color:#1094a0">&lt;&lt;EOF</span>
+<span style="color:#1094a0">CREATE TABLE keywords (</span>
+<span style="color:#1094a0">    word text,</span>
+<span style="color:#1094a0">    category text,</span>
+<span style="color:#1094a0">    description text</span>
+<span style="color:#1094a0">);</span>
+<span style="color:#1094a0">EOF</span>
+</pre>
+</div>
+<p class="C">
+Запишем команды для заполнения таблицы keywords в файл populate.sql:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">cat</span> <span style="color:#323232">&gt;</span>populate.sql <span style="color:#1094a0">&lt;&lt;EOF</span>
+<span style="color:#1094a0">INSERT INTO keywords</span>
+<span style="color:#1094a0">    SELECT * FROM pg_get_keywords();</span>
+<span style="color:#1094a0">EOF</span>
+</pre>
+</div>
+<p class="C">
+Создаем базу данных и подключаемся к ней:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> tools_overview<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> tools_overview
+</pre>
+</div>
+<div class="R1"><pre class="R1">You are now connected to database "tools_overview" as user "student".
+</pre></div>
+<p class="C">
+Выполняем скрипты и проверяем записи в таблице:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\i</span> ddl.sql
+</pre>
+</div>
+<div class="R1"><pre class="R1">CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\i</span> populate.sql
+</pre>
+</div>
+<div class="R1"><pre class="R1">INSERT 0 442
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> keywords <span style="color:#3b6ac8">LIMIT</span> <span style="color:#1094a0">10</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">   word    | category | description 
+-----------+----------+-------------
+ abort     | U        | unreserved
+ absolute  | U        | unreserved
+ access    | U        | unreserved
+ action    | U        | unreserved
+ add       | U        | unreserved
+ admin     | U        | unreserved
+ after     | U        | unreserved
+ aggregate | U        | unreserved
+ all       | R        | reserved
+ also      | U        | unreserved
+(10 rows)
+
+</pre></div>
+<h1>
+3. Просмотр журнала
+</h1>
+<p class="C">
+Журнал можно открыть любым текстовым редактором. Каждая запись в журнале начинается с даты (настройки журнала после установки из пакета) и может состоять из нескольких строк. Записи за сегодняшний день будут в конце файла.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">tail</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>log<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>postgresql-12-main.log
+</pre>
+</div>
+<div class="R"><pre class="R">2023-07-26 11:09:31.168 MSK [30660] bob@access_overview CONTEXT:  SQL function "foo" statement 1
+2023-07-26 11:09:31.168 MSK [30660] bob@access_overview STATEMENT:  SELECT foo();
+2023-07-26 11:09:31.469 MSK [30660] bob@access_overview ERROR:  permission denied for function foo
+2023-07-26 11:09:31.469 MSK [30660] bob@access_overview STATEMENT:  SELECT foo();
+2023-07-26 11:09:31.646 MSK [30660] bob@access_overview ERROR:  permission denied for function baz
+2023-07-26 11:09:31.646 MSK [30660] bob@access_overview STATEMENT:  SELECT baz();
+2023-07-26 11:10:08.465 MSK [33595] student@student ERROR:  database "tools_overview" does not exist
+2023-07-26 11:10:08.465 MSK [33595] student@student STATEMENT:  DROP DATABASE tools_overview;
+2023-07-26 11:10:08.597 MSK [6602] LOG:  received SIGHUP, reloading configuration files
+2023-07-26 11:10:08.598 MSK [6602] LOG:  parameter "work_mem" changed to "8MB"
+</pre></div>
+<!-- end -->
+
+
+</body></html>

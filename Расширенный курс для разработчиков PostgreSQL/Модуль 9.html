@@ -1,0 +1,639 @@
+<html><head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+  <style>
+  p.C    { font-size: 80%; }
+  li     { font-size: 80%; }
+  h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+  div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+  div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+  div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+  div.R1 { padding-left: 0px; page-break-inside: avoid; }
+  div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+  div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+  div.E  { padding-left: 0px; font-weight: bold; }
+  div.R  { padding-left: 0px; }
+  </style>
+  </head>
+  <body style="margin: 59.5px;">
+  <!-- body -->
+  <!-- 7 -->
+  <h1>
+  Команда COPY
+  </h1>
+  <p class="C">
+  Создадим базу данных и таблицу.
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> db1<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">CREATE DATABASE
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> db1
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">You are now connected to database "db1" as user "student".
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>
+      id <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">PRIMARY KEY GENERATED ALWAYS AS IDENTITY</span><span style="color:#323232">,</span>
+      s <span style="color:#a00050">text</span>
+  <span style="color:#323232">);</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">CREATE TABLE
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>s<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'Привет, мир!'</span><span style="color:#323232">), (</span><span style="color:#1094a0">''</span><span style="color:#323232">), (</span><span style="color:#3b6ac8">NULL</span><span style="color:#323232">);</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">INSERT 0 3
+  </pre></div>
+  <p class="C">
+  Вот что показывает команда COPY (выдаем на консоль, а не в файл):
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COPY</span> t <span style="color:#3b6ac8">TO</span> stdout<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">1	Привет, мир!
+  2	
+  3	\N
+  </pre></div>
+  <p class="C">
+  Видно, как различаются в выводе пустые строки и неопределенные значения.
+  </p>
+  <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+  <p class="C">
+  Формат вывода настраивается достаточно гибко. Можно изменить разделитель, представление неопределенных значений и т. п. Например:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COPY</span> t <span style="color:#3b6ac8">TO</span> stdout <span style="color:#3b6ac8">WITH</span> <span style="color:#323232">(</span>null <span style="color:#1094a0">'&lt;NULL&gt;'</span><span style="color:#323232">,</span> delimiter <span style="color:#1094a0">','</span><span style="color:#323232">);</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">1,Привет\, мир!
+  2,
+  3,&lt;NULL&gt;
+  </pre></div>
+  <p class="C">
+  Обратите внимание, что символ-разделитель внутри строки был экранирован (символ для экранирования тоже настраивается).
+  </p>
+  <p class="C">
+  Вместо таблицы можно указать произвольный запрос.
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COPY</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> s <span style="color:#3b6ac8">IS NOT NULL</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">TO</span> stdout<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">1	Привет, мир!
+  2	
+  </pre></div>
+  <p class="C">
+  Таким образом можно сохранить результат запроса, данные представления и т. п.
+  </p>
+  <p class="C">
+  Команда поддерживает вывод в формате CSV, который поддерживается множеством программ.
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COPY</span> t <span style="color:#3b6ac8">TO</span> stdout <span style="color:#3b6ac8">WITH</span> <span style="color:#323232">(</span>format csv<span style="color:#323232">);</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">1,"Привет, мир!"
+  2,""
+  3,
+  </pre></div>
+  <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+  <p class="C">
+  Аналогично работает и ввод данных из файла или с консоли.
+  </p>
+  <p class="C">
+  При вводе с консоли требуется маркер конца файла - обратная косая черта с точкой. В обычном файле он не нужен.
+  </p>
+  <p class="C">
+  Все параметры при вводе должны совпадать с теми, что были указаны при выводе.
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">TRUNCATE TABLE</span> t<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">TRUNCATE TABLE
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COPY</span> t <span style="color:#3b6ac8">FROM</span> stdin<span style="color:#323232">;</span>
+  <span style="color:#1094a0">1</span>	Привет<span style="color:#323232">,</span> мир<span style="color:#323232">!</span>
+  <span style="color:#1094a0">2</span>	
+  <span style="color:#1094a0">3</span>	<span style="color:#00a150">\N</span>
+  \.
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">COPY 3
+  </pre></div>
+  <p class="C">
+  Вот что загрузилось в таблицу (для наглядности настроим в psql вывод неопределенных значений):
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\pset</span> null <span style="color:#1094a0">'\\N'</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">Null display is "\N".
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1"> id |      s       
+  ----+--------------
+    1 | Привет, мир!
+    2 | 
+    3 | \N
+  (3 rows)
+  
+  </pre></div>
+  <!-- end -->
+  
+  
+  </body></html>
+
+
+  <html><head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+    <style>
+    p.C    { font-size: 80%; }
+    li     { font-size: 80%; }
+    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+    div.E  { padding-left: 0px; font-weight: bold; }
+    div.R  { padding-left: 0px; }
+    </style>
+    </head>
+    <body style="margin: 59.5px;">
+    <!-- body -->
+    <!-- 12 -->
+    <h1>
+    Утилита pg_dump
+    </h1>
+    <p class="C">
+    При запуске без дополнительных параметров утилита pg_dump выдает команды SQL, создающие все объекты в базе данных:
+    </p>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_dump</span> <span style="color:#323232">-</span>d db1
+    </pre>
+    </div>
+    <div class="R"><pre class="R">--
+    -- PostgreSQL database dump
+    --
+    
+    -- Dumped from database version 12.5 (Ubuntu 12.5-1.pgdg20.04+1)
+    -- Dumped by pg_dump version 12.5 (Ubuntu 12.5-1.pgdg20.04+1)
+    
+    SET statement_timeout = 0;
+    SET lock_timeout = 0;
+    SET idle_in_transaction_session_timeout = 0;
+    SET client_encoding = 'UTF8';
+    SET standard_conforming_strings = on;
+    SELECT pg_catalog.set_config('search_path', '', false);
+    SET check_function_bodies = false;
+    SET xmloption = content;
+    SET client_min_messages = warning;
+    SET row_security = off;
+    
+    SET default_tablespace = '';
+    
+    SET default_table_access_method = heap;
+    
+    --
+    -- Name: t; Type: TABLE; Schema: public; Owner: student
+    --
+    
+    CREATE TABLE public.t (
+        id integer NOT NULL,
+        s text
+    );
+    
+    
+    ALTER TABLE public.t OWNER TO student;
+    
+    --
+    -- Name: t_id_seq; Type: SEQUENCE; Schema: public; Owner: student
+    --
+    
+    ALTER TABLE public.t ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+        SEQUENCE NAME public.t_id_seq
+        START WITH 1
+        INCREMENT BY 1
+        NO MINVALUE
+        NO MAXVALUE
+        CACHE 1
+    );
+    
+    
+    --
+    -- Data for Name: t; Type: TABLE DATA; Schema: public; Owner: student
+    --
+    
+    COPY public.t (id, s) FROM stdin;
+    1	Привет, мир!
+    2	
+    3	\N
+    .
+    
+    
+    --
+    -- Name: t_id_seq; Type: SEQUENCE SET; Schema: public; Owner: student
+    --
+    
+    SELECT pg_catalog.setval('public.t_id_seq', 3, true);
+    
+    
+    --
+    -- Name: t t_pkey; Type: CONSTRAINT; Schema: public; Owner: student
+    --
+    
+    ALTER TABLE ONLY public.t
+        ADD CONSTRAINT t_pkey PRIMARY KEY (id);
+    
+    
+    --
+    -- PostgreSQL database dump complete
+    --
+    </pre></div>
+    <p class="C">
+    Видно, что pg_dump создал таблицу t, добавил автоматическую генерацию идентификатора, заполнил таблицу с помощью уже рассмотренной нами команды COPY, и наконец добавил ограничение целостности для первичного ключа. Ключ --column-inserts позволяет использовать команды INSERT, но загрузка будет работать существенно дольше.
+    </p>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Рассмотрим некоторые полезные ключи.
+    </p>
+    <p class="C">
+    Могут пригодиться при восстановлении копии на системе с другим набором ролей:
+    </p>
+    <ul class="U">
+    <li>
+    -O, --no-owner    - не генерировать команды для установки владельца объектов;
+    </li>
+    <li>
+    -x, --no-acl      - не генерировать команды для установки привилегий.
+    </li>
+    </ul>
+    <p class="C">
+    Полезны для выгрузки и загрузки данных частями:
+    </p>
+    <ul class="U">
+    <li>
+    -s, --schema-only - выгрузить только определения объектов без данных;
+    </li>
+    <li>
+    -a, --data-only   - выгрузить только данные, без создания объектов.
+    </li>
+    </ul>
+    <p class="C">
+    Первый ключ удобен, если восстанавливать копию на системе, в которой уже есть данные, а второй - наоборот, на чистой системе:
+    </p>
+    <ul class="U">
+    <li>
+    -c, --clean       - генерировать команды DROP для создаваемых объектов;
+    </li>
+    <li>
+    -C, --create      - генерировать команды создания БД и подключения к ней.
+    </li>
+    </ul>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Важный момент: в выгрузку попадают и изменения, сделанные в шаблонной БД template1. Поэтому восстанавливать резервную копию лучше на базе данных, созданной из template0. При использовании ключа --create это учитывается автоматически:
+    </p>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_dump</span> <span style="color:#323232">--</span>create <span style="color:#323232">-</span>d db1 | <span style="color:#3b6ac8">grep</span> <span style="color:#1094a0">'CREATE DATABASE'</span>
+    </pre>
+    </div>
+    <div class="R"><pre class="R">CREATE DATABASE db1 WITH TEMPLATE = template0 ENCODING = 'UTF8' LC_COLLATE = 'en_US.UTF-8' LC_CTYPE = 'en_US.UTF-8';
+    </pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Существуют ключи для выбора объектов, которые должны попасть в резервную копию:
+    </p>
+    <ul class="U">
+    <li>
+    -n, --schema - шаблон для имен схем;
+    </li>
+    <li>
+    -t, --table  - шаблон для имен таблиц.
+    </li>
+    </ul>
+    <p class="C">
+    И наоборот, включить в копию все, кроме указанного:
+    </p>
+    <ul class="U">
+    <li>
+    -N, --exclude-schema - шаблон для имен схем;
+    </li>
+    <li>
+    -T, --exclude-table  - шаблон для имен таблиц.
+    </li>
+    </ul>
+    <p class="C">
+    Например, восстановим таблицу t в другой базе данных.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> db2<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE DATABASE
+    </pre></div>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_dump</span> <span style="color:#323232">--</span>table<span style="color:#323232">=</span>t <span style="color:#323232">-</span>d db1 | <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>d db2
+    </pre>
+    </div>
+    <div class="R"><pre class="R">SET
+    SET
+    SET
+    SET
+    SET
+     set_config 
+    ------------
+     
+    (1 row)
+    
+    SET
+    SET
+    SET
+    SET
+    SET
+    SET
+    CREATE TABLE
+    ALTER TABLE
+    ALTER TABLE
+    COPY 3
+     setval 
+    --------
+          3
+    (1 row)
+    
+    ALTER TABLE
+    </pre></div>
+    <p class="C">
+    Подключимся к базе данных db2 и проверим:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> db2
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">You are now connected to database "db2" as user "student".
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> id |      s       
+    ----+--------------
+      1 | Привет, мир!
+      2 | 
+      3 | \N
+    (3 rows)
+    
+    </pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <h1>
+    Утилита pg_dump - формат custom
+    </h1>
+    <p class="C">
+    Серьезное ограничение обычного формата (plain) состоит в том, что выбирать объекты нужно в момент выгрузки. Формат custom позволяет сначала сделать полную копию, а выбирать объекты уже при загрузке.
+    </p>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_dump</span> <span style="color:#323232">--</span>format<span style="color:#323232">=</span>custom <span style="color:#323232">-</span>d db1 <span style="color:#323232">-</span>f <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>db1.custom
+    </pre>
+    </div>
+    <p class="C">
+    Для восстановления объектов из такой копии предназначена утилита pg_restore. Повторим восстановление таблицы t.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP TABLE</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">DROP TABLE
+    </pre></div>
+    <p class="C">
+    Формат резервной копии указывать не обязательно - утилита распознает его сама.
+    </p>
+    <p class="C">
+    Утилита pg_restore понимает те же ключи для фильтрации объектов, что и pg_dump, и даже больше:
+    </p>
+    <ul class="U">
+    <li>
+    -I, --index    - загрузить определенные индексы;
+    </li>
+    <li>
+    -P, --function - загрузить определенные функции;
+    </li>
+    <li>
+    -T, --trigger  - загрузить определенные триггеры.
+    </li>
+    </ul>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_restore</span> <span style="color:#323232">--</span>table<span style="color:#323232">=</span>t <span style="color:#323232">-</span>d db2 <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>db1.custom
+    </pre>
+    </div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> id |      s       
+    ----+--------------
+      1 | Привет, мир!
+      2 | 
+      3 | \N
+    (3 rows)
+    
+    </pre></div>
+    <p class="C">
+    Еще один пример: восстановим целиком исходную базу данных db1.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP DATABASE</span> db1<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">DROP DATABASE
+    </pre></div>
+    <p class="C">
+    В ключе -d мы указываем любую существующую базу данных; с ключом --create утилита сама создаст базу, указанную в архиве, и тут же переключится в нее.
+    </p>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_restore</span> <span style="color:#323232">--</span>create <span style="color:#323232">-</span>d student <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>db1.custom
+    </pre>
+    </div>
+    <p class="C">
+    Проверим:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> db1
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">You are now connected to database "db1" as user "student".
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> id |      s       
+    ----+--------------
+      1 | Привет, мир!
+      2 | 
+      3 | \N
+    (3 rows)
+    
+    </pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Резервную копию в обычном (plain) формате при необходимости можно изменить в текстовом редакторе. Резервная копия формата custom хранится в двоичном виде, но и для нее доступны более широкие возможности фильтрации объектов, чем предоставляемые рассмотренными ключами. Утилита pg_restore может сформировать список объектов - оглавление резервной копии:
+    </p>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_restore</span> <span style="color:#323232">--</span>list <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>db1.custom
+    </pre>
+    </div>
+    <div class="R"><pre class="R">;
+    ; Archive created at 2023-07-26 11:09:52 MSK
+    ;     dbname: db1
+    ;     TOC Entries: 9
+    ;     Compression: -1
+    ;     Dump Version: 1.14-0
+    ;     Format: CUSTOM
+    ;     Integer: 4 bytes
+    ;     Offset: 8 bytes
+    ;     Dumped from database version: 12.5 (Ubuntu 12.5-1.pgdg20.04+1)
+    ;     Dumped by pg_dump version: 12.5 (Ubuntu 12.5-1.pgdg20.04+1)
+    ;
+    ;
+    ; Selected TOC Entries:
+    ;
+    203; 1259 17004 TABLE public t student
+    202; 1259 17002 SEQUENCE public t_id_seq student
+    2962; 0 17004 TABLE DATA public t student
+    2969; 0 0 SEQUENCE SET public t_id_seq student
+    2834; 2606 17011 CONSTRAINT public t t_pkey student
+    </pre></div>
+    <p class="C">
+    Такой список можно записать в файл, отредактировать и использовать его для восстановления с помощью ключа --use-list.
+    </p>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <h1>
+    Утилита pg_dump - формат directory
+    </h1>
+    <p class="C">
+    Формат directory интересен тем, что позволяет выгружать данные в несколько параллельных потоков. При этом гарантируется согласованность данных: все потоки будут использовать один и тот же снимок данных.
+    </p>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_dump</span> <span style="color:#323232">--</span>format<span style="color:#323232">=</span>directory <span style="color:#323232">--</span><span style="color:#3b6ac8">jobs</span><span style="color:#323232">=</span><span style="color:#1094a0">2</span> <span style="color:#323232">-</span>d db1 <span style="color:#323232">-</span>f <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>db1.directory
+    </pre>
+    </div>
+    <p class="C">
+    Заглянем внутрь каталога:
+    </p>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">ls</span> <span style="color:#323232">-</span>l <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>db1.directory
+    </pre>
+    </div>
+    <div class="R"><pre class="R">total 8
+    -rw-rw-r-- 1 student student   60 июл 26 11:09 2961.dat.gz
+    -rw-rw-r-- 1 student student 1995 июл 26 11:09 toc.dat
+    </pre></div>
+    <p class="C">
+    В нем находится файл оглавления и по одному файлу на каждый выгружаемый объект (у нас он всего один):
+    </p>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">zcat</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>db1.directory<span style="color:#323232">/</span><span style="color:#1094a0">2961</span>.dat.gz
+    </pre>
+    </div>
+    <div class="R"><pre class="R">1	Привет, мир!
+    2	
+    3	\N
+    .
+    </pre></div>
+    <p class="C">
+    Восстановим базу db1 из резервной копии, используя два потока.
+    </p>
+    <p class="C">
+    Здесь мы добавляем ключ --clean, который генерирует команду удаления БД, поскольку db1 существует. И предварительно надо отключиться от db1:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> db2
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">You are now connected to database "db2" as user "student".
+    </pre></div>
+    <div class="E">
+    <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_restore</span> <span style="color:#323232">--</span>clean <span style="color:#323232">--</span>create <span style="color:#323232">--</span><span style="color:#3b6ac8">jobs</span><span style="color:#323232">=</span><span style="color:#1094a0">2</span> <span style="color:#323232">-</span>d student <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>db1.custom
+    </pre>
+    </div>
+    <!-- end -->
+    
+    
+    </body></html>
+
+    <html><head>
+      <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+      <style>
+      p.C    { font-size: 80%; }
+      li     { font-size: 80%; }
+      h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+      div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+      div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+      div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+      div.R1 { padding-left: 0px; page-break-inside: avoid; }
+      div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+      div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+      div.E  { padding-left: 0px; font-weight: bold; }
+      div.R  { padding-left: 0px; }
+      </style>
+      </head>
+      <body style="margin: 59.5px;">
+      <!-- body -->
+      <!-- 14 -->
+      <h1>
+      Утилита pg_dumpall
+      </h1>
+      <p class="C">
+      Утилита pg_dump годится для выгрузки одной базы данных, но никогда не выгружает общие объекты кластера БД, такие, как роли и табличные пространства. Чтобы сделать полную копию кластера, нужна утилита pg_dumpall.
+      </p>
+      <p class="C">
+      Все рассматриваемые в этой теме утилиты не требуют каких-то отдельных привилегий, но у выполняющей их роли должны быть привилегии на чтение (создание) всех затронутых объектов. Утилитой pg_dump может, например, пользоваться владелец базы данных. Но поскольку для копирования кластера утилите pg_dumpall надо иметь доступ ко всем базам данных, следует использовать роль с атрибутом суперпользователя.
+      </p>
+      <div class="E">
+      <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_dumpall</span> <span style="color:#323232">--</span>clean <span style="color:#323232">-</span>f <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>main.sql
+      </pre>
+      </div>
+      <p class="C">
+      В копию кластера дополнительно попадают такие команды, как:
+      </p>
+      <div class="E">
+      <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">grep</span> <span style="color:#1094a0">'ROLE'</span> main.sql
+      </pre>
+      </div>
+      <div class="R"><pre class="R">DROP ROLE postgres;
+      DROP ROLE student;
+      CREATE ROLE postgres;
+      ALTER ROLE postgres WITH SUPERUSER INHERIT CREATEROLE CREATEDB LOGIN REPLICATION BYPASSRLS PASSWORD 'md53175bce1d3201d16594cebf9d7eb3f9d';
+      CREATE ROLE student;
+      ALTER ROLE student WITH SUPERUSER INHERIT NOCREATEROLE NOCREATEDB LOGIN NOREPLICATION NOBYPASSRLS PASSWORD 'md550d9482e20934ce6df0bf28941f885bc';
+      </pre></div>
+      <p class="C">
+      Восстановление выполняется с помощью psql - никакой другой формат не поддерживается. Команда для восстановления (мы не будет ее выполнять):
+      </p>
+      <div class="E">
+      <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>f main.sql
+      </pre>
+      </div>
+      <p class="C">
+      В процессе восстановления могут возникать ошибки из-за существующих объектов - обычно это нормально и не мешает процессу, хотя все сообщения стоит проанализировать.
+      </p>
+      <!-- end -->
+      
+      
+      </body></html>
+
+
+

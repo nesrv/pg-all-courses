@@ -1,0 +1,429 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Заморозка при COPY WITH FREEZE
+</h1>
+<p class="C">
+Создаем таблицу и загружаем несколько строк в одной и той же транзакции:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> mvcc_freeze<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> mvcc_freeze
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;mvcc_freeze&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+BEGIN
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COPY</span> t <span style="color:#3b6ac8">FROM stdin WITH FREEZE</span><span style="color:#323232">;</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#1094a0">1</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#1094a0">2</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#1094a0">3</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> \.
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+COPY 3
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+COMMIT
+</pre></div>
+<p class="C">
+Проверяем версии строк:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE EXTENSION</span> pageinspect<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE EXTENSION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE VIEW</span> t_v <span style="color:#3b6ac8">AS</span>
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">'(0,'</span>||lp||<span style="color:#1094a0">')'</span> <span style="color:#3b6ac8">as</span> <span style="color:#a00050">ctid</span><span style="color:#323232">,</span>
+       <span style="color:#3b6ac8">CASE</span> lp_flags
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'unused'</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'normal'</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">2</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'redirect to '</span>||lp_off
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">3</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'dead'</span>
+       <span style="color:#3b6ac8">END AS</span> state<span style="color:#323232">,</span>
+       t_xmin <span style="color:#3b6ac8">AS</span> <span style="color:#a00050">xmin</span><span style="color:#323232">,</span>
+       <span style="color:#c73a69">age</span><span style="color:#323232">(</span>t_xmin<span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> xmin_age<span style="color:#323232">,</span>
+       <span style="color:#3b6ac8">CASE WHEN</span> <span style="color:#323232">(</span>t_infomask <span style="color:#323232">&amp;</span> <span style="color:#1094a0">256</span><span style="color:#323232">) &gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'t'</span> <span style="color:#3b6ac8">END AS</span> xmin_c<span style="color:#323232">,</span>
+       <span style="color:#3b6ac8">CASE WHEN</span> <span style="color:#323232">(</span>t_infomask <span style="color:#323232">&amp;</span> <span style="color:#1094a0">512</span><span style="color:#323232">) &gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'t'</span> <span style="color:#3b6ac8">END AS</span> xmin_a<span style="color:#323232">,</span>
+       t_xmax <span style="color:#3b6ac8">AS</span> <span style="color:#a00050">xmax</span><span style="color:#323232">,</span>
+       t_ctid
+<span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">heap_page_items</span><span style="color:#323232">(</span><span style="color:#c73a69">get_raw_page</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">,</span><span style="color:#1094a0">0</span><span style="color:#323232">))</span>
+<span style="color:#3b6ac8">ORDER BY</span> lp<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE VIEW
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t_v<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ ctid  | state  | xmin  | xmin_age | xmin_c | xmin_a | xmax | t_ctid 
+-------+--------+-------+----------+--------+--------+------+--------
+ (0,1) | normal | 55566 |        3 | t      | t      |    0 | (0,1)
+ (0,2) | normal | 55566 |        3 | t      | t      |    0 | (0,2)
+ (0,3) | normal | 55566 |        3 | t      | t      |    0 | (0,3)
+(3 rows)
+
+</pre></div>
+<h1>
+COPY WITH FREEZE и изоляция
+</h1>
+<p class="C">
+В другом сеансе начнем транзакцию с уровнем изоляции Repeatable Read.
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> mvcc_freeze
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+You are now connected to database &quot;mvcc_freeze&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN ISOLATION LEVEL REPEATABLE READ</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+BEGIN
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">txid_current</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ txid_current 
+--------------
+        55569
+(1 row)
+
+</pre></div>
+<p class="C">
+Обратите внимание, что эта транзакция не должна обращаться к таблице t.
+</p>
+<p class="C">
+Теперь опустошим таблицу и загрузим в нее новые строки в одной транзакции. Если
+бы параллельная транзакция прочитала содержимое t, команда TRUNCATE ожидала
+бы ее завершения.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+BEGIN
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">TRUNCATE</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+TRUNCATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COPY</span> t <span style="color:#3b6ac8">FROM stdin WITH FREEZE</span><span style="color:#323232">;</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#1094a0">10</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#1094a0">20</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#1094a0">30</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> \.
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+COPY 3
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+COMMIT
+</pre></div>
+<p class="C">
+Теперь параллельная транзакция видит новые данные, хотя это и нарушает
+изоляцию:
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ n  
+----
+ 10
+ 20
+ 30
+(3 rows)
+
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+COMMIT
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\q</span>
+</pre>
+</div>
+<h1>
+Аварийное срабатывание автоочистки
+</h1>
+<p class="C">
+Предварительно заморозим все транзакции во всех базах. Для этого удобно
+воспользоваться командой vacuumdb:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ vacuumdb <span style="color:#323232">--</span>all <span style="color:#323232">--</span>freeze
+</pre>
+</div>
+<div class="R"><pre class="R">
+vacuumdb: vacuuming database &quot;mvcc_freeze&quot;
+vacuumdb: vacuuming database &quot;postgres&quot;
+vacuumdb: vacuuming database &quot;template1&quot;
+</pre></div>
+<p class="C">
+Максимальный возраст незамороженных транзакций по всем БД:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> datname<span style="color:#323232">,</span> datfrozenxid<span style="color:#323232">,</span> <span style="color:#c73a69">age</span><span style="color:#323232">(</span>datfrozenxid<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> pg_database<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+   datname   | datfrozenxid |  age  
+-------------+--------------+-------
+ postgres    |        55571 |     0
+ mvcc_freeze |        55571 |     0
+ template1   |        55571 |     0
+ template0   |          548 | 55023
+(4 rows)
+
+</pre></div>
+<p class="C">
+Отключаем автоочистку.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> autovacuum <span style="color:#323232">=</span> <span style="color:#3b6ac8">off</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<p class="C">
+Уменьшаем значения параметров:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> vacuum_freeze_min_age <span style="color:#323232">=</span> <span style="color:#1094a0">1000</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> vacuum_freeze_table_age <span style="color:#323232">=</span> <span style="color:#1094a0">10000</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> autovacuum_freeze_max_age <span style="color:#323232">=</span> <span style="color:#1094a0">100000</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<p class="C">
+Требуется перезагрузка сервера.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>l <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data restart
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> mvcc_freeze
+</pre>
+</div>
+<p class="C">
+Получить большое количество транзакций можно разными способами; например,
+можно воспользоваться утилитой pgbench. Попросим ее инициализировать свои
+таблицы и выполнить 100000 транзакций.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pgbench</span> <span style="color:#323232">-</span>i mvcc_freeze
+</pre>
+</div>
+<div class="R"><pre class="R">
+NOTICE:  table &quot;pgbench_history&quot; does not exist, skipping
+NOTICE:  table &quot;pgbench_tellers&quot; does not exist, skipping
+NOTICE:  table &quot;pgbench_accounts&quot; does not exist, skipping
+NOTICE:  table &quot;pgbench_branches&quot; does not exist, skipping
+creating tables...
+100000 of 100000 tuples (100%) done (elapsed 0.14 s, remaining 0.00 s)
+vacuum...
+set primary keys...
+done.
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pgbench</span> <span style="color:#323232">-</span>t <span style="color:#1094a0">100000</span> <span style="color:#323232">-</span>P <span style="color:#1094a0">5</span> mvcc_freeze
+</pre>
+</div>
+<div class="R"><pre class="R">
+starting vacuum...end.
+progress: 5.0 s, 932.6 tps, lat 1.072 ms stddev 0.384
+progress: 10.0 s, 946.6 tps, lat 1.057 ms stddev 0.362
+progress: 15.0 s, 942.6 tps, lat 1.061 ms stddev 0.378
+progress: 20.0 s, 936.8 tps, lat 1.068 ms stddev 0.387
+progress: 25.0 s, 928.6 tps, lat 1.077 ms stddev 0.610
+progress: 30.0 s, 936.0 tps, lat 1.068 ms stddev 0.278
+progress: 35.0 s, 923.2 tps, lat 1.083 ms stddev 0.664
+progress: 40.0 s, 943.4 tps, lat 1.060 ms stddev 0.376
+progress: 45.0 s, 927.8 tps, lat 1.078 ms stddev 0.377
+progress: 50.0 s, 934.0 tps, lat 1.071 ms stddev 0.341
+progress: 55.0 s, 930.6 tps, lat 1.074 ms stddev 0.360
+progress: 60.0 s, 890.2 tps, lat 1.123 ms stddev 1.717
+progress: 65.0 s, 911.8 tps, lat 1.097 ms stddev 0.724
+progress: 70.0 s, 926.4 tps, lat 1.079 ms stddev 0.355
+progress: 75.0 s, 929.6 tps, lat 1.076 ms stddev 0.391
+progress: 80.0 s, 919.8 tps, lat 1.087 ms stddev 0.386
+progress: 85.0 s, 910.8 tps, lat 1.098 ms stddev 0.456
+progress: 90.0 s, 914.6 tps, lat 1.093 ms stddev 0.350
+progress: 95.0 s, 932.0 tps, lat 1.073 ms stddev 0.391
+progress: 100.0 s, 932.4 tps, lat 1.073 ms stddev 0.248
+progress: 105.0 s, 930.8 tps, lat 1.074 ms stddev 0.346
+transaction type: &lt;builtin: TPC-B (sort of)&gt;
+scaling factor: 1
+query mode: simple
+number of clients: 1
+number of threads: 1
+number of transactions per client: 100000
+number of transactions actually processed: 100000/100000
+latency average = 1.079 ms
+latency stddev = 0.561 ms
+tps = 927.106045 (including connections establishing)
+tps = 927.125369 (excluding connections establishing)
+</pre></div>
+<p class="C">
+Видно, что возраст незамороженных транзакций превышает установленное пороговое
+значение (100000):
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> datname<span style="color:#323232">,</span> datfrozenxid<span style="color:#323232">,</span> <span style="color:#c73a69">age</span><span style="color:#323232">(</span>datfrozenxid<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> pg_database<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+   datname   | datfrozenxid |  age   
+-------------+--------------+--------
+ postgres    |        55571 | 100013
+ mvcc_freeze |        55571 | 100013
+ template1   |        55571 | 100013
+ template0   |       131261 |  24323
+(4 rows)
+
+</pre></div>
+<p class="C">
+Теперь при выполнении команды VACUUM для любой таблицы будет запущен процесс
+автоочистки.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+VACUUM
+</pre></div>
+<p class="C">
+Среди процессов появился autovacuum worker:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">ps</span> <span style="color:#323232">-</span>o pid<span style="color:#323232">,</span>command <span style="color:#323232">--</span>ppid <span style="color:#1094a0">`head -n 1 /usr/local/pgsql/data/postmaster.pid`</span>
+</pre>
+</div>
+<div class="R"><pre class="R">
+  PID COMMAND
+26360 postgres: checkpointer process   
+26361 postgres: writer process   
+26362 postgres: wal writer process   
+26363 postgres: stats collector process   
+26364 postgres: bgworker: logical replication launcher   
+26389 postgres: postgres mvcc_freeze [local] idle
+26487 postgres: autovacuum worker process   postgres
+</pre></div>
+<p class="C">
+И через некоторое время транзакции окажутся замороженными:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> datname<span style="color:#323232">,</span> datfrozenxid<span style="color:#323232">,</span> <span style="color:#c73a69">age</span><span style="color:#323232">(</span>datfrozenxid<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> pg_database<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+   datname   | datfrozenxid |  age  
+-------------+--------------+-------
+ postgres    |       154584 |  1000
+ mvcc_freeze |       154584 |  1000
+ template1   |       155584 |     0
+ template0   |       131261 | 24323
+(4 rows)
+
+</pre></div>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Отключение автоочистки
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> pid<span style="color:#323232">,</span> backend_start<span style="color:#323232">,</span> backend_type
+<span style="color:#3b6ac8">FROM</span> pg_stat_activity
+<span style="color:#3b6ac8">WHERE</span> backend_type <span style="color:#323232">=</span> <span style="color:#1094a0">'autovacuum launcher'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pid  |         backend_start         |    backend_type     
+------+-------------------------------+---------------------
+ 9839 | 2019-03-31 15:24:10.132245+03 | autovacuum launcher
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> autovacuum <span style="color:#323232">=</span> <span style="color:#3b6ac8">off</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_reload_conf</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> pid<span style="color:#323232">,</span> backend_start<span style="color:#323232">,</span> backend_type 
+<span style="color:#3b6ac8">FROM</span> pg_stat_activity 
+<span style="color:#3b6ac8">WHERE</span> backend_type <span style="color:#323232">=</span> <span style="color:#1094a0">'autovacuum launcher'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pid | backend_start | backend_type 
+-----+---------------+--------------
+(0 rows)
+
+</pre></div>
+<h1>
+База данных, таблица и индекс
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> admin_maintenance<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> admin_maintenance
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;admin_maintenance&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n <span style="color:#a00050">numeric</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE INDEX</span> t_n <span style="color:#3b6ac8">on</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE INDEX
+</pre></div>
+<h1>
+Вставка строк
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">random</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">100000</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 100000
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\set</span> SIZE <span style="color:#1094a0">'SELECT pg_size_pretty(pg_table_size('</span><span style="color:#1094a0">'t'</span><span style="color:#1094a0">')) table_size, pg_size_pretty(pg_indexes_size('</span><span style="color:#1094a0">'t'</span><span style="color:#1094a0">')) index_size;'</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">:SIZE</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ table_size | index_size 
+------------+------------
+ 3960 kB    | 3464 kB
+(1 row)
+
+</pre></div>
+<h1>
+Изменение строк без очистки
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n<span style="color:#323232">=</span>n <span style="color:#3b6ac8">WHERE</span> n <span style="color:#323232">&lt;</span> <span style="color:#1094a0">0.5</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 49901
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">:SIZE</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ table_size | index_size 
+------------+------------
+ 5928 kB    | 5160 kB
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n<span style="color:#323232">=</span>n <span style="color:#3b6ac8">WHERE</span> n <span style="color:#323232">&lt;</span> <span style="color:#1094a0">0.5</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 49901
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">:SIZE</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ table_size | index_size 
+------------+------------
+ 7888 kB    | 6904 kB
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n<span style="color:#323232">=</span>n <span style="color:#3b6ac8">WHERE</span> n <span style="color:#323232">&lt;</span> <span style="color:#1094a0">0.5</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 49901
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">:SIZE</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ table_size | index_size 
+------------+------------
+ 9848 kB    | 8568 kB
+(1 row)
+
+</pre></div>
+<p class="C">
+Размер таблицы и индекса постоянно растет.
+</p>
+<h1>
+Полная очистка
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM FULL</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+VACUUM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">:SIZE</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ table_size | index_size 
+------------+------------
+ 3944 kB    | 2664 kB
+(1 row)
+
+</pre></div>
+<p class="C">
+Размер таблицы практически вернулся к начальному, индекс стал компактнее
+(построить индекс по большому объему данных эффективнее, чем добавлять эти
+данные к индексу построчно).
+</p>
+<h1>
+Изменение строк с очисткой
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n<span style="color:#323232">=</span>n <span style="color:#3b6ac8">WHERE</span> n <span style="color:#323232">&lt;</span> <span style="color:#1094a0">0.5</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 49901
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+VACUUM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">:SIZE</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ table_size | index_size 
+------------+------------
+ 5936 kB    | 3992 kB
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n<span style="color:#323232">=</span>n <span style="color:#3b6ac8">WHERE</span> n <span style="color:#323232">&lt;</span> <span style="color:#1094a0">0.5</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 49901
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+VACUUM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">:SIZE</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ table_size | index_size 
+------------+------------
+ 5936 kB    | 3992 kB
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> n<span style="color:#323232">=</span>n <span style="color:#3b6ac8">WHERE</span> n <span style="color:#323232">&lt;</span> <span style="color:#1094a0">0.5</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 49901
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+VACUUM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">:SIZE</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ table_size | index_size 
+------------+------------
+ 5936 kB    | 3992 kB
+(1 row)
+
+</pre></div>
+<p class="C">
+Размер увеличился один раз и затем стабилизировался.
+</p>
+<h1>
+Восстанавливаем автоочистку
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> autovacuum <span style="color:#323232">=</span> <span style="color:#3b6ac8">on</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_reload_conf</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+</pre></div>
+</body>
+</html>

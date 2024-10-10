@@ -1,0 +1,72 @@
+
+        psql 
+
+Роль creator
+~~~~~~~~~~~~
+
+
+        => create role creator with createdb createrole;
+        CREATE ROLE
+
+
+Роль weak
+~~~~~~~~~
+
+
+        => create role weak with login;
+        CREATE ROLE
+
+
+Проверка возможности создания БД
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => \c - weak
+        You are now connected to database "postgres" as user "weak".
+
+        => create database db;
+        ERROR:  permission denied to create database
+
+
+Включение в группу
+~~~~~~~~~~~~~~~~~~
+
+
+        => \c - postgres
+        You are now connected to database "postgres" as user "postgres".
+
+        => grant creator to weak;
+        GRANT ROLE
+
+
+Создание БД
+~~~~~~~~~~~
+
+
+        => \c - weak
+        You are now connected to database "postgres" as user "weak".
+
+        => set role creator;
+        SET
+
+        => create database db9;
+        CREATE DATABASE
+
+
+Удаление базы и ролей
+~~~~~~~~~~~~~~~~~~~~~
+
+
+        => \c - postgres
+        You are now connected to database "postgres" as user "postgres".
+
+        => drop database db9;
+        DROP DATABASE
+
+        => drop role weak;
+        DROP ROLE
+
+        => drop role creator;
+        DROP ROLE
+
+        => \q

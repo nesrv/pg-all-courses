@@ -1,0 +1,226 @@
+
+Воспроизвести HOT-обновление
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Создаем базу данных и таблицу.
+
+psql 
+
+=> create database db5;
+CREATE DATABASE
+
+=> \c db5
+You are now connected to database "db5" as user "postgres".
+
+=> create extension pageinspect;
+CREATE EXTENSION
+
+=> create table t(id serial, s text) with (fillfactor=80);
+CREATE TABLE
+
+=> create index t_s on t(id);
+CREATE INDEX
+
+Создадим представление для просмотра нулевой страницы:
+
+=> create view t0_v as
+=>   select '(0,'||lp||')' as ctid,
+=>          case lp_flags
+=>            when 0 then 'unused'
+=>            when 1 then 'normal'
+=>            when 2 then 'redirect to '||lp_off
+=>            when 3 then 'dead'
+=>          end as state,
+=>          t_xmin as xmin,
+=>          t_xmax as xmax,
+=>          case when (t_infomask & 256) > 0 then 't' end as xmin_c,
+=>          case when (t_infomask & 512) > 0 then 't' end as xmin_a,
+=>          case when (t_infomask & 1024) > 0 then 't' end as xmax_c,
+=>          case when (t_infomask & 2048) > 0 then 't' end as xmax_a,
+=>          case when (t_infomask2 & 16384) > 0 then 't' end as hhu,
+=>          case when (t_infomask2 & 32768) > 0 then 't' end as hot,
+=>          t_ctid
+=>   from heap_page_items(get_raw_page('t',0))
+=>   order by lp;
+CREATE VIEW
+
+И такое же для первой страницы:
+
+=> create view t1_v as
+=>   select '(1,'||lp||')' as ctid,
+=>          case lp_flags
+=>            when 0 then 'unused'
+=>            when 1 then 'normal'
+=>            when 2 then 'redirect to '||lp_off
+=>            when 3 then 'dead'
+=>          end as state,
+=>          t_xmin as xmin,
+=>          t_xmax as xmax,
+=>          case when (t_infomask & 256) > 0 then 't' end as xmin_c,
+=>          case when (t_infomask & 512) > 0 then 't' end as xmin_a,
+=>          case when (t_infomask & 1024) > 0 then 't' end as xmax_c,
+=>          case when (t_infomask & 2048) > 0 then 't' end as xmax_a,
+=>          case when (t_infomask2 & 16384) > 0 then 't' end as hhu,
+=>          case when (t_infomask2 & 32768) > 0 then 't' end as hot,
+=>          t_ctid
+=>   from heap_page_items(get_raw_page('t',1))
+=>   order by lp;
+CREATE VIEW
+
+И представление для индекса:
+
+=> create view t_s_v as
+=>   select itemoffset,
+=>          ctid
+=>   from bt_page_items('t_s',1);
+CREATE VIEW
+
+Будем добавлять строки размером 1K.
+
+=> insert into t(s) select repeat('1',1024);
+INSERT 0 1
+
+=> update t set s = repeat('2',1024);
+UPDATE 1
+
+=> update t set s = repeat('3',1024);
+UPDATE 1
+
+=> update t set s = repeat('4',1024);
+UPDATE 1
+
+=> update t set s = repeat('5',1024);
+UPDATE 1
+
+=> update t set s = repeat('6',1024);
+UPDATE 1
+
+=> update t set s = repeat('7',1024);
+UPDATE 1
+
+Можем наблюдать цепочку HOT-обновлений:
+
+=> select * from t0_v;
+ ctid  | state  |  xmin  |  xmax  | xmin_c | xmin_a | xmax_c | xmax_a | hhu | hot | t_ctid 
+-------+--------+--------+--------+--------+--------+--------+--------+-----+-----+--------
+ (0,1) | normal | 558048 | 558049 | t      |        | t      |        | t   |     | (0,2)
+ (0,2) | normal | 558049 | 558050 | t      |        | t      |        | t   | t   | (0,3)
+ (0,3) | normal | 558050 | 558051 | t      |        | t      |        | t   | t   | (0,4)
+ (0,4) | normal | 558051 | 558052 | t      |        | t      |        | t   | t   | (0,5)
+ (0,5) | normal | 558052 | 558053 | t      |        | t      |        | t   | t   | (0,6)
+ (0,6) | normal | 558053 | 558054 | t      |        |        |        | t   | t   | (0,7)
+ (0,7) | normal | 558054 |      0 |        |        |        | t      |     | t   | (0,7)
+(7 rows)
+
+
+Воспроизвести ситуацию внутристраничной очистки
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+=> update t set s = repeat('8',1024);
+UPDATE 1
+
+=> select * from t0_v;
+ ctid  |     state     |  xmin  |  xmax  | xmin_c | xmin_a | xmax_c | xmax_a | hhu | hot | t_ctid 
+-------+---------------+--------+--------+--------+--------+--------+--------+-----+-----+--------
+ (0,1) | redirect to 7 |        |        |        |        |        |        |     |     | 
+ (0,2) | normal        | 558055 |      0 |        |        |        | t      |     | t   | (0,2)
+ (0,3) | unused        |        |        |        |        |        |        |     |     | 
+ (0,4) | unused        |        |        |        |        |        |        |     |     | 
+ (0,5) | unused        |        |        |        |        |        |        |     |     | 
+ (0,6) | unused        |        |        |        |        |        |        |     |     | 
+ (0,7) | normal        | 558054 | 558055 | t      |        |        |        | t   | t   | (0,2)
+(7 rows)
+
+
+Воспроизвести ситуацию, при которой новая версия помещается на другую страницу
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Снова заполним страницу, но помешаем внутристраничной очистке -
+поместим текущую версию строки в снимок.
+
+        |  psql 
+
+        |  => \c db5
+        |  You are now connected to database "db5" as user "postgres".
+
+        |  => begin;
+        |  BEGIN
+
+        |  => set transaction isolation level repeatable read;
+        |  SET
+
+        |  => select count(*) from t;
+        |   count 
+        |  -------
+        |       1
+        |  (1 row)
+        |  
+
+=> update t set s = repeat('9',1024);
+UPDATE 1
+
+=> update t set s = repeat('A',1024);
+UPDATE 1
+
+=> update t set s = repeat('B',1024);
+UPDATE 1
+
+=> update t set s = repeat('C',1024);
+UPDATE 1
+
+Текущая ситуация:
+
+=> select * from t0_v;
+ ctid  |     state     |  xmin  |  xmax  | xmin_c | xmin_a | xmax_c | xmax_a | hhu | hot | t_ctid 
+-------+---------------+--------+--------+--------+--------+--------+--------+-----+-----+--------
+ (0,1) | redirect to 7 |        |        |        |        |        |        |     |     | 
+ (0,2) | normal        | 558055 | 558056 | t      |        | t      |        | t   | t   | (0,3)
+ (0,3) | normal        | 558056 | 558057 | t      |        | t      |        | t   | t   | (0,4)
+ (0,4) | normal        | 558057 | 558058 | t      |        | t      |        | t   | t   | (0,5)
+ (0,5) | normal        | 558058 | 558059 | t      |        |        |        | t   | t   | (0,6)
+ (0,6) | normal        | 558059 |      0 |        |        |        | t      |     | t   | (0,6)
+ (0,7) | normal        | 558054 | 558055 | t      |        | t      |        | t   | t   | (0,2)
+(7 rows)
+
+
+Обновляем строку, но так, чтобы для новой версии уже не хватило места:
+
+=> update t set s = repeat('D',2000);
+UPDATE 1
+
+=> select * from t0_v;
+ ctid  |     state     |  xmin  |  xmax  | xmin_c | xmin_a | xmax_c | xmax_a | hhu | hot | t_ctid 
+-------+---------------+--------+--------+--------+--------+--------+--------+-----+-----+--------
+ (0,1) | redirect to 7 |        |        |        |        |        |        |     |     | 
+ (0,2) | normal        | 558055 | 558056 | t      |        | t      |        | t   | t   | (0,3)
+ (0,3) | normal        | 558056 | 558057 | t      |        | t      |        | t   | t   | (0,4)
+ (0,4) | normal        | 558057 | 558058 | t      |        | t      |        | t   | t   | (0,5)
+ (0,5) | normal        | 558058 | 558059 | t      |        | t      |        | t   | t   | (0,6)
+ (0,6) | normal        | 558059 | 558060 | t      |        |        |        |     | t   | (1,1)
+ (0,7) | normal        | 558054 | 558055 | t      |        | t      |        | t   | t   | (0,2)
+(7 rows)
+
+
+Новая версия (1,1) записана на следующую страницу:
+
+=> select * from t1_v;
+ ctid  | state  |  xmin  | xmax | xmin_c | xmin_a | xmax_c | xmax_a | hhu | hot | t_ctid 
+-------+--------+--------+------+--------+--------+--------+--------+-----+-----+--------
+ (1,1) | normal | 558060 |    0 |        |        |        | t      |     |     | (1,1)
+(1 row)
+
+
+А в индексе теперь две ссылки, а не одна:
+
+=> select * from t_s_v;
+ itemoffset | ctid  
+------------+-------
+          1 | (1,1)
+          2 | (0,1)
+(2 rows)
+
+
+Таким образом, цепочка HOT-обновлений прервалась.
+
+=> \q
+        |  => \q

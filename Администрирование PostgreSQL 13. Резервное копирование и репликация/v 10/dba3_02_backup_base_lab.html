@@ -1,0 +1,249 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Табличное пространство и база данных
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">mkdir</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>ts_dir
+</pre>
+</div>
+<p class="C">
+Табличные пространства может создавать только суперпользователь:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>U postgres <span style="color:#323232">-</span>c <span style="color:#1094a0">&quot;CREATE TABLESPACE ts LOCATION '/var/lib/postgresql/ts_dir'&quot;</span>
+</pre>
+</div>
+<div class="R"><pre class="R">
+CREATE TABLESPACE
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>U postgres <span style="color:#323232">-</span>c <span style="color:#1094a0">&quot;ALTER TABLESPACE ts OWNER TO student&quot;</span>
+</pre>
+</div>
+<div class="R"><pre class="R">
+ALTER TABLESPACE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> backup_base<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> backup_base
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;backup_base&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>s <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">TABLESPACE</span> ts<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'Привет, мир!'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<h1>
+Базовая резервная копия
+</h1>
+<p class="C">
+Создадим каталог, в который поместим резервную копию:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">mkdir</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>backup
+</pre>
+</div>
+<p class="C">
+Каталог для табличного пространства ts на сервере, который будет развернут
+из резервной копии:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">mkdir</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>ts_beta_dir
+</pre>
+</div>
+<p class="C">
+Запускаем pg_basebackup от имени роли student, указывая формат tar со сжатием:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_basebackup</span> <span style="color:#323232">--</span>format<span style="color:#323232">=</span><span style="color:#3b6ac8">tar</span> <span style="color:#323232">--</span><span style="color:#3b6ac8">gzip</span> <span style="color:#323232">-</span>U student <span style="color:#323232">--</span>pgdata<span style="color:#323232">=/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>backup
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">ls</span> <span style="color:#323232">-</span>l <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>backup<span style="color:#323232">/</span>
+</pre>
+</div>
+<div class="R"><pre class="R">
+total 4676
+-rw-r--r-- 1 postgres postgres     339 &#1080;&#1102;&#1085; 13 20:00 32843.tar.gz
+-rw-r--r-- 1 postgres postgres 4761420 &#1080;&#1102;&#1085; 13 20:00 base.tar.gz
+-rw------- 1 postgres postgres   19792 &#1080;&#1102;&#1085; 13 20:00 pg_wal.tar.gz
+</pre></div>
+<h1>
+Восстановление из базовой резервной копии
+</h1>
+<p class="C">
+Разворачиваем резервную копию:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">rm</span> <span style="color:#323232">-</span>rf <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/*</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">tar</span> <span style="color:#323232">-</span>zxf <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>backup<span style="color:#323232">/</span>base.<span style="color:#3b6ac8">tar</span>.gz <span style="color:#323232">-</span>C <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">tar</span> <span style="color:#323232">-</span>zxf <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>backup<span style="color:#323232">/</span><span style="color:#1094a0">32843</span>.<span style="color:#3b6ac8">tar</span>.gz <span style="color:#323232">-</span>C <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>ts_beta_dir
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">tar</span> <span style="color:#323232">-</span>zxf <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>backup<span style="color:#323232">/</span>pg_wal.<span style="color:#3b6ac8">tar</span>.gz <span style="color:#323232">-</span>C <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>pg_wal
+</pre>
+</div>
+<p class="C">
+Изменяем порт:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'port = 5433'</span> <span style="color:#323232">&gt;&gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>postgresql.auto.conf
+</pre>
+</div>
+<p class="C">
+В каталоге pg_tblspc сейчас пусто:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">ls</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>pg_tblspc<span style="color:#323232">/</span>
+</pre>
+</div>
+<p class="C">
+Символическая ссылка появится при старте сервера в соответствии с файлом
+tablespace_map (который находится внутри base.tar):
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cat</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>tablespace_map
+</pre>
+</div>
+<div class="R"><pre class="R">
+32843 /var/lib/postgresql/ts_dir
+</pre></div>
+<p class="C">
+Изменяем в этом файле путь для табличного пространства:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">sed</span> <span style="color:#323232">-</span>i <span style="color:#1094a0">'s/ts_dir/ts_beta_dir/'</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>tablespace_map
+</pre>
+</div>
+<h1>
+Запуск и проверка
+</h1>
+<p class="C">
+Запускаем сервер.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">10</span> beta start
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">ls</span> <span style="color:#323232">-</span>l <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>pg_tblspc<span style="color:#323232">/</span>
+</pre>
+</div>
+<div class="R"><pre class="R">
+total 0
+lrwxrwxrwx 1 postgres postgres 31 &#1080;&#1102;&#1085; 13 20:00 32843 -&gt; /var/lib/postgresql/ts_beta_dir
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span> <span style="color:#323232">-</span>d backup_base
+</pre>
+</div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> backup_base
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+You are now connected to database &quot;backup_base&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+      s       
+--------------
+ &#1055;&#1088;&#1080;&#1074;&#1077;&#1090;, &#1084;&#1080;&#1088;!
+(1 row)
+
+</pre></div>
+<h1>
+Удаление базы данных и табличного пространства
+</h1>
+<p class="C">
+Чтобы удалить БД, надо от нее отключиться.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> student
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;student&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP DATABASE</span> backup_base<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DROP DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP TABLESPACE</span> ts<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DROP TABLESPACE
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">rm</span> <span style="color:#323232">-</span>rf <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>ts_dir<span style="color:#323232">/</span>
+</pre>
+</div>
+<p class="C">
+И для второго сервера:
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> student
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+You are now connected to database &quot;student&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP DATABASE</span> backup_base<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+DROP DATABASE
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP TABLESPACE</span> ts<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+DROP TABLESPACE
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">rm</span> <span style="color:#323232">-</span>rf <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>ts_beta_dir<span style="color:#323232">/</span>
+</pre>
+</div>
+</body>
+</html>

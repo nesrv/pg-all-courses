@@ -1,0 +1,495 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Физическая потоковая репликация в синхронном режиме
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> replica_physical<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<p class="C">
+Создаем и запускаем реплику точно так же, как в демонстрации.
+</p>
+<p class="C">
+Слот репликации:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_create_physical_replication_slot</span><span style="color:#323232">(</span><span style="color:#1094a0">'replica'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_create_physical_replication_slot 
+-------------------------------------
+ (replica,)
+(1 row)
+
+</pre></div>
+<p class="C">
+Резервная копия:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">rm</span> <span style="color:#323232">-</span>rf <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/*</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_basebackup</span> <span style="color:#323232">-</span>U student <span style="color:#323232">--</span>pgdata<span style="color:#323232">=/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta <span style="color:#323232">-</span>R <span style="color:#323232">--</span>slot<span style="color:#323232">=</span>replica
+</pre>
+</div>
+<p class="C">
+Меняем порт и устанавливаем режим горячего резерва:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'port = 5433'</span> <span style="color:#323232">&gt;&gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>postgresql.auto.conf
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'hot_standby = on'</span> <span style="color:#323232">&gt;&gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>postgresql.auto.conf
+</pre>
+</div>
+<p class="C">
+В файл recovery.conf добавляем указание application_name:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">sed</span> <span style="color:#323232">-</span>i <span style="color:#1094a0">'s/^\(primary_conninfo = '</span><span style="color:#dc6816">\'</span><span style="color:#1094a0">'\)/\1application_name=replica /'</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>recovery.conf
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cat</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>recovery.conf
+</pre>
+</div>
+<div class="R"><pre class="R">
+standby_mode = 'on'
+primary_conninfo = 'application_name=replica user=student passfile=''/var/lib/postgresql/.pgpass'' host=''/var/run/postgresql'' port=5432 sslmode=prefer sslcompression=1 krbsrvname=postgres target_session_attrs=any'
+primary_slot_name = 'replica'
+</pre></div>
+<p class="C">
+Запускаем:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">10</span> beta start
+</pre>
+</div>
+<p class="C">
+Теперь включаем на мастере режим синхронной репликации. Сразу переключимся
+на суперпользовательскую роль.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>d replica_physical <span style="color:#323232">-</span>U postgres
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> synchronous_commit <span style="color:#323232">=</span> <span style="color:#3b6ac8">on</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> synchronous_standby_names <span style="color:#323232">=</span> <span style="color:#1094a0">'replica'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">10</span> alpha reload
+</pre>
+</div>
+<h1>
+Проверка физической репликации
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> pg_stat_replication <span style="color:#00a150">\gx</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+-[ RECORD 1 ]----+------------------------------
+pid              | 7519
+usesysid         | 16384
+usename          | student
+application_name | replica
+client_addr      | 
+client_hostname  | 
+client_port      | -1
+backend_start    | 2018-06-13 20:00:49.943947+03
+backend_xmin     | 
+state            | streaming
+sent_lsn         | 0/1A00100C
+write_lsn        | 0/1A00100C
+flush_lsn        | 0/1A00100C
+replay_lsn       | 0/1A00100C
+write_lag        | 00:00:00.077777
+flush_lag        | 00:00:00.078191
+replay_lag       | 00:00:00.078232
+sync_priority    | 1
+sync_state       | sync
+
+</pre></div>
+<p class="C">
+sync_state: sync говорит о том, что репликация работает в синхронном режиме.
+</p>
+<p class="C">
+Остановим реплику.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">10</span> beta stop
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#323232">-</span> student
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;replica_physical&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+BEGIN
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">test</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<p class="C">
+Фиксация ждет появления синхронной реплики...
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">10</span> beta start
+</pre>
+</div>
+<p class="C">
+После старта реплики фиксация завершается.
+
+</p>
+<div class="R1"><pre class="R1">
+COMMIT
+</pre></div>
+<h1>
+Отмена запроса из-за очистки на мастере
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> test <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span> <span style="color:#323232">-</span>d replica_physical
+</pre>
+</div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SHOW</span> max_standby_streaming_delay<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ max_standby_streaming_delay 
+-----------------------------
+ 30s
+(1 row)
+
+</pre></div>
+<p class="C">
+Начинаем транзакцию с уровнем изоляции repeatable read: первый оператор
+создаст снимок данных, который будет использоваться всеми последующими
+операторами этой транзакции.
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+BEGIN
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ id 
+----
+  1
+(1 row)
+
+</pre></div>
+<p class="C">
+На мастере изменяем единственную строку и выполняем очистку. При этом первая
+версия строки будет удалена.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> test <span style="color:#3b6ac8">SET</span> id <span style="color:#323232">=</span> <span style="color:#1094a0">2</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+VACUUM
+</pre></div>
+<p class="C">
+Через 20 секунд запрос на реплике еще сработает - реплика задерживает
+применение конфликтующей журнальной записи:
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ id 
+----
+  1
+(1 row)
+
+</pre></div>
+<p class="C">
+Через 30 секунд такой же запрос уже будет аварийно прерван, поскольку версия
+строки, вхоящая в снимок, больше не существует.
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+FATAL:  terminating connection due to conflict with recovery
+DETAIL:  User query might have needed to see row versions that must be removed.
+HINT:  In a moment you should be able to reconnect to the database and repeat your command.
+server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+connection to server was lost
+
+
+</pre></div>
+<h1>
+Запрет откладывания применения конфликтующей записи
+</h1>
+<p class="C">
+Выставим задержку применения конфликтующих изменений в ноль.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span> <span style="color:#323232">-</span>d replica_physical <span style="color:#323232">-</span>U postgres
+</pre>
+</div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> max_standby_streaming_delay <span style="color:#323232">=</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ALTER SYSTEM
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#323232">-</span> student
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+You are now connected to database &quot;replica_physical&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">10</span> beta reload
+</pre>
+</div>
+<p class="C">
+Снова начинаем транзакцию...
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+BEGIN
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ id 
+----
+  2
+(1 row)
+
+</pre></div>
+<p class="C">
+На мастере изменяем строку и выполняем очистку...
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> test <span style="color:#3b6ac8">SET</span> id <span style="color:#323232">=</span> <span style="color:#1094a0">3</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+VACUUM
+</pre></div>
+<p class="C">
+Запрос на реплике прерывается тут же:
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+FATAL:  terminating connection due to conflict with recovery
+DETAIL:  User query might have needed to see row versions that must be removed.
+HINT:  In a moment you should be able to reconnect to the database and repeat your command.
+server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+connection to server was lost
+
+
+</pre></div>
+<h1>
+Обратная связь
+</h1>
+<p class="C">
+Установим обратную связь и, чтобы не ждать долго, небольшой интервал
+оповещений.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span> <span style="color:#323232">-</span>d replica_physical <span style="color:#323232">-</span>U postgres
+</pre>
+</div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> hot_standby_feedback <span style="color:#323232">=</span> <span style="color:#3b6ac8">on</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ALTER SYSTEM
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> wal_receiver_status_interval <span style="color:#323232">=</span> <span style="color:#1094a0">'1s'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ALTER SYSTEM
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#323232">-</span> student
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+You are now connected to database &quot;replica_physical&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">10</span> beta reload
+</pre>
+</div>
+<p class="C">
+Снова начинаем транзакцию...
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+BEGIN
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ id 
+----
+  3
+(1 row)
+
+</pre></div>
+<p class="C">
+На мастере изменяем строку и выполняем очистку...
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> test <span style="color:#3b6ac8">SET</span> id <span style="color:#323232">=</span> <span style="color:#1094a0">4</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM VERBOSE</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INFO:  vacuuming &quot;public.test&quot;
+INFO:  &quot;test&quot;: found 0 removable, 2 nonremovable row versions in 1 out of 1 pages
+DETAIL:  1 dead row versions cannot be removed yet, oldest xmin: 630
+There were 0 unused item pointers.
+Skipped 0 pages due to buffer pins, 0 frozen pages.
+0 pages are entirely empty.
+CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s.
+VACUUM
+</pre></div>
+<p class="C">
+Благодаря обратной связи, очистка не может удалить старую версию строки
+(found 0 removable, 2 nonremovable row versions).
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ id 
+----
+  3
+(1 row)
+
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+COMMIT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM VERBOSE</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INFO:  vacuuming &quot;public.test&quot;
+INFO:  &quot;test&quot;: found 1 removable, 1 nonremovable row versions in 1 out of 1 pages
+DETAIL:  0 dead row versions cannot be removed yet, oldest xmin: 631
+There were 1 unused item pointers.
+Skipped 0 pages due to buffer pins, 0 frozen pages.
+0 pages are entirely empty.
+CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s.
+VACUUM
+</pre></div>
+<p class="C">
+После завершения транзакции на реплике, мастер может выполнить очистку
+(found 1 removable...). Журнальные записи реплицируются, но ничего не поломают.
+</p>
+</body>
+</html>

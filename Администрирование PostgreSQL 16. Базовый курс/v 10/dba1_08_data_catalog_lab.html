@@ -1,0 +1,318 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Описание pg_class
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\d</span> pg_class
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                     Table &quot;pg_catalog.pg_class&quot;
+       Column        |     Type     | Collation | Nullable | Default 
+---------------------+--------------+-----------+----------+---------
+ relname             | name         |           | not null | 
+ relnamespace        | oid          |           | not null | 
+ reltype             | oid          |           | not null | 
+ reloftype           | oid          |           | not null | 
+ relowner            | oid          |           | not null | 
+ relam               | oid          |           | not null | 
+ relfilenode         | oid          |           | not null | 
+ reltablespace       | oid          |           | not null | 
+ relpages            | integer      |           | not null | 
+ reltuples           | real         |           | not null | 
+ relallvisible       | integer      |           | not null | 
+ reltoastrelid       | oid          |           | not null | 
+ relhasindex         | boolean      |           | not null | 
+ relisshared         | boolean      |           | not null | 
+ relpersistence      | &quot;char&quot;       |           | not null | 
+ relkind             | &quot;char&quot;       |           | not null | 
+ relnatts            | smallint     |           | not null | 
+ relchecks           | smallint     |           | not null | 
+ relhasoids          | boolean      |           | not null | 
+ relhaspkey          | boolean      |           | not null | 
+ relhasrules         | boolean      |           | not null | 
+ relhastriggers      | boolean      |           | not null | 
+ relhassubclass      | boolean      |           | not null | 
+ relrowsecurity      | boolean      |           | not null | 
+ relforcerowsecurity | boolean      |           | not null | 
+ relispopulated      | boolean      |           | not null | 
+ relreplident        | &quot;char&quot;       |           | not null | 
+ relispartition      | boolean      |           | not null | 
+ relfrozenxid        | xid          |           | not null | 
+ relminmxid          | xid          |           | not null | 
+ relacl              | aclitem[]    |           |          | 
+ reloptions          | text[]       |           |          | 
+ relpartbound        | pg_node_tree |           |          | 
+Indexes:
+    &quot;pg_class_oid_index&quot; UNIQUE, btree (oid)
+    &quot;pg_class_relname_nsp_index&quot; UNIQUE, btree (relname, relnamespace)
+    &quot;pg_class_tblspc_relfilenode_index&quot; btree (reltablespace, relfilenode)
+
+</pre></div>
+<h1>
+Подробное описание pg_tables
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\d</span><span style="color:#323232">+</span> pg_tables
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                          View &quot;pg_catalog.pg_tables&quot;
+   Column    |  Type   | Collation | Nullable | Default | Storage | Description 
+-------------+---------+-----------+----------+---------+---------+-------------
+ schemaname  | name    |           |          |         | plain   | 
+ tablename   | name    |           |          |         | plain   | 
+ tableowner  | name    |           |          |         | plain   | 
+ tablespace  | name    |           |          |         | plain   | 
+ hasindexes  | boolean |           |          |         | plain   | 
+ hasrules    | boolean |           |          |         | plain   | 
+ hastriggers | boolean |           |          |         | plain   | 
+ rowsecurity | boolean |           |          |         | plain   | 
+View definition:
+ SELECT n.nspname AS schemaname,
+    c.relname AS tablename,
+    pg_get_userbyid(c.relowner) AS tableowner,
+    t.spcname AS tablespace,
+    c.relhasindex AS hasindexes,
+    c.relhasrules AS hasrules,
+    c.relhastriggers AS hastriggers,
+    c.relrowsecurity AS rowsecurity
+   FROM pg_class c
+     LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+     LEFT JOIN pg_tablespace t ON t.oid = c.reltablespace
+  WHERE c.relkind = ANY (ARRAY['r'::&quot;char&quot;, 'p'::&quot;char&quot;]);
+
+</pre></div>
+<h1>
+Полный список схем
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> data_catalog<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TEMP TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> data_catalog
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;data_catalog&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\dnS</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+        List of schemas
+        Name        |  Owner   
+--------------------+----------
+ information_schema | postgres
+ pg_catalog         | postgres
+ pg_temp_1          | postgres
+ pg_toast           | postgres
+ pg_toast_temp_1    | postgres
+ public             | postgres
+(6 rows)
+
+</pre></div>
+<p class="C">
+Предназначение части схем нам уже известно, а с остальными (pg_toast*)
+познакомимся позже.
+</p>
+<h1>
+Список представлений в information_schema
+</h1>
+<p class="C">
+Используем шаблон:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\dv</span> information_schema.<span style="color:#323232">*</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                              List of relations
+       Schema       |                 Name                  | Type |  Owner   
+--------------------+---------------------------------------+------+----------
+ information_schema | _pg_foreign_data_wrappers             | view | postgres
+ information_schema | _pg_foreign_servers                   | view | postgres
+ information_schema | _pg_foreign_table_columns             | view | postgres
+ information_schema | _pg_foreign_tables                    | view | postgres
+ information_schema | _pg_user_mappings                     | view | postgres
+ information_schema | administrable_role_authorizations     | view | postgres
+ information_schema | applicable_roles                      | view | postgres
+ information_schema | attributes                            | view | postgres
+ information_schema | character_sets                        | view | postgres
+ information_schema | check_constraint_routine_usage        | view | postgres
+ information_schema | check_constraints                     | view | postgres
+ information_schema | collation_character_set_applicability | view | postgres
+ information_schema | collations                            | view | postgres
+ information_schema | column_domain_usage                   | view | postgres
+ information_schema | column_options                        | view | postgres
+ information_schema | column_privileges                     | view | postgres
+ information_schema | column_udt_usage                      | view | postgres
+ information_schema | columns                               | view | postgres
+ information_schema | constraint_column_usage               | view | postgres
+ information_schema | constraint_table_usage                | view | postgres
+ information_schema | data_type_privileges                  | view | postgres
+ information_schema | domain_constraints                    | view | postgres
+ information_schema | domain_udt_usage                      | view | postgres
+ information_schema | domains                               | view | postgres
+ information_schema | element_types                         | view | postgres
+ information_schema | enabled_roles                         | view | postgres
+ information_schema | foreign_data_wrapper_options          | view | postgres
+ information_schema | foreign_data_wrappers                 | view | postgres
+ information_schema | foreign_server_options                | view | postgres
+ information_schema | foreign_servers                       | view | postgres
+ information_schema | foreign_table_options                 | view | postgres
+ information_schema | foreign_tables                        | view | postgres
+ information_schema | information_schema_catalog_name       | view | postgres
+ information_schema | key_column_usage                      | view | postgres
+ information_schema | parameters                            | view | postgres
+ information_schema | referential_constraints               | view | postgres
+ information_schema | role_column_grants                    | view | postgres
+ information_schema | role_routine_grants                   | view | postgres
+ information_schema | role_table_grants                     | view | postgres
+ information_schema | role_udt_grants                       | view | postgres
+ information_schema | role_usage_grants                     | view | postgres
+ information_schema | routine_privileges                    | view | postgres
+ information_schema | routines                              | view | postgres
+ information_schema | schemata                              | view | postgres
+ information_schema | sequences                             | view | postgres
+ information_schema | table_constraints                     | view | postgres
+ information_schema | table_privileges                      | view | postgres
+ information_schema | tables                                | view | postgres
+ information_schema | transforms                            | view | postgres
+ information_schema | triggered_update_columns              | view | postgres
+ information_schema | triggers                              | view | postgres
+ information_schema | udt_privileges                        | view | postgres
+ information_schema | usage_privileges                      | view | postgres
+ information_schema | user_defined_types                    | view | postgres
+ information_schema | user_mapping_options                  | view | postgres
+ information_schema | user_mappings                         | view | postgres
+ information_schema | view_column_usage                     | view | postgres
+ information_schema | view_routine_usage                    | view | postgres
+ information_schema | view_table_usage                      | view | postgres
+ information_schema | views                                 | view | postgres
+(60 rows)
+
+</pre></div>
+<h1>
+Запросы к системному каталогу
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\set</span> ECHO_HIDDEN <span style="color:#3b6ac8">on</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\d</span><span style="color:#323232">+</span> pg_views
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+********* QUERY **********
+SELECT c.oid,
+  n.nspname,
+  c.relname
+FROM pg_catalog.pg_class c
+     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+WHERE c.relname ~ '^(pg_views)$'
+  AND pg_catalog.pg_table_is_visible(c.oid)
+ORDER BY 2, 3;
+**************************
+
+********* QUERY **********
+SELECT c.relchecks, c.relkind, c.relhasindex, c.relhasrules, c.relhastriggers, c.relrowsecurity, c.relforcerowsecurity, c.relhasoids, pg_catalog.array_to_string(c.reloptions || array(select 'toast.' || x from pg_catalog.unnest(tc.reloptions) x), ', ')
+, c.reltablespace, CASE WHEN c.reloftype = 0 THEN '' ELSE c.reloftype::pg_catalog.regtype::pg_catalog.text END, c.relpersistence, c.relreplident
+FROM pg_catalog.pg_class c
+ LEFT JOIN pg_catalog.pg_class tc ON (c.reltoastrelid = tc.oid)
+WHERE c.oid = '11549';
+**************************
+
+********* QUERY **********
+SELECT a.attname,
+  pg_catalog.format_type(a.atttypid, a.atttypmod),
+  (SELECT substring(pg_catalog.pg_get_expr(d.adbin, d.adrelid) for 128)
+   FROM pg_catalog.pg_attrdef d
+   WHERE d.adrelid = a.attrelid AND d.adnum = a.attnum AND a.atthasdef),
+  a.attnotnull, a.attnum,
+  (SELECT c.collname FROM pg_catalog.pg_collation c, pg_catalog.pg_type t
+   WHERE c.oid = a.attcollation AND t.oid = a.atttypid AND a.attcollation &lt;&gt; t.typcollation) AS attcollation,
+  a.attidentity,
+  NULL AS indexdef,
+  NULL AS attfdwoptions,
+  a.attstorage,
+  CASE WHEN a.attstattarget=-1 THEN NULL ELSE a.attstattarget END AS attstattarget, pg_catalog.col_description(a.attrelid, a.attnum)
+FROM pg_catalog.pg_attribute a
+WHERE a.attrelid = '11549' AND a.attnum &gt; 0 AND NOT a.attisdropped
+ORDER BY a.attnum;
+**************************
+
+********* QUERY **********
+SELECT pg_catalog.pg_get_viewdef('11549'::pg_catalog.oid, true);
+**************************
+
+********* QUERY **********
+SELECT inhparent::pg_catalog.regclass,
+  pg_catalog.pg_get_expr(c.relpartbound, inhrelid),
+  pg_catalog.pg_get_partition_constraintdef(inhrelid)
+FROM pg_catalog.pg_class c JOIN pg_catalog.pg_inherits i ON c.oid = inhrelid
+WHERE c.oid = '11549' AND c.relispartition;
+**************************
+
+********* QUERY **********
+SELECT r.rulename, trim(trailing ';' from pg_catalog.pg_get_ruledef(r.oid, true))
+FROM pg_catalog.pg_rewrite r
+WHERE r.ev_class = '11549' AND r.rulename != '_RETURN' ORDER BY 1;
+**************************
+
+                         View &quot;pg_catalog.pg_views&quot;
+   Column   | Type | Collation | Nullable | Default | Storage  | Description 
+------------+------+-----------+----------+---------+----------+-------------
+ schemaname | name |           |          |         | plain    | 
+ viewname   | name |           |          |         | plain    | 
+ viewowner  | name |           |          |         | plain    | 
+ definition | text |           |          |         | extended | 
+View definition:
+ SELECT n.nspname AS schemaname,
+    c.relname AS viewname,
+    pg_get_userbyid(c.relowner) AS viewowner,
+    pg_get_viewdef(c.oid) AS definition
+   FROM pg_class c
+     LEFT JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE c.relkind = 'v'::&quot;char&quot;;
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\set</span> ECHO_HIDDEN <span style="color:#3b6ac8">off</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+</pre></div>
+</body>
+</html>

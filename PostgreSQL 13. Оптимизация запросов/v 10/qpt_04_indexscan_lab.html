@@ -1,0 +1,217 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Максимальная сумма бронирования
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> total_amount <span style="color:#3b6ac8">FROM</span> bookings <span style="color:#3b6ac8">ORDER BY</span> total_amount <span style="color:#3b6ac8">DESC LIMIT</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ Limit  (cost=45113.65..45113.65 rows=1 width=6)
+   -&gt;  Sort  (cost=45113.65..50391.43 rows=2111110 width=6)
+         Sort Key: total_amount DESC
+         -&gt;  Seq Scan on bookings  (cost=0.00..34558.10 rows=2111110 width=6)
+(4 rows)
+
+</pre></div>
+<p class="C">
+Планировщик последовательно сканирует всю таблицу, а затем сортирует
+данные. Это не эффективный доступ, поскольку нам требуется только одно
+значение. Но, пока нет индекса, это единственно возможный способ.
+</p>
+<h1>
+Индекс
+</h1>
+<p class="C">
+Создаем индекс.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE INDEX ON</span> <span style="color:#c73a69">bookings</span><span style="color:#323232">(</span>total_amount<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE INDEX
+</pre></div>
+<p class="C">
+Повторим запрос:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> total_amount <span style="color:#3b6ac8">FROM</span> bookings <span style="color:#3b6ac8">ORDER BY</span> total_amount <span style="color:#3b6ac8">DESC LIMIT</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=0.43..0.48 rows=1 width=6)
+   -&gt;  Index Only Scan Backward using bookings_total_amount_idx on bookings  (cost=0.43..108623.04 rows=2111110 width=6)
+(2 rows)
+
+</pre></div>
+<p class="C">
+Теперь планировщик выбрал только индексное сканирование.
+</p>
+<p class="C">
+Сформулируем запрос по-другому:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#c73a69">max</span><span style="color:#323232">(</span>total_amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> bookings<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Result  (cost=0.48..0.49 rows=1 width=32)
+   InitPlan 1 (returns $0)
+     -&gt;  Limit  (cost=0.43..0.48 rows=1 width=6)
+           -&gt;  Index Only Scan Backward using bookings_total_amount_idx on bookings  (cost=0.43..113900.82 rows=2111110 width=6)
+                 Index Cond: (total_amount IS NOT NULL)
+(5 rows)
+
+</pre></div>
+<p class="C">
+Видно, что и в этом случае планировщик выбрал индексное сканирование (добавив
+условие NOT NULL, поскольку функция max не должна учитывать неопределенные
+значения).
+</p>
+<p class="C">
+Новый узел плана, который здесь появляется - InitPlan. Он соответствует
+подзапросу, который выполняется один раз. То есть, фактически, планировщик
+переформулировал запрос следующим образом:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">(</span>
+  <span style="color:#3b6ac8">SELECT</span> total_amount <span style="color:#3b6ac8">FROM</span> bookings
+  <span style="color:#3b6ac8">WHERE</span> total_amount <span style="color:#3b6ac8">IS NOT NULL</span>
+  <span style="color:#3b6ac8">ORDER BY</span> total_amount <span style="color:#3b6ac8">DESC LIMIT</span> <span style="color:#1094a0">1</span>
+<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Result  (cost=0.48..0.49 rows=1 width=16)
+   InitPlan 1 (returns $0)
+     -&gt;  Limit  (cost=0.43..0.48 rows=1 width=6)
+           -&gt;  Index Only Scan Backward using bookings_total_amount_idx on bookings  (cost=0.43..113900.82 rows=2111110 width=6)
+                 Index Cond: (total_amount IS NOT NULL)
+(5 rows)
+
+</pre></div>
+<p class="C">
+Если бы подзапрос выполнялся несколько раз, вместо InitPlan в плане появился
+бы узел SubPlan.
+</p>
+<h1>
+Порядок сортировки при создании индекса
+</h1>
+<p class="C">
+Порядок важен для многоколоночных индексов. Создадим индекс на таблице рейсов
+по аэропортам вылета и прилета:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE INDEX</span> dep_arr <span style="color:#3b6ac8">on</span> <span style="color:#c73a69">flights</span><span style="color:#323232">(</span>departure_airport<span style="color:#323232">,</span> arrival_airport<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE INDEX
+</pre></div>
+<p class="C">
+Индекс может использоваться для такого запроса:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> flights <span style="color:#3b6ac8">ORDER BY</span> departure_airport<span style="color:#323232">,</span> arrival_airport<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Index Scan using dep_arr on flights  (cost=0.42..15199.59 rows=214867 width=63)
+(1 row)
+
+</pre></div>
+<p class="C">
+И для такого:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> flights <span style="color:#3b6ac8">ORDER BY</span> departure_airport <span style="color:#3b6ac8">DESC</span><span style="color:#323232">,</span> arrival_airport <span style="color:#3b6ac8">DESC</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Index Scan Backward using dep_arr on flights  (cost=0.42..15199.59 rows=214867 width=63)
+(1 row)
+
+</pre></div>
+<p class="C">
+Но не для такого (сортировка в разных направлениях):
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> flights <span style="color:#3b6ac8">ORDER BY</span> departure_airport<span style="color:#323232">,</span> arrival_airport <span style="color:#3b6ac8">DESC</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Sort  (cost=31675.96..32213.12 rows=214867 width=63)
+   Sort Key: departure_airport, arrival_airport DESC
+   -&gt;  Seq Scan on flights  (cost=0.00..4564.67 rows=214867 width=63)
+(3 rows)
+
+</pre></div>
+<p class="C">
+Здесь приходится отдельно выполнять сортировку результатов. В этом случае
+поможет другой индекс:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE INDEX</span> dep_asc_arr_desc <span style="color:#3b6ac8">ON</span> <span style="color:#c73a69">flights</span><span style="color:#323232">(</span>departure_airport<span style="color:#323232">,</span> arrival_airport <span style="color:#3b6ac8">DESC</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE INDEX
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> flights <span style="color:#3b6ac8">ORDER BY</span> departure_airport<span style="color:#323232">,</span> arrival_airport <span style="color:#3b6ac8">DESC</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Index Scan using dep_asc_arr_desc on flights  (cost=0.42..15199.59 rows=214867 width=63)
+(1 row)
+
+</pre></div>
+<p class="C">
+А также для запроса с обратным порядком сортировки:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> flights <span style="color:#3b6ac8">ORDER BY</span> departure_airport <span style="color:#3b6ac8">DESC</span><span style="color:#323232">,</span> arrival_airport<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                            QUERY PLAN                                             
+---------------------------------------------------------------------------------------------------
+ Index Scan Backward using dep_asc_arr_desc on flights  (cost=0.42..15199.59 rows=214867 width=63)
+(1 row)
+
+</pre></div>
+</body>
+</html>

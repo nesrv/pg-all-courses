@@ -1,0 +1,294 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Настройка репликации между первым и вторым серверами
+</h1>
+<p class="C">
+Сначала создадим базу данных.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> 
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> replica_usecases<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> replica_usecases
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;replica_usecases&quot; as user &quot;student&quot;.
+</pre></div>
+<p class="C">
+Слот:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_create_physical_replication_slot</span><span style="color:#323232">(</span><span style="color:#1094a0">'replica'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_create_physical_replication_slot 
+-------------------------------------
+ (replica,)
+(1 row)
+
+</pre></div>
+<p class="C">
+Создаем автономную резервную копию, используя созданный слот, в каталоге
+PGDATA будущей реплики.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">rm</span> <span style="color:#323232">-</span>rf <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/*</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_basebackup</span> <span style="color:#323232">-</span>U student <span style="color:#323232">--</span>pgdata<span style="color:#323232">=/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta <span style="color:#323232">-</span>R <span style="color:#323232">--</span>slot<span style="color:#323232">=</span>replica
+</pre>
+</div>
+<p class="C">
+Меняем порт и включаем режим горячего резерва:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'port = 5433'</span> <span style="color:#323232">&gt;&gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>postgresql.auto.conf
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'hot_standby = on'</span> <span style="color:#323232">&gt;&gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>postgresql.auto.conf
+</pre>
+</div>
+<p class="C">
+Файл recovery.conf подготовлен утилитой pg_basebackup:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cat</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>beta<span style="color:#323232">/</span>recovery.conf
+</pre>
+</div>
+<div class="R"><pre class="R">
+standby_mode = 'on'
+primary_conninfo = 'user=student passfile=''/var/lib/postgresql/.pgpass'' host=''/var/run/postgresql'' port=5432 sslmode=prefer sslcompression=1 krbsrvname=postgres target_session_attrs=any'
+primary_slot_name = 'replica'
+</pre></div>
+<p class="C">
+Запускаем реплику.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">10</span> beta start
+</pre>
+</div>
+<h1>
+Настройка репликации между вторым и третьим серверами
+</h1>
+<p class="C">
+Слот:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span> <span style="color:#323232">-</span>d replica_usecases
+</pre>
+</div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_create_physical_replication_slot</span><span style="color:#323232">(</span><span style="color:#1094a0">'replica'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+ pg_create_physical_replication_slot 
+-------------------------------------
+ (replica,)
+(1 row)
+
+</pre></div>
+<p class="C">
+Создадим автономную резервную копию cо второго сервера, чтобы показать
+возможность выполнения резервного копирования с реплики. Используем созданный
+слот, копию записываем в каталог PGDATA будущей третьей реплики.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">rm</span> <span style="color:#323232">-</span>rf <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>gamma<span style="color:#323232">/*</span>
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_basebackup</span> <span style="color:#323232">-</span>U student <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span> <span style="color:#323232">--</span>pgdata<span style="color:#323232">=/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>gamma <span style="color:#323232">-</span>R <span style="color:#323232">--</span>slot<span style="color:#323232">=</span>replica
+</pre>
+</div>
+<p class="C">
+Меняем порт и включаем режим горячего резерва:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'port = 5434'</span> <span style="color:#323232">&gt;&gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>gamma<span style="color:#323232">/</span>postgresql.auto.conf
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'hot_standby = on'</span> <span style="color:#323232">&gt;&gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>gamma<span style="color:#323232">/</span>postgresql.auto.conf
+</pre>
+</div>
+<p class="C">
+Файл recovery.conf подготовлен утилитой pg_basebackup. Дополнительно
+устанавливаем указание целевой ветви восстановления и задержку воспроизведения:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">&quot;recovery_target_timeline = 'latest'&quot;</span> <span style="color:#323232">&gt;&gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>gamma<span style="color:#323232">/</span>recovery.conf
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">&quot;recovery_min_apply_delay = '10s'&quot;</span> <span style="color:#323232">&gt;&gt; /</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>gamma<span style="color:#323232">/</span>recovery.conf
+</pre>
+</div>
+<p class="C">
+Вот что получилось:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cat</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span><span style="color:#1094a0">10</span><span style="color:#323232">/</span>gamma<span style="color:#323232">/</span>recovery.conf
+</pre>
+</div>
+<div class="R"><pre class="R">
+standby_mode = 'on'
+primary_conninfo = 'user=student passfile=''/var/lib/postgresql/.pgpass'' host=''/var/run/postgresql'' port=5433 sslmode=prefer sslcompression=1 krbsrvname=postgres target_session_attrs=any'
+primary_slot_name = 'replica'
+recovery_target_timeline = 'latest'
+recovery_min_apply_delay = '10s'
+</pre></div>
+<p class="C">
+Запускаем реплику.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">10</span> gamma start
+</pre>
+</div>
+<h1>
+Проверка работы
+</h1>
+<p class="C">
+На первом сервере создадим таблицу и проверим, что она появилась сначала на
+одной реплике, а через 10 секунд - и на другой.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">test</span><span style="color:#323232">(</span>s <span style="color:#a00050">text</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> test <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'Привет, мир!'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<p class="C">
+Проверяем одну реплику:
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+      s       
+--------------
+ &#1055;&#1088;&#1080;&#1074;&#1077;&#1090;, &#1084;&#1080;&#1088;!
+(1 row)
+
+</pre></div>
+<p class="C">
+Проверяем другую реплику:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>p <span style="color:#1094a0">5434</span> <span style="color:#323232">-</span>d replica_usecases
+</pre>
+</div>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  ">γ<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+ERROR:  relation &quot;test&quot; does not exist
+LINE 1: SELECT * FROM test;
+                      ^
+</pre></div>
+<p class="C">
+Таблицы пока нет. Подождем 10 секунд...
+</p>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  ">γ<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+      s       
+--------------
+ &#1055;&#1088;&#1080;&#1074;&#1077;&#1090;, &#1084;&#1080;&#1088;!
+(1 row)
+
+</pre></div>
+<p class="C">
+Таблица появилась.
+</p>
+<h1>
+Переход на второй сервер
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\q</span>
+</pre>
+</div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">10</span> alpha stop
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#00a150">pg_ctlcluster</span> <span style="color:#1094a0">10</span> beta promote
+</pre>
+</div>
+<h1>
+Проверка работы
+</h1>
+<p class="C">
+На втором сервере добавим в таблицу строки и проверим, что они появились на
+третьем сервере через 10 секунд.
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> test <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'После перехода на второй сервер'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+INSERT 0 1
+</pre></div>
+<p class="C">
+Проверяем:
+</p>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  ">γ<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+      s       
+--------------
+ &#1055;&#1088;&#1080;&#1074;&#1077;&#1090;, &#1084;&#1080;&#1088;!
+(1 row)
+
+</pre></div>
+<p class="C">
+Данных пока нет. Ждем 10 секунд...
+</p>
+<div class="S3">
+<pre style="color:#323232; background-color:#ffffff;  ">γ<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R3"><pre class="R3">
+                s                
+---------------------------------
+ &#1055;&#1088;&#1080;&#1074;&#1077;&#1090;, &#1084;&#1080;&#1088;!
+ &#1055;&#1086;&#1089;&#1083;&#1077; &#1087;&#1077;&#1088;&#1077;&#1093;&#1086;&#1076;&#1072; &#1085;&#1072; &#1074;&#1090;&#1086;&#1088;&#1086;&#1081; &#1089;&#1077;&#1088;&#1074;&#1077;&#1088;
+(2 rows)
+
+</pre></div>
+<p class="C">
+Данные появились.
+</p>
+</body>
+</html>

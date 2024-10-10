@@ -1,0 +1,114 @@
+
+Создание и наполнение базы данных
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+=> create database db19;
+CREATE DATABASE
+
+=> \c db19
+You are now connected to database "db19" as user "postgres".
+
+=> set work_mem = '128MB';
+SET
+
+=> create table clients(id serial primary key, vip boolean)
+=> with (fillfactor = 50);
+CREATE TABLE
+
+=> insert into clients(vip)
+=> select false from generate_series(1,10000*2);
+INSERT 0 20000
+
+=> create table orders(id serial primary key, client_id integer, date_ordered timestamp)
+=> with (fillfactor = 50);
+CREATE TABLE
+
+=> insert into orders(client_id, date_ordered)
+=> select trunc(random()*10000*2)::integer+1, now() - make_interval(days => trunc(random()*365*10)::integer)
+=> from generate_series(1,100000*2) as gen(id);
+INSERT 0 200000
+
+=> create table items(id serial primary key, order_id integer, amount numeric)
+=> with (fillfactor = 50);
+CREATE TABLE
+
+=> insert into items(order_id, amount)
+=> select trunc(random()*100000*2)::integer+1, (random()*100)::integer
+=> from generate_series(1,1000000*2) as gen(id);
+INSERT 0 2000000
+
+=> alter table orders add constraint orders_clients_fk
+=> foreign key (client_id) references clients(id); 
+ALTER TABLE
+
+=> alter table items add constraint items_orders_fk
+=> foreign key (order_id) references items(id); 
+ALTER TABLE
+
+=> create index on orders(client_id);
+CREATE INDEX
+
+=> create index on orders(date_ordered);
+CREATE INDEX
+
+=> create index on items(order_id);
+CREATE INDEX
+
+=> vacuum analyze;
+VACUUM
+
+
+Вывод в журнал
+~~~~~~~~~~~~~~
+
+
+=> set log_min_duration_statement=0;
+SET
+
+
+
+Запросы
+~~~~~~~
+
+
+=> select count(*) from clients;
+ count 
+-------
+ 20000
+(1 row)
+
+
+=> select count(*) from orders;
+ count  
+--------
+ 200000
+(1 row)
+
+
+=> select count(*) from items;
+  count  
+---------
+ 2000000
+(1 row)
+
+
+
+
+Содержимое журнала
+~~~~~~~~~~~~~~~~~~
+
+LOG:  duration: 4.008 ms  statement: select count(*) from clients;
+LOG:  duration: 20.083 ms  statement: select count(*) from orders;
+LOG:  duration: 215.472 ms  statement: select count(*) from items;
+
+
+Отключение вывода
+~~~~~~~~~~~~~~~~~
+
+Поскольку мы включили вывод командой set (для этого параметра это может
+сделать суперпользователь), то установка будет влиять только на текущий
+сеанс и отключать ее нет необходимости. Достаточно просто закрыть
+соединение.
+
+=> \q

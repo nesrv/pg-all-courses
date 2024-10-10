@@ -1,0 +1,114 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Процессы операционной системы
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">ps</span> <span style="color:#323232">-</span>o pid<span style="color:#323232">,</span>command <span style="color:#323232">--</span>ppid <span style="color:#1094a0">`head -n 1</span> <span style="color:#7376c4">$PGDATA</span><span style="color:#1094a0">/postmaster.pid`</span>
+</pre>
+</div>
+<div class="R"><pre class="R">
+  PID COMMAND
+ 9241 postgres: checkpointer process   
+ 9242 postgres: writer process   
+ 9243 postgres: wal writer process   
+ 9244 postgres: autovacuum launcher process   
+ 9245 postgres: stats collector process   
+ 9246 postgres: bgworker: logical replication launcher   
+</pre></div>
+<p class="C">
+К процессам, обслуживающим буферный кэш и журнал, можно отнести:
+</p>
+<ul class="U">
+<li>checkpointer</li>
+<li>writer</li>
+<li>wal writer</li>
+</ul>
+<h1>
+Остановка в режиме fast
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">rm</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>l <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data restart
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+</pre></div>
+<p class="C">
+Журнал сообщений сервера:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cat</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile
+</pre>
+</div>
+<div class="R"><pre class="R">
+2019-03-31 15:24:09.505 MSK [9775] LOG:  listening on IPv4 address &quot;0.0.0.0&quot;, port 5432
+2019-03-31 15:24:09.505 MSK [9775] LOG:  listening on IPv6 address &quot;::&quot;, port 5432
+2019-03-31 15:24:09.507 MSK [9775] LOG:  listening on Unix socket &quot;/tmp/.s.PGSQL.5432&quot;
+2019-03-31 15:24:09.526 MSK [9776] LOG:  database system was shut down at 2019-03-31 15:24:09 MSK
+2019-03-31 15:24:09.529 MSK [9775] LOG:  database system is ready to accept connections
+</pre></div>
+<h1>
+Остановка в режиме immediate
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">rm</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data stop <span style="color:#323232">-</span>m immediate
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to shut down.... done
+server stopped
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>l <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data start
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to start.... done
+server started
+</pre></div>
+<p class="C">
+Журнал сообщений сервера:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cat</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile
+</pre>
+</div>
+<div class="R"><pre class="R">
+2019-03-31 15:24:09.843 MSK [9834] LOG:  listening on IPv4 address &quot;0.0.0.0&quot;, port 5432
+2019-03-31 15:24:09.843 MSK [9834] LOG:  listening on IPv6 address &quot;::&quot;, port 5432
+2019-03-31 15:24:09.846 MSK [9834] LOG:  listening on Unix socket &quot;/tmp/.s.PGSQL.5432&quot;
+2019-03-31 15:24:09.865 MSK [9835] LOG:  database system was interrupted; last known up at 2019-03-31 15:24:09 MSK
+2019-03-31 15:24:10.118 MSK [9835] LOG:  database system was not properly shut down; automatic recovery in progress
+2019-03-31 15:24:10.120 MSK [9835] LOG:  invalid record length at 0/17AD8BC: wanted 24, got 0
+2019-03-31 15:24:10.120 MSK [9835] LOG:  redo is not required
+2019-03-31 15:24:10.129 MSK [9834] LOG:  database system is ready to accept connections
+</pre></div>
+<p class="C">
+Перед тем, как начать принимать соединения, СУБД выполнила восстановление
+(automatic recovery in progress).
+</p>
+</body>
+</html>

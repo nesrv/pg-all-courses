@@ -1,0 +1,137 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Индекс
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE INDEX ON</span> <span style="color:#c73a69">tickets</span><span style="color:#323232">(</span>passenger_name<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE INDEX
+</pre></div>
+<h1>
+Наличие статистики
+</h1>
+<p class="C">
+Некоторые основные значения:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> reltuples<span style="color:#323232">,</span> relpages <span style="color:#3b6ac8">FROM</span> pg_class <span style="color:#3b6ac8">WHERE</span> relname <span style="color:#323232">=</span> <span style="color:#1094a0">'tickets'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+  reltuples  | relpages 
+-------------+----------
+ 2.94986e+06 |    48788
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> attname<span style="color:#323232">,</span> null_frac<span style="color:#323232">,</span> n_distinct<span style="color:#323232">,</span> <span style="color:#3b6ac8">left</span><span style="color:#323232">(</span>most_common_vals<span style="color:#323232">::</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#1094a0">50</span><span style="color:#323232">)</span> mcv<span style="color:#323232">,</span> correlation
+  <span style="color:#3b6ac8">FROM</span> pg_stats <span style="color:#3b6ac8">WHERE</span> tablename <span style="color:#323232">=</span> <span style="color:#1094a0">'tickets'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+    attname     | null_frac | n_distinct |                        mcv                         | correlation 
+----------------+-----------+------------+----------------------------------------------------+-------------
+ ticket_no      |         0 |         -1 |                                                    |           1
+ book_ref       |         0 |  -0.501751 | {1B1D8A,01FE41,033F6B,074AC9,0955E2,0A1321,0BA271, | -0.00195225
+ passenger_id   |         0 |         -1 |                                                    |  0.00159387
+ passenger_name |         0 |      10279 | {&quot;ALEKSANDR IVANOV&quot;,&quot;SERGEY IVANOV&quot;,&quot;ALEKSANDR KUZ | 0.000930794
+ contact_data   |         0 |         -1 |                                                    |  0.00181343
+(5 rows)
+
+</pre></div>
+<ul class="U">
+<li>Ни один столбец не содержит неопределенных значений.</li>
+<li>Уникальных номеров бронирования примерно в два раза меньше, чем строк в таблице (то есть на каждое бронирование в среднем приходится два билета). Имеется около 10000 разных имен. Все остальные столбцы содержат уникальные значения.</li>
+<li>Для номеров бронирований и имен пассажиров есть гистограммы. Для других столбцов гистограмма не имеет смысла, так как все значения уникальны.</li>
+<li>Строки таблицы физически упорядочены по номеру билета. Данные в других столбцах расположены более или менее хаотично.</li>
+</ul>
+<h1>
+Планы запросов
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> tickets<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Seq Scan on tickets  (cost=0.00..78286.57 rows=2949857 width=104)
+(1 row)
+
+</pre></div>
+<p class="C">
+Кардинальность равна числу строк в таблице; выбрано полное сканирование.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> tickets <span style="color:#3b6ac8">WHERE</span> passenger_name <span style="color:#323232">=</span> <span style="color:#1094a0">'ALEKSANDR IVANOV'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                          QUERY PLAN                                          
+----------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on tickets  (cost=182.35..20187.94 rows=7473 width=104)
+   Recheck Cond: (passenger_name = 'ALEKSANDR IVANOV'::text)
+   -&gt;  Bitmap Index Scan on tickets_passenger_name_idx  (cost=0.00..180.48 rows=7473 width=0)
+         Index Cond: (passenger_name = 'ALEKSANDR IVANOV'::text)
+(4 rows)
+
+</pre></div>
+<p class="C">
+Селективность оценена по списку наиболее частых значений; выбрано сканирование
+по битовой карте.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> tickets <span style="color:#3b6ac8">WHERE</span> passenger_name <span style="color:#323232">=</span> <span style="color:#1094a0">'ANNA VASILEVA'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on tickets  (cost=10.48..1015.20 rows=265 width=104)
+   Recheck Cond: (passenger_name = 'ANNA VASILEVA'::text)
+   -&gt;  Bitmap Index Scan on tickets_passenger_name_idx  (cost=0.00..10.42 rows=265 width=0)
+         Index Cond: (passenger_name = 'ANNA VASILEVA'::text)
+(4 rows)
+
+</pre></div>
+<p class="C">
+Селективность оценена исходя из равномерного распределения; выбрано
+сканирование по битовой карте.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> tickets <span style="color:#3b6ac8">WHERE</span> ticket_no <span style="color:#323232">=</span> <span style="color:#1094a0">'0005432000284'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ Index Scan using tickets_pkey on tickets  (cost=0.43..8.45 rows=1 width=104)
+   Index Cond: (ticket_no = '0005432000284'::bpchar)
+(2 rows)
+
+</pre></div>
+<p class="C">
+Кардинальность равна 1, так как значения этого столбца уникальны; выбрано
+индексное сканирование.
+</p>
+</body>
+</html>

@@ -1,0 +1,165 @@
+
+        psql 
+
+Параметры, требующие перезапуска сервера
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => select name, setting, unit
+        => from pg_settings
+        => where context = 'postmaster';
+                        name                 |                setting                | unit 
+        -------------------------------------+---------------------------------------+------
+         allow_system_table_mods             | off                                   | 
+         archive_mode                        | off                                   | 
+         autovacuum_freeze_max_age           | 200000000                             | 
+         autovacuum_max_workers              | 3                                     | 
+         autovacuum_multixact_freeze_max_age | 400000000                             | 
+         bonjour                             | off                                   | 
+         bonjour_name                        |                                       | 
+         config_file                         | /usr/local/pgsql/data/postgresql.conf | 
+         data_directory                      | /usr/local/pgsql/data                 | 
+         dynamic_shared_memory_type          | posix                                 | 
+         event_source                        | PostgreSQL                            | 
+         external_pid_file                   |                                       | 
+         hba_file                            | /usr/local/pgsql/data/pg_hba.conf     | 
+         hot_standby                         | off                                   | 
+         huge_pages                          | try                                   | 
+         ident_file                          | /usr/local/pgsql/data/pg_ident.conf   | 
+         listen_addresses                    | localhost                             | 
+         logging_collector                   | off                                   | 
+         max_connections                     | 100                                   | 
+         max_files_per_process               | 1000                                  | 
+         max_locks_per_transaction           | 64                                    | 
+         max_pred_locks_per_transaction      | 64                                    | 
+         max_prepared_transactions           | 0                                     | 
+         max_replication_slots               | 0                                     | 
+         max_wal_senders                     | 0                                     | 
+         max_worker_processes                | 8                                     | 
+         port                                | 5432                                  | 
+         shared_buffers                      | 16384                                 | 8kB
+         shared_preload_libraries            |                                       | 
+         ssl                                 | off                                   | 
+         ssl_ca_file                         |                                       | 
+         ssl_cert_file                       | server.crt                            | 
+         ssl_ciphers                         | none                                  | 
+         ssl_crl_file                        |                                       | 
+         ssl_ecdh_curve                      | none                                  | 
+         ssl_key_file                        | server.key                            | 
+         ssl_prefer_server_ciphers           | on                                    | 
+         superuser_reserved_connections      | 3                                     | 
+         track_activity_query_size           | 1024                                  | 
+         unix_socket_directories             | /tmp                                  | 
+         unix_socket_group                   |                                       | 
+         unix_socket_permissions             | 0777                                  | 
+         wal_buffers                         | 512                                   | 8kB
+         wal_level                           | minimal                               | 
+         wal_log_hints                       | off                                   | 
+        (45 rows)
+        
+
+
+Установка listen_addresses
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+sed -i "s/.*listen_addresses =.*/listen_addresses = \'*\'/" /usr/local/pgsql/data/postgresql.conf 
+
+
+Применение и проверка
+~~~~~~~~~~~~~~~~~~~~~
+
+
+        => \q
+
+pg_ctl restart -w -l /home/postgres/logfile 
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+        psql 
+
+        => show listen_addresses;
+         listen_addresses 
+        ------------------
+         *
+        (1 row)
+        
+
+
+Установка work_mem
+~~~~~~~~~~~~~~~~~~
+
+
+        => alter system set work_mem to '8MB';
+        ALTER SYSTEM
+
+
+Применение и проверка
+~~~~~~~~~~~~~~~~~~~~~
+
+
+        => select pg_reload_conf();
+         pg_reload_conf 
+        ----------------
+         t
+        (1 row)
+        
+
+        => show work_mem;
+         work_mem 
+        ----------
+         8MB
+        (1 row)
+        
+
+
+Установка work_mem для БД
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => alter database postgres set work_mem to '16MB';
+        ALTER DATABASE
+
+
+Новый сеанс
+~~~~~~~~~~~
+
+
+        => \q
+
+        psql 
+
+        => show work_mem;
+         work_mem 
+        ----------
+         16MB
+        (1 row)
+        
+
+        => set work_mem to '32MB';
+        SET
+
+Значение после сброса будет вот таким:
+
+        => select reset_val, unit
+        => from pg_settings where name = 'work_mem';
+         reset_val | unit 
+        -----------+------
+         16384     | kB
+        (1 row)
+        
+
+Проверим:
+
+        => reset work_mem;
+        RESET
+
+        => show work_mem;
+         work_mem 
+        ----------
+         16MB
+        (1 row)
+        
+
+        => \q

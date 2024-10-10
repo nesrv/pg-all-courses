@@ -1,0 +1,95 @@
+
+        psql 
+
+База данных и роли
+~~~~~~~~~~~~~~~~~~
+
+
+        => create database db11;
+        CREATE DATABASE
+
+        => create user writer;
+        CREATE ROLE
+
+        => create user reader;
+        CREATE ROLE
+
+
+Привилегии
+~~~~~~~~~~
+
+
+        => \c db11
+        You are now connected to database "db11" as user "postgres".
+
+        => revoke all on schema public from public;
+        REVOKE
+
+        => grant all on schema public to writer;
+        GRANT
+
+        => grant usage on schema public to reader;
+        GRANT
+
+
+Привилегии по умолчанию
+~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => alter default privileges for role writer in schema public
+        =>   grant select on tables to reader;
+        ALTER DEFAULT PRIVILEGES
+
+
+Пользователи
+~~~~~~~~~~~~
+
+
+        => create user w1 in role writer;
+        CREATE ROLE
+
+        => create user r1 in role reader;
+        CREATE ROLE
+
+
+Таблица
+~~~~~~~
+
+
+        => \c - writer
+        You are now connected to database "db11" as user "writer".
+
+        => create table t(n numeric);
+        CREATE TABLE
+
+
+Проверка
+~~~~~~~~
+
+
+        => \c - w1
+        You are now connected to database "db11" as user "w1".
+
+        => insert into t values (42);
+        INSERT 0 1
+
+        => \c - r1
+        You are now connected to database "db11" as user "r1".
+
+        => select * from t;
+         n  
+        ----
+         42
+        (1 row)
+        
+
+        => update t set n=n+1;
+        ERROR:  permission denied for relation t
+
+        => \c - w1
+        You are now connected to database "db11" as user "w1".
+
+        => drop table t;
+        DROP TABLE
+
+        => \q

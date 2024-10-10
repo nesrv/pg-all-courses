@@ -1,0 +1,177 @@
+
+        psql 
+
+Отсутствие пользовательских табличных пространств
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => \db
+               List of tablespaces
+            Name    |  Owner   | Location 
+        ------------+----------+----------
+         pg_default | postgres | 
+         pg_global  | postgres | 
+        (2 rows)
+        
+
+
+Настройка непрерывного архивирования
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Параметры можно установить в postgresql.conf, а можно воспользоваться alter system:
+
+        => alter system set wal_level = archive;
+        ALTER SYSTEM
+
+        => alter system set archive_mode = on;
+        ALTER SYSTEM
+
+        => alter system set archive_command = 'test ! -f /home/postgres/archivedir/%f && cp %p /home/postgres/archivedir/%f';
+        ALTER SYSTEM
+
+        => alter system set max_wal_senders = 1;
+        ALTER SYSTEM
+
+        => \q
+
+Разрешение на подключение по протоколу репликации:
+
+sed -i s/#\(local\s\+replication\)/\1/ /usr/local/pgsql/data/pg_hba.conf 
+tail -n 5 /usr/local/pgsql/data/pg_hba.conf 
+# Allow replication connections from localhost, by a user with the
+# replication privilege.
+local   replication     postgres                                trust
+#host    replication     postgres        127.0.0.1/32            trust
+#host    replication     postgres        ::1/128                 trust
+
+Каталог для архива журналов:
+
+rm -rf /home/postgres/archivedir 
+mkdir /home/postgres/archivedir 
+
+Перезапускаем сервер:
+
+pg_ctl restart -w -m fast -l /home/postgres/logfile 
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+
+
+Базовая резервная копия
+~~~~~~~~~~~~~~~~~~~~~~~
+
+
+rm -rf /home/postgres/basebackupdir 
+mkdir /home/postgres/basebackupdir 
+pg_basebackup --pgdata=/home/postgres/basebackupdir 
+NOTICE:  pg_stop_backup complete, all required WAL segments have been archived
+
+
+База данных и таблица
+~~~~~~~~~~~~~~~~~~~~~
+
+
+        psql 
+
+        => create database db17;
+        CREATE DATABASE
+
+        => \c db17
+        You are now connected to database "db17" as user "postgres".
+
+        => create table t(t text);
+        CREATE TABLE
+
+        => insert into t values ('before restore point');
+        INSERT 0 1
+
+
+Точка восстановления
+~~~~~~~~~~~~~~~~~~~~
+
+
+        => select pg_create_restore_point('test');
+         pg_create_restore_point 
+        -------------------------
+         0/8014F64
+        (1 row)
+        
+
+        => insert into t values ('after restore point');
+        INSERT 0 1
+
+        => \q
+
+
+Восстановление
+~~~~~~~~~~~~~~
+
+
+pg_ctl stop -w -m fast 
+waiting for server to shut down.... done
+server stopped
+
+Сохраняем журнал транзакций:
+
+rm -rf /home/postgres/backup_xlog 
+mkdir /home/postgres/backup_xlog 
+
+cp -r $PGDATA/pg_xlog/* /home/postgres/backup_xlog
+
+Удаляем $PGDATA:
+
+rm -rf $PGDATA/*
+
+Восстанавливаемся из базовой резервной копии и добавляем сохраненные журналы:
+
+cp -r /home/postgres/basebackupdir/* $PGDATA
+cp -r /home/postgres/backup_xlog/* $PGDATA/pg_xlog
+
+Файл recovery.conf:
+
+cat <<EOF > $PGDATA/recovery.conf
+restore_command = 'cp /home/postgres/archivedir/%f %p'
+recovery_target_name = 'test'
+EOF
+
+
+cat /usr/local/pgsql/data/recovery.conf 
+restore_command = 'cp /home/postgres/archivedir/%f %p'
+recovery_target_name = 'test'
+
+Стартуем сервер:
+
+pg_ctl start -w -l /home/postgres/logfile 
+waiting for server to start..... done
+server started
+
+
+Проверка
+~~~~~~~~
+
+
+        psql 
+
+        => \c db17
+        You are now connected to database "db17" as user "postgres".
+
+        => select * from t;
+                  t           
+        ----------------------
+         before restore point
+        (1 row)
+        
+
+Восстанавливаем параметры.
+
+        => alter system reset all;
+        ALTER SYSTEM
+
+        => \q
+
+pg_ctl restart -w -m fast -l /home/postgres/logfile 
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started

@@ -1,0 +1,292 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Подготовительные действия
+</h1>
+<p class="C">
+Устанавливаем необходимые расширения.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> shared_preload_libraries <span style="color:#323232">=</span> <span style="color:#1094a0">'pg_wait_sampling'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\q</span>
+</pre>
+</div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>l <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data restart
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> 
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> locks_memory<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> locks_memory
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;locks_memory&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE EXTENSION</span> pg_wait_sampling<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE EXTENSION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE EXTENSION</span> pg_buffercache<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE EXTENSION
+</pre></div>
+<p class="C">
+Таблица, как в предыдущих практиках.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">accounts</span><span style="color:#323232">(</span>acc_no <span style="color:#a00050">integer</span><span style="color:#323232">,</span> amount <span style="color:#a00050">numeric</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> accounts <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">1000.00</span><span style="color:#323232">),(</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span><span style="color:#1094a0">2000.00</span><span style="color:#323232">),(</span><span style="color:#1094a0">3</span><span style="color:#323232">,</span><span style="color:#1094a0">3000.00</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 3
+</pre></div>
+<h1>
+Закрепление буфера при открытом курсоре
+</h1>
+<p class="C">
+Начинаем транзакцию, открываем курсор и выбираем одну строку.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+BEGIN
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DECLARE</span> c <span style="color:#3b6ac8">CURSOR FOR SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> accounts<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DECLARE CURSOR
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">FETCH</span> c<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ acc_no | amount  
+--------+---------
+      1 | 1000.00
+(1 row)
+
+</pre></div>
+<p class="C">
+Проверим, закреплен ли буфер:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> pg_buffercache
+<span style="color:#3b6ac8">WHERE</span> relfilenode <span style="color:#323232">=</span> <span style="color:#c73a69">pg_relation_filenode</span><span style="color:#323232">(</span><span style="color:#1094a0">'accounts'</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AND</span> relforknumber <span style="color:#323232">=</span> <span style="color:#1094a0">0</span> <span style="color:#00a150">\gx</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+-[ RECORD 1 ]----+------
+bufferid         | 324
+relfilenode      | 25288
+reltablespace    | 1663
+reldatabase      | 25264
+relforknumber    | 0
+relblocknumber   | 0
+isdirty          | t
+usagecount       | 4
+pinning_backends | 1
+
+</pre></div>
+<p class="C">
+Да, pinning_backends = 1.
+</p>
+<h1>
+Очистка закрепленного буфера
+</h1>
+<p class="C">
+Выполним очистку:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> locks_memory
+</pre>
+</div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM VERBOSE</span> accounts<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+INFO:  vacuuming &quot;public.accounts&quot;
+INFO:  &quot;accounts&quot;: found 0 removable, 0 nonremovable row versions in 1 out of 1 pages
+DETAIL:  0 dead row versions cannot be removed yet, oldest xmin: 215351
+There were 0 unused item pointers.
+Skipped 1 page due to buffer pins, 0 frozen pages.
+0 pages are entirely empty.
+CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s.
+INFO:  vacuuming &quot;pg_toast.pg_toast_25288&quot;
+INFO:  index &quot;pg_toast_25288_index&quot; now contains 0 row versions in 1 pages
+DETAIL:  0 index row versions were removed.
+0 index pages have been deleted, 0 are currently reusable.
+CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s.
+INFO:  &quot;pg_toast_25288&quot;: found 0 removable, 0 nonremovable row versions in 0 out of 0 pages
+DETAIL:  0 dead row versions cannot be removed yet, oldest xmin: 215351
+There were 0 unused item pointers.
+Skipped 0 pages due to buffer pins, 0 frozen pages.
+0 pages are entirely empty.
+CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s.
+VACUUM
+</pre></div>
+<p class="C">
+Как мы видим, страница была пропущена:  Skipped 1 page due to buffer pins.
+</p>
+<p class="C">
+Очистка не может обработать страницу: если буфер закреплен, из страницы
+запрещено удалять версии строк. Но очистка не ждет, пока буфер освободится -
+страница будет обработана при следующей очистке.
+</p>
+<h1>
+Заморозка закрепленного буфера
+</h1>
+<p class="C">
+Выполняем очистку с заморозкой:
+</p>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM FREEZE VERBOSE</span> accounts<span style="color:#323232">;</span>
+</pre>
+</div>
+<p class="C">
+Очистка зависает до закрытия курсора. При явно запрошенной заморозке
+нельзя пропустить ни одну страницу, не отмеченную в карте заморозки -
+иначе невозможно уменьшить максимальный возраст незамороженных транзакций
+в pg_class.relfrozenxid.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">age</span><span style="color:#323232">(</span>relfrozenxid<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> pg_class <span style="color:#3b6ac8">WHERE</span> <span style="color:#a00050">oid</span> <span style="color:#323232">=</span> <span style="color:#1094a0">'accounts'</span><span style="color:#323232">::</span><span style="color:#a00050">regclass</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ age 
+-----
+   2
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+COMMIT
+
+</pre></div>
+<div class="R2"><pre class="R2">
+INFO:  vacuuming &quot;public.accounts&quot;
+INFO:  &quot;accounts&quot;: found 0 removable, 3 nonremovable row versions in 1 out of 1 pages
+DETAIL:  0 dead row versions cannot be removed yet, oldest xmin: 215351
+There were 0 unused item pointers.
+Skipped 0 pages due to buffer pins, 0 frozen pages.
+0 pages are entirely empty.
+CPU: user: 0.00 s, system: 0.00 s, elapsed: 5.07 s.
+INFO:  vacuuming &quot;pg_toast.pg_toast_25288&quot;
+INFO:  index &quot;pg_toast_25288_index&quot; now contains 0 row versions in 1 pages
+DETAIL:  0 index row versions were removed.
+0 index pages have been deleted, 0 are currently reusable.
+CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s.
+INFO:  &quot;pg_toast_25288&quot;: found 0 removable, 0 nonremovable row versions in 0 out of 0 pages
+DETAIL:  0 dead row versions cannot be removed yet, oldest xmin: 215351
+There were 0 unused item pointers.
+Skipped 0 pages due to buffer pins, 0 frozen pages.
+0 pages are entirely empty.
+CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s.
+VACUUM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">age</span><span style="color:#323232">(</span>relfrozenxid<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> pg_class <span style="color:#3b6ac8">WHERE</span> <span style="color:#a00050">oid</span> <span style="color:#323232">=</span> <span style="color:#1094a0">'accounts'</span><span style="color:#323232">::</span><span style="color:#a00050">regclass</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ age 
+-----
+   0
+(1 row)
+
+</pre></div>
+<p class="C">
+Профиль ожиданий:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> p.pid<span style="color:#323232">,</span> a.backend_type<span style="color:#323232">,</span> a.application_name <span style="color:#3b6ac8">AS</span> app<span style="color:#323232">,</span> p.event_type<span style="color:#323232">,</span> p.<span style="color:#3b6ac8">event</span><span style="color:#323232">,</span> p.count
+<span style="color:#3b6ac8">FROM</span> pg_wait_sampling_profile p
+  <span style="color:#3b6ac8">LEFT JOIN</span> pg_stat_activity a <span style="color:#3b6ac8">ON</span> p.pid <span style="color:#323232">=</span> a.pid
+<span style="color:#3b6ac8">ORDER BY</span> p.pid<span style="color:#323232">,</span> p.count <span style="color:#3b6ac8">DESC</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+  pid  |    backend_type     | app  | event_type |         event         | count 
+-------+---------------------+------+------------+-----------------------+-------
+ 30476 | checkpointer        |      | Activity   | CheckpointerMain      |   601
+ 30476 | checkpointer        |      | IO         | DataFileSync          |     1
+ 30476 | checkpointer        |      | IO         | ControlFileSyncUpdate |     1
+ 30477 | background writer   |      | Activity   | BgWriterMain          |   604
+ 30478 | walwriter           |      | Activity   | WalWriterMain         |   604
+ 30479 | autovacuum launcher |      | Activity   | AutoVacuumMain        |   602
+ 30482 | background worker   |      | Activity   | LogicalLauncherMain   |   604
+ 30504 |                     |      | Client     | ClientRead            |     4
+ 30504 |                     |      | IO         | CopyFileWrite         |     2
+ 30528 | client backend      | psql | Client     | ClientRead            |   557
+ 30528 | client backend      | psql | IO         | DataFileRead          |     1
+ 30738 | client backend      | psql | BufferPin  | BufferPin             |   493
+ 30738 | client backend      | psql | Client     | ClientRead            |    31
+(13 rows)
+
+</pre></div>
+<p class="C">
+Тип ожидания BufferPin говорит о том, что очистка ждала освобождения буфера.
+</p>
+</body>
+</html>

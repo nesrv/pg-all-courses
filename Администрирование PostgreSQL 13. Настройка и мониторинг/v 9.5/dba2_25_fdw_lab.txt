@@ -1,0 +1,128 @@
+
+1. file_fdw
+~~~~~~~~~~~
+
+
+  => create database db25;
+  CREATE DATABASE
+
+  => \c db25 postgres
+  You are now connected to database "db25" as user "postgres".
+
+  => create extension if not exists file_fdw;
+  CREATE EXTENSION
+
+  => create server pgconf_server foreign data wrapper file_fdw;
+  CREATE SERVER
+
+  => create foreign table pg_hba (line text)
+  =>    server pgconf_server 
+  =>    options (filename '/usr/local/pgsql/data/pg_hba.conf');
+  CREATE FOREIGN TABLE
+
+  => select * from pg_hba where line not like '#%' and line <> '';
+                                   line                                  
+  -----------------------------------------------------------------------
+   local   all             all                                     trust
+   host    all             all             127.0.0.1/32            trust
+   host    all             all             ::1/128                 trust
+   local   replication     postgres                                trust
+   host    replication     postgres        127.0.0.1/32            trust
+   host    replication     postgres        ::1/128                 trust
+  (6 rows)
+  
+
+2. postgres_fdw
+~~~~~~~~~~~~~~~
+
+2.1. Создаем вторую базу данных
+
+  1| => create database db25_remote;
+  1| CREATE DATABASE
+
+2.2. Создаем таблицу в db25_remote
+
+     2| => \c db25_remote postgres
+     2| You are now connected to database "db25_remote" as user "postgres".
+
+     2| => create table t (col int);
+     2| CREATE TABLE
+
+2.3. Создаем внешнюю таблицу в БД db25
+
+  1| => \c db25
+  1| You are now connected to database "db25" as user "postgres".
+
+  1| => create extension if not exists postgres_fdw;
+  1| CREATE EXTENSION
+
+  1| => create server remote_server
+  1| =>    foreign data wrapper postgres_fdw
+  1| =>    options (dbname 'db25_remote');
+  1| CREATE SERVER
+
+  1| => create user mapping for postgres
+  1| =>    server remote_server
+  1| =>    options (user 'postgres');
+  1| CREATE USER MAPPING
+
+  1| => create foreign table t_remote
+  1| =>    (col int)
+  1| =>    server remote_server
+  1| =>    options (schema_name 'public', table_name 't');
+  1| CREATE FOREIGN TABLE
+
+2.4. В БД db25 открываем транзакцию с уровнем изоляции READ COMMITED.
+     Проверяем содержимое внешней таблицы
+
+  1| => begin;
+  1| BEGIN
+
+  1| => select * from t_remote;
+  1|  col 
+  1| -----
+  1| (0 rows)
+  1| 
+
+Как и следовало ожидать таблица пустая
+2.5. В другом сеансе, подключенном ко внешней БД, добавляем строку
+     и фиксируем транзакцию
+
+     2| => insert into t values (1);
+     2| INSERT 0 1
+
+     2| => select * from t;
+     2|  col 
+     2| -----
+     2|    1
+     2| (1 row)
+     2| 
+
+2.6. В первом сеансе, не завершая транзакцию, еще раз смотрим 
+     содержимое t_remote
+
+  1| => select * from t_remote;
+  1|  col 
+  1| -----
+  1| (0 rows)
+  1| 
+
+2.7. Изменения сделанные во внешней таблице не видны, 
+     хотя уровень изоляции READ COMMITED.
+     Дело в том, что postgres_fdw использует на внешнем сервере 
+     транзакцию REAPEATABLE READ
+
+     Чтобы увидеть изменения нужно открыть новую транзакцию
+
+  1| => commit;
+  1| COMMIT
+
+  1| => select * from t_remote;
+  1|  col 
+  1| -----
+  1|    1
+  1| (1 row)
+  1| 
+
+  1| => \q
+     2| => \q

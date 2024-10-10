@@ -1,0 +1,428 @@
+<html><head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+    <style>
+    p.C    { font-size: 80%; }
+    li     { font-size: 80%; }
+    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+    div.E  { padding-left: 0px; font-weight: bold; }
+    div.R  { padding-left: 0px; }
+    </style>
+    </head>
+    <body style="margin: 59.5px;">
+    <!-- body -->
+    <!-- 5 -->
+    <h1>
+    Выполнение динамического запроса
+    </h1>
+    <p class="C">
+    Оператор EXECUTE позволяет выполнить SQL-команду, заданную в виде строки.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        cmd <span style="color:#3b6ac8">CONSTANT</span> <span style="color:#a00050">text</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">'CREATE TABLE city_msk(</span>
+    <span style="color:#1094a0">        name text, architect text, founded integer</span>
+    <span style="color:#1094a0">    )'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">EXECUTE</span> cmd<span style="color:#323232">;</span> <span style="color:#969696">-- таблица для исторических зданий Москвы</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">DO
+    </pre></div>
+    <p class="C">
+    Предложение INTO оператора EXECUTE позволяет вернуть одну (первую) строку результата в переменную составного типа или в несколько скалярных переменных.
+    </p>
+    <p class="C">
+    Для проверки результата выполнения динамической команды можно использовать команду GET DIAGNOSTICS, как и в случае статических команд. Но переменная FOUND не устанавливается.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        rec <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+        cnt <span style="color:#a00050">bigint</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">EXECUTE</span> <span style="color:#1094a0">'INSERT INTO city_msk (name, architect, founded) VALUES</span>
+    <span style="color:#1094a0">                 ('</span><span style="color:#1094a0">'Пашков дом'</span><span style="color:#1094a0">', '</span><span style="color:#1094a0">'Василий Баженов'</span><span style="color:#1094a0">', 1784),</span>
+    <span style="color:#1094a0">                 ('</span><span style="color:#1094a0">'Музей Пушкина'</span><span style="color:#1094a0">', '</span><span style="color:#1094a0">'Роман Клейн'</span><span style="color:#1094a0">', 1898),</span>
+    <span style="color:#1094a0">                 ('</span><span style="color:#1094a0">'ЦУМ'</span><span style="color:#1094a0">', '</span><span style="color:#1094a0">'Роман Клейн'</span><span style="color:#1094a0">', 1908)</span>
+    <span style="color:#1094a0">             RETURNING name, architect, founded'</span>
+        <span style="color:#3b6ac8">INTO</span> rec<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> rec<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">GET DIAGNOSTICS</span> cnt <span style="color:#323232">=</span> ROW_COUNT<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Добавлено строк: %'</span><span style="color:#323232">,</span> cnt<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">NOTICE:  ("Пашков дом","Василий Баженов",1784)
+    NOTICE:  Добавлено строк: 3
+    DO
+    </pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Результат динамического запроса можно обработать в цикле FOR.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        rec <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">FOR</span> rec <span style="color:#3b6ac8">IN EXECUTE</span> <span style="color:#1094a0">'SELECT * FROM city_msk ORDER BY founded'</span>
+        <span style="color:#3b6ac8">LOOP</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> rec<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">NOTICE:  ("Пашков дом","Василий Баженов",1784)
+    NOTICE:  ("Музей Пушкина","Роман Клейн",1898)
+    NOTICE:  (ЦУМ,"Роман Клейн",1908)
+    DO
+    </pre></div>
+    <p class="C">
+    Этот же пример с использованием курсора.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        cur <span style="color:#a00050">refcursor</span><span style="color:#323232">;</span>
+        rec <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">OPEN</span> cur <span style="color:#3b6ac8">FOR EXECUTE</span> <span style="color:#1094a0">'SELECT * FROM city_msk ORDER BY founded'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">LOOP</span>
+            <span style="color:#3b6ac8">FETCH</span> cur <span style="color:#3b6ac8">INTO</span> rec<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">EXIT WHEN NOT FOUND</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> rec<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">NOTICE:  ("Пашков дом","Василий Баженов",1784)
+    NOTICE:  ("Музей Пушкина","Роман Клейн",1898)
+    NOTICE:  (ЦУМ,"Роман Клейн",1908)
+    DO
+    </pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Оператор RETURN QUERY для возврата строк из функции также может использовать динамические запросы. Напишем функцию, возвращающую все здания архитектора, возможно определенного года. Для этого нам понадобятся параметры:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">sel_msk</span><span style="color:#323232">(</span>architect <span style="color:#a00050">text</span><span style="color:#323232">,</span> founded <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">DEFAULT NULL</span><span style="color:#323232">)</span>
+    <span style="color:#3b6ac8">RETURNS SETOF</span> <span style="color:#a00050">text</span>
+    <span style="color:#3b6ac8">AS</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        <span style="color:#969696">-- параметры пронумерованы: $1, $2...</span>
+        cmd <span style="color:#a00050">text</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">'</span>
+    <span style="color:#1094a0">        SELECT name FROM city_msk</span>
+    <span style="color:#1094a0">        WHERE architect = $1 AND ($2 IS NULL OR founded = $2)'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">RETURN QUERY</span>
+            <span style="color:#3b6ac8">EXECUTE</span> cmd
+            <span style="color:#3b6ac8">USING</span> architect<span style="color:#323232">,</span> founded<span style="color:#323232">;</span> <span style="color:#969696">-- указываем значения по порядку</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE FUNCTION
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">sel_msk</span><span style="color:#323232">(</span><span style="color:#1094a0">'Роман Клейн'</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">    sel_msk    
+    ---------------
+     Музей Пушкина
+     ЦУМ
+    (2 rows)
+    
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">sel_msk</span><span style="color:#323232">(</span><span style="color:#1094a0">'Роман Клейн'</span><span style="color:#323232">,</span> <span style="color:#1094a0">1908</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> sel_msk 
+    ---------
+     ЦУМ
+    (1 row)
+    
+    </pre></div>
+    <!-- end -->
+    
+    
+    </body></html>
+
+    <html><head>
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+        <style>
+        p.C    { font-size: 80%; }
+        li     { font-size: 80%; }
+        h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+        div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+        div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+        div.R1 { padding-left: 0px; page-break-inside: avoid; }
+        div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+        div.E  { padding-left: 0px; font-weight: bold; }
+        div.R  { padding-left: 0px; }
+        </style>
+        </head>
+        <body style="margin: 59.5px;">
+        <!-- body -->
+        <!-- 7 -->
+        <h1>
+        Возможность внедрения SQL-кода
+        </h1>
+        <p class="C">
+        Перепишем функцию, возвращающую здания, добавив параметр — код города. По задумке такая функция должна позволять обращаться только к таблицам, начинающимся на «city_».
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">sel_city</span><span style="color:#323232">(</span>
+            city_code <span style="color:#a00050">text</span><span style="color:#323232">,</span> 
+            architect <span style="color:#a00050">text</span><span style="color:#323232">,</span> 
+            founded <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">DEFAULT NULL</span>
+        <span style="color:#323232">)</span>
+        <span style="color:#3b6ac8">RETURNS SETOF</span> <span style="color:#a00050">text</span> <span style="color:#3b6ac8">AS</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            cmd <span style="color:#a00050">text</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">'</span>
+        <span style="color:#1094a0">        SELECT name FROM city_'</span> || city_code || <span style="color:#1094a0">'</span>
+        <span style="color:#1094a0">        WHERE architect = $1 AND ($2 IS NULL OR founded = $2)'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> cmd<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">RETURN QUERY</span>
+                <span style="color:#3b6ac8">EXECUTE</span> cmd
+                <span style="color:#3b6ac8">USING</span> architect<span style="color:#323232">,</span> founded<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">CREATE FUNCTION
+        </pre></div>
+        <p class="C">
+        Функция правильно работает при «нормальных» значениях параметров:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">sel_city</span><span style="color:#323232">(</span><span style="color:#1094a0">'msk'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Василий Баженов'</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  
+                SELECT name FROM city_msk
+                WHERE architect = $1 AND ($2 IS NULL OR founded = $2)
+          sel_city  
+        ------------
+         Пашков дом
+        (1 row)
+        
+        </pre></div>
+        <p class="C">
+        Однако злоумышленник может подобрать такое значение, которое изменит синтаксическую конструкцию запроса и позволит ему получить несанкционированный доступ к данным:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">sel_city</span><span style="color:#323232">(</span><span style="color:#1094a0">'msk WHERE false</span>
+        <span style="color:#1094a0">        UNION ALL</span>
+        <span style="color:#1094a0">        SELECT usename FROM pg_user</span>
+        <span style="color:#1094a0">        UNION ALL</span>
+        <span style="color:#1094a0">        SELECT name FROM city_msk'</span><span style="color:#323232">,</span> <span style="color:#1094a0">''</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  
+                SELECT name FROM city_msk WHERE false
+                UNION ALL
+                SELECT usename FROM pg_user
+                UNION ALL
+                SELECT name FROM city_msk
+                WHERE architect = $1 AND ($2 IS NULL OR founded = $2)
+         sel_city 
+        ----------
+         student
+         postgres
+        (2 rows)
+        
+        </pre></div>
+        <p class="C">
+        При использовании подготовленных операторов или динамических команд с параметрами это невозможно в принципе, так как структура SQL-запроса фиксируется при синтаксическом разборе. Выражение всегда останется выражением и не сможет превратиться, например, в имя таблицы.
+        </p>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <h1>
+        Формирование динамической команды
+        </h1>
+        <p class="C">
+        Параметры в предложении USING нельзя использовать для имен объектов (названия таблиц, столбцов и пр.) в динамической команде. Такие идентификаторы необходимо экранировать, чтобы структура запроса не могла измениться:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">format</span><span style="color:#323232">(</span><span style="color:#1094a0">'%I'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'foo'</span><span style="color:#323232">),</span>
+                  <span style="color:#c73a69">format</span><span style="color:#323232">(</span><span style="color:#1094a0">'%I'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'foo bar'</span><span style="color:#323232">),</span>
+                  <span style="color:#c73a69">format</span><span style="color:#323232">(</span><span style="color:#1094a0">'%I'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'foo"bar'</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1"> format |  format   |   format   
+        --------+-----------+------------
+         foo    | "foo bar" | "foo""bar"
+        (1 row)
+        
+        </pre></div>
+        <p class="C">
+        То же самое выполняет и другая функция:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">quote_ident</span><span style="color:#323232">(</span><span style="color:#1094a0">'foo'</span><span style="color:#323232">),</span> 
+                  <span style="color:#c73a69">quote_ident</span><span style="color:#323232">(</span><span style="color:#1094a0">'foo bar'</span><span style="color:#323232">),</span> 
+                  <span style="color:#c73a69">quote_ident</span><span style="color:#323232">(</span><span style="color:#1094a0">'foo"bar'</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1"> quote_ident | quote_ident | quote_ident 
+        -------------+-------------+-------------
+         foo         | "foo bar"   | "foo""bar"
+        (1 row)
+        
+        </pre></div>
+        <p class="C">
+        Вот как может выглядеть пример с созданием таблицы:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            cmd <span style="color:#3b6ac8">CONSTANT</span> <span style="color:#a00050">text</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">'CREATE TABLE %I(</span>
+        <span style="color:#1094a0">        name text, architect text, founded integer</span>
+        <span style="color:#1094a0">    )'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">EXECUTE</span> <span style="color:#c73a69">format</span><span style="color:#323232">(</span>cmd<span style="color:#323232">,</span> <span style="color:#1094a0">'city_spb'</span><span style="color:#323232">);</span> <span style="color:#969696">-- таблица для Санкт-Петербурга</span>
+            <span style="color:#3b6ac8">EXECUTE</span> <span style="color:#c73a69">format</span><span style="color:#323232">(</span>cmd<span style="color:#323232">,</span> <span style="color:#1094a0">'city_nov'</span><span style="color:#323232">);</span> <span style="color:#969696">-- таблица для Новгорода</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">DO
+        </pre></div>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        Вместо использования параметров, можно вставлять в строку литералы. В этом случае также требуется экранирование, но другое:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">format</span><span style="color:#323232">(</span><span style="color:#1094a0">'%L'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'foo bar'</span><span style="color:#323232">),</span> 
+                  <span style="color:#c73a69">format</span><span style="color:#323232">(</span><span style="color:#1094a0">'%L'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'foo'</span><span style="color:#1094a0">'bar'</span><span style="color:#323232">),</span> 
+                  <span style="color:#c73a69">format</span><span style="color:#323232">(</span><span style="color:#1094a0">'%L'</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">NULL</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">  format   |   format   | format 
+        -----------+------------+--------
+         'foo bar' | 'foo''bar' | NULL
+        (1 row)
+        
+        </pre></div>
+        <p class="C">
+        Это же выполняет и функция quote_nullable:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">quote_nullable</span><span style="color:#323232">(</span><span style="color:#1094a0">'foo bar'</span><span style="color:#323232">),</span> 
+                  <span style="color:#c73a69">quote_nullable</span><span style="color:#323232">(</span><span style="color:#1094a0">'foo'</span><span style="color:#1094a0">'bar'</span><span style="color:#323232">),</span> 
+                  <span style="color:#c73a69">quote_nullable</span><span style="color:#323232">(</span><span style="color:#3b6ac8">NULL</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1"> quote_nullable | quote_nullable | quote_nullable 
+        ----------------+----------------+----------------
+         'foo bar'      | 'foo''bar'     | NULL
+        (1 row)
+        
+        </pre></div>
+        <p class="C">
+        Похожая функция quote_literal отличается тем, что не превращает неопределенное значение в литерал:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">quote_literal</span><span style="color:#323232">(</span><span style="color:#3b6ac8">NULL</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1"> quote_literal 
+        ---------------
+         
+        (1 row)
+        
+        </pre></div>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        В качестве примера перепишем функцию, возвращающую здания в определенном городе, без использования параметров, но так, чтобы она оставалась безопасной.
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">sel_city</span><span style="color:#323232">(</span>
+            city_code <span style="color:#a00050">text</span><span style="color:#323232">,</span>
+            architect <span style="color:#a00050">text</span><span style="color:#323232">,</span>
+            founded <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">DEFAULT NULL</span>
+        <span style="color:#323232">)</span>
+        <span style="color:#3b6ac8">RETURNS SETOF</span> <span style="color:#a00050">text</span>
+        <span style="color:#3b6ac8">AS</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            cmd <span style="color:#a00050">text</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">'</span>
+        <span style="color:#1094a0">        SELECT name FROM %I</span>
+        <span style="color:#1094a0">        WHERE architect = %L AND (%L IS NULL OR founded = %L::integer)'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">RETURN QUERY EXECUTE</span> <span style="color:#c73a69">format</span><span style="color:#323232">(</span>
+                cmd<span style="color:#323232">,</span> <span style="color:#1094a0">'city_'</span>||city_code<span style="color:#323232">,</span> architect<span style="color:#323232">,</span> founded<span style="color:#323232">,</span> founded
+            <span style="color:#323232">);</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">CREATE FUNCTION
+        </pre></div>
+        <p class="C">
+        Обратите внимание, что в этом случае мы вынуждены выполнять два лишних приведения типов: сначала переменная типа integer приводится к строке, а затем, на этапе выполнения, строка обратно приводится к integer:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">sel_city</span><span style="color:#323232">(</span><span style="color:#1094a0">'msk'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Василий Баженов'</span><span style="color:#323232">,</span> <span style="color:#1094a0">1784</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">  sel_city  
+        ------------
+         Пашков дом
+        (1 row)
+        
+        </pre></div>
+        <p class="C">
+        Попытка передачи некорректного значения не приведет к успеху:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">sel_city</span><span style="color:#323232">(</span><span style="color:#1094a0">'msk WHERE false</span>
+        <span style="color:#1094a0">        UNION ALL</span>
+        <span style="color:#1094a0">        SELECT usename FROM pg_user</span>
+        <span style="color:#1094a0">        UNION ALL</span>
+        <span style="color:#1094a0">        SELECT name FROM city_msk'</span><span style="color:#323232">,</span> <span style="color:#1094a0">''</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  identifier "city_msk WHERE false
+                UNION ALL
+                SELECT usename FROM pg_user
+                UNION ALL
+                SELECT name FROM city_msk" will be truncated to "city_msk WHERE false
+                UNION ALL
+                SELECT usename F"
+        ERROR:  relation "city_msk WHERE false
+                UNION ALL
+                SELECT usename F" does not exist
+        LINE 2:         SELECT name FROM "city_msk WHERE false
+                                         ^
+        QUERY:  
+                SELECT name FROM "city_msk WHERE false
+                UNION ALL
+                SELECT usename FROM pg_user
+                UNION ALL
+                SELECT name FROM city_msk"
+                WHERE architect = '' AND (NULL IS NULL OR founded = NULL::integer)
+        CONTEXT:  PL/pgSQL function sel_city(text,text,integer) line 7 at RETURN QUERY
+        </pre></div>
+        <!-- end -->
+        
+        
+        </body></html>
+
+        
+

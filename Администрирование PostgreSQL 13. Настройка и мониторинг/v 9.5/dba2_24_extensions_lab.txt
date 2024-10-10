@@ -1,0 +1,88 @@
+
+УПРАВЛЕНИЕ РАСШИРЕНИЯМИ
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Создаем БД db24
+
+=> create database db24;
+CREATE DATABASE
+
+=> \c db24
+You are now connected to database "db24" as user "postgres".
+
+
+1. Установить в БД db24 расширение uom версии 1.1
+
+Проверим доступные к установке версии расширения
+
+=> select name, version, installed from pg_available_extension_versions
+=>  where name = 'uom';
+ name | version | installed 
+------+---------+-----------
+ uom  | 1.0     | f
+ uom  | 1.2     | f
+ uom  | 1.1     | f
+(3 rows)
+
+
+Установим версию 1.1:
+
+=> create extension uom version '1.1';
+CREATE EXTENSION
+
+
+2. Добавить футы и дюймы в таблицу. Проверить сколько дюймов в одном аршине.
+
+
+=> INSERT INTO uom VALUES ('фут', 0.3048, false);
+INSERT 0 1
+
+=> INSERT INTO uom VALUES ('дюйм', 0.0254, false);
+INSERT 0 1
+
+=> select uom2uom (1, 'аршин', 'дюйм');
+       uom2uom       
+---------------------
+ 28.0000000000000000
+(1 row)
+
+
+
+3. Обновить расширение uom до версии 1.2.
+
+Проверим содержимое скрипта обновления uom--1.1--1.2.sql
+
+postgres> cat /usr/local/pgsql/share/extension/uom--1.1--1.2.sql 
+\echo Use "ALTER EXTENSION uom UPDATE TO '1.2'" to load this file. \quit
+
+-- Изменения версии 1.2
+select pg_extension_config_dump ('uom'::regclass, 'WHERE NOT (predefined)');
+
+
+Выполним обновление
+
+=> alter extension uom update to '1.2';
+ALTER EXTENSION
+
+
+4. Проверить, что pg_dump выгружает из таблицы футы и дюймы.
+
+Проверим, что в pg_extension записана информация о том, какие строки из
+таблицы uom выгружать
+
+=> select extname, extconfig, extcondition from pg_extension
+=>  where extname = 'uom';
+ extname | extconfig |        extcondition        
+---------+-----------+----------------------------
+ uom     | {160362}  | {"WHERE NOT (predefined)"}
+(1 row)
+
+
+Проверим, что pg_dump их действительно выгружает:
+pg_dump -d db24| sed -n '/^COPY uom/,/^\./p'
+COPY uom  FROM stdin;
+фут	0.3048	f
+дюйм	0.0254	f
+\.
+
+=> \q

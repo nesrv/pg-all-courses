@@ -1,0 +1,79 @@
+
+Создадим БД и таблицу
+~~~~~~~~~~~~~~~~~~~~~
+
+
+=> create database db7;
+CREATE DATABASE
+
+=> \c db7
+You are now connected to database "db7" as user "postgres".
+
+=> create table t(n numeric);
+CREATE TABLE
+
+=> insert into t select 1 from generate_series(1,10000);
+INSERT 0 10000
+
+Сколько страниц на диске у t?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+=> select pg_total_relation_size('t')/8192;
+ ?column? 
+----------
+       49
+(1 row)
+
+
+Сколько буферов в кэше для t?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+=> create extension pg_buffercache;
+CREATE EXTENSION
+
+=> select count(*)
+=> from   pg_buffercache b,
+=>        pg_class c
+=> where  b.reldatabase = (select oid from pg_database where datname = current_database())
+=> and    c.oid = 't'::regclass
+=> and    b.relfilenode = c.relfilenode;
+ count 
+-------
+    47
+(1 row)
+
+
+Сколько грязных буферов в кэше?
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+=> select count(*)
+=> from   pg_buffercache b
+=> where  isdirty;
+ count 
+-------
+    95
+(1 row)
+
+
+Контрольная точка
+~~~~~~~~~~~~~~~~~
+
+
+=> checkpoint;
+CHECKPOINT
+
+=> select count(*)
+=> from   pg_buffercache b
+=> where  isdirty;
+ count 
+-------
+     0
+(1 row)
+
+
+(Грязных буферов не осталось.)
+
+=> \q

@@ -1,0 +1,152 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Рейсы из Ульяновска
+</h1>
+<p class="C">
+Индекс на таблице рейсов:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE INDEX ON</span> <span style="color:#c73a69">flights</span><span style="color:#323232">(</span>departure_airport<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE INDEX
+</pre></div>
+<p class="C">
+План запроса:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span>
+  <span style="color:#3b6ac8">FROM</span> flights f <span style="color:#3b6ac8">JOIN</span> airports a <span style="color:#3b6ac8">ON</span> a.airport_code <span style="color:#323232">=</span> f.departure_airport
+  <span style="color:#3b6ac8">WHERE</span> a.city <span style="color:#323232">=</span> <span style="color:#1094a0">'Ульяновск'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                              QUERY PLAN                                              
+------------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=36.43..3585.82 rows=2066 width=162)
+   -&gt;  Seq Scan on airports_data ml  (cost=0.00..30.56 rows=1 width=145)
+         Filter: ((city -&gt;&gt; lang()) = '&#1059;&#1083;&#1100;&#1103;&#1085;&#1086;&#1074;&#1089;&#1082;'::text)
+   -&gt;  Bitmap Heap Scan on flights f  (cost=36.43..2491.27 rows=2066 width=63)
+         Recheck Cond: (departure_airport = ml.airport_code)
+         -&gt;  Bitmap Index Scan on flights_departure_airport_idx  (cost=0.00..35.91 rows=2066 width=0)
+               Index Cond: (departure_airport = ml.airport_code)
+(7 rows)
+
+</pre></div>
+<p class="C">
+Планировщик использовал соединение вложенным циклом.
+</p>
+<p class="C">
+Заметим, что в данном случае соединение необходимо, так как в Ульяновске
+два аэропорта:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> airport_code<span style="color:#323232">,</span> airport_name <span style="color:#3b6ac8">FROM</span> airports <span style="color:#3b6ac8">WHERE</span> city <span style="color:#323232">=</span> <span style="color:#1094a0">'Ульяновск'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ airport_code |    airport_name     
+--------------+---------------------
+ ULY          | &#1059;&#1083;&#1100;&#1103;&#1085;&#1086;&#1074;&#1089;&#1082;-&#1042;&#1086;&#1089;&#1090;&#1086;&#1095;&#1085;&#1099;&#1081;
+ ULV          | &#1041;&#1072;&#1088;&#1072;&#1090;&#1072;&#1077;&#1074;&#1082;&#1072;
+(2 rows)
+
+</pre></div>
+<h1>
+Декартово произведение
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span>
+  <span style="color:#3b6ac8">FROM</span> airports a1 <span style="color:#3b6ac8">CROSS JOIN</span> airports a2<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Nested Loop  (cost=0.00..11067.70 rows=10816 width=198)
+   -&gt;  Seq Scan on airports_data ml  (cost=0.00..4.04 rows=104 width=145)
+   -&gt;  Materialize  (cost=0.00..4.56 rows=104 width=145)
+         -&gt;  Seq Scan on airports_data ml_1  (cost=0.00..4.04 rows=104 width=145)
+(4 rows)
+
+</pre></div>
+<p class="C">
+Соединение вложенным циклом - единственный способ выполнения таких соединений.
+</p>
+<p class="C">
+Узел Materialize - "материализация" выборки строк. Если выборка не превышает
+размер, заданный параметром work_mem, то она остается в памяти; если превышает
+- то записывается во временный файл. В данном случае эта операция выглядит
+лишней, но в следующем примере она позволяет сканировать во вложенном цикле
+уже отфильтрованный набор строк из a2, а не всю таблицу:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#323232">*</span>
+  <span style="color:#3b6ac8">FROM</span> airports a1 <span style="color:#3b6ac8">CROSS JOIN</span> airports a2
+  <span style="color:#3b6ac8">WHERE</span> a2.timezone <span style="color:#323232">=</span> <span style="color:#1094a0">'Europe/Moscow'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Nested Loop  (cost=0.00..4687.41 rows=4576 width=198)
+   -&gt;  Seq Scan on airports_data ml  (cost=0.00..4.04 rows=104 width=145)
+   -&gt;  Materialize  (cost=0.00..4.52 rows=44 width=145)
+         -&gt;  Seq Scan on airports_data ml_1  (cost=0.00..4.30 rows=44 width=145)
+               Filter: (timezone = 'Europe/Moscow'::text)
+(5 rows)
+
+</pre></div>
+<h1>
+Таблица расстояний между аэропортами
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE EXTENSION</span> earthdistance <span style="color:#3b6ac8">CASCADE</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+NOTICE:  installing required extension &quot;cube&quot;
+CREATE EXTENSION
+</pre></div>
+<p class="C">
+Чтобы отсечь повторяющиеся пары, можно соединить таблицы по условию "больше":
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> a1.airport_code <span style="color:#1094a0">&quot;from&quot;</span><span style="color:#323232">,</span>
+      a2.airport_code <span style="color:#1094a0">&quot;to&quot;</span><span style="color:#323232">,</span>
+      a1.coordinates <span style="color:#323232">&lt;</span>&#64;<span style="color:#323232">&gt;</span> a2.coordinates <span style="color:#1094a0">&quot;distance, miles&quot;</span>
+  <span style="color:#3b6ac8">FROM</span> airports a1 <span style="color:#3b6ac8">JOIN</span> airports a2 <span style="color:#3b6ac8">ON</span> a1.airport_code <span style="color:#323232">&gt;</span> a2.airport_code<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
+ Nested Loop  (cost=0.14..147.97 rows=3605 width=16)
+   -&gt;  Seq Scan on airports_data ml  (cost=0.00..4.04 rows=104 width=20)
+   -&gt;  Index Scan using airports_data_pkey on airports_data ml_1  (cost=0.14..0.95 rows=35 width=20)
+         Index Cond: (ml.airport_code &gt; airport_code)
+(4 rows)
+
+</pre></div>
+<p class="C">
+И снова вложенный цикл - единственный способ соединения для такого условия.
+</p>
+</body>
+</html>

@@ -1,0 +1,38 @@
+Запуск сервера
+~~~~~~~~~~~~~~
+
+pg_ctl status 
+pg_ctl: server is running (PID: 20637)
+/usr/local/pgsql/bin/postgres
+
+
+if [[ `pg_ctl status` =~ no server ]]; then pg_ctl -w start -l /home/postgres/logfile; fi
+
+Каталог с данными кластера
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+echo $PGDATA
+/usr/local/pgsql/data
+
+Каталог с исполняемыми файлами
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+pg_config --bindir 
+/usr/local/pgsql/bin
+
+Номер процесса postmaster
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+head -n 1 $PGDATA/postmaster.pid
+20637
+
+Процессы
+~~~~~~~~
+
+ps -o pid,command --ppid `head -n 1 $PGDATA/postmaster.pid`
+  PID COMMAND
+20639 postgres: checkpointer process  
+20640 postgres: writer process     
+20641 postgres: wal writer process  
+20642 postgres: autovacuum launcher process  
+20643 postgres: stats collector process  

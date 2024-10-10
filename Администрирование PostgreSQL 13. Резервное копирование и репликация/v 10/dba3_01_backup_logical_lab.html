@@ -1,0 +1,248 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Базы данных и объекты
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> db1<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> db1
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;db1&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t1</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t1 <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">), (</span><span style="color:#1094a0">2</span><span style="color:#323232">), (</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 3
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE VIEW</span> v1 <span style="color:#3b6ac8">AS SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t1<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE VIEW
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> db2<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> db2
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;db2&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t2</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t2 <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">), (</span><span style="color:#1094a0">2</span><span style="color:#323232">), (</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 3
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE VIEW</span> v2 <span style="color:#3b6ac8">AS SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t2<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE VIEW
+</pre></div>
+<h1>
+Копия глобальных объектов
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_dumpall</span> <span style="color:#323232">--</span>clean <span style="color:#323232">--</span>globals-only <span style="color:#323232">-</span>U postgres <span style="color:#323232">-</span>f <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>alpha_globals.sql
+</pre>
+</div>
+<h1>
+Копии баз данных
+</h1>
+<p class="C">
+Здесь мы ограничимся теми базами данных, которые создали сами.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_dump</span> <span style="color:#323232">--</span><span style="color:#3b6ac8">jobs</span><span style="color:#323232">=</span><span style="color:#1094a0">2</span> <span style="color:#323232">--</span>format<span style="color:#323232">=</span>directory <span style="color:#323232">-</span>d db1 <span style="color:#323232">-</span>f <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>db1.directory
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_dump</span> <span style="color:#323232">--</span><span style="color:#3b6ac8">jobs</span><span style="color:#323232">=</span><span style="color:#1094a0">2</span> <span style="color:#323232">--</span>format<span style="color:#323232">=</span>directory <span style="color:#323232">-</span>d db2 <span style="color:#323232">-</span>f <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>db2.directory
+</pre>
+</div>
+<h1>
+Восстановление кластера
+</h1>
+<p class="C">
+Сначала восстанавливаем глобальные объекты:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span> <span style="color:#323232">-</span>U postgres <span style="color:#323232">-</span>f alpha_globals.sql
+</pre>
+</div>
+<div class="R"><pre class="R">
+SET
+SET
+SET
+psql:alpha_globals.sql:16: ERROR:  current user cannot be dropped
+psql:alpha_globals.sql:17: ERROR:  role &quot;student&quot; cannot be dropped because some objects depend on it
+DETAIL:  owner of database student
+psql:alpha_globals.sql:24: ERROR:  role &quot;postgres&quot; already exists
+ALTER ROLE
+psql:alpha_globals.sql:26: ERROR:  role &quot;student&quot; already exists
+ALTER ROLE
+psql:alpha_globals.sql:34: NOTICE:  role &quot;student&quot; is already a member of role &quot;pg_read_all_stats&quot;
+GRANT ROLE
+</pre></div>
+<p class="C">
+Затем восстанавливаем базы данных:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ pg_restore <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span> <span style="color:#323232">-</span>d postgres <span style="color:#323232">--</span>create <span style="color:#323232">--</span><span style="color:#3b6ac8">jobs</span><span style="color:#323232">=</span><span style="color:#1094a0">2</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>db1.directory
+</pre>
+</div>
+<div class="R"><pre class="R">
+pg_restore: [archiver (db)] Error while PROCESSING TOC:
+pg_restore: [archiver (db)] Error from TOC entry 2877; 0 0 COMMENT EXTENSION plpgsql 
+pg_restore: [archiver (db)] could not execute query: ERROR:  must be owner of extension plpgsql
+    Command was: COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+
+WARNING: errors ignored on restore: 1
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ pg_restore <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span> <span style="color:#323232">-</span>d postgres <span style="color:#323232">--</span>create <span style="color:#323232">--</span><span style="color:#3b6ac8">jobs</span><span style="color:#323232">=</span><span style="color:#1094a0">2</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>db2.directory
+</pre>
+</div>
+<div class="R"><pre class="R">
+pg_restore: [archiver (db)] Error while PROCESSING TOC:
+pg_restore: [archiver (db)] Error from TOC entry 2877; 0 0 COMMENT EXTENSION plpgsql 
+pg_restore: [archiver (db)] could not execute query: ERROR:  must be owner of extension plpgsql
+    Command was: COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+
+WARNING: errors ignored on restore: 1
+</pre></div>
+<p class="C">
+Проверим:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>p <span style="color:#1094a0">5433</span>
+</pre>
+</div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> db1
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+You are now connected to database &quot;db1&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\d</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+        List of relations
+ Schema | Name | Type  |  Owner  
+--------+------+-------+---------
+ public | t1   | table | student
+ public | v1   | view  | student
+(2 rows)
+
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> db2
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+You are now connected to database &quot;db2&quot; as user &quot;student&quot;.
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  ">β<span style="color:#323232">=&gt;</span> <span style="color:#00a150">\d</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+        List of relations
+ Schema | Name | Type  |  Owner  
+--------+------+-------+---------
+ public | t2   | table | student
+ public | v2   | view  | student
+(2 rows)
+
+</pre></div>
+<h1>
+Ломаем COPY
+</h1>
+<p class="C">
+Например, можно установить отображение неопределенных значений, совпадающее
+с какими-либо даными:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">anticopy</span><span style="color:#323232">(</span>s <span style="color:#a00050">text</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">anticopy</span><span style="color:#323232">(</span>s<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'N'</span><span style="color:#323232">), (</span><span style="color:#3b6ac8">NULL</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 2
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  ">α<span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COPY</span> anticopy <span style="color:#3b6ac8">TO stdout WITH</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">NULL</span> <span style="color:#1094a0">'N'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+N
+N
+</pre></div>
+<p class="C">
+Вывод двух разных значений теперь неотличим друг от друга.
+</p>
+<p class="C">
+Осторожнее с изменением формата по умолчанию!
+</p>
+</body>
+</html>

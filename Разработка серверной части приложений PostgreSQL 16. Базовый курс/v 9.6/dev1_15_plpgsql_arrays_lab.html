@@ -1,0 +1,358 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Функция map
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">map</span><span style="color:#323232">(</span>a <span style="color:#3b6ac8">INOUT</span> <span style="color:#a00050">float</span><span style="color:#323232">[],</span> func <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    i <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    x <span style="color:#a00050">float</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">IF</span> <span style="color:#c73a69">cardinality</span><span style="color:#323232">(</span>a<span style="color:#323232">) &gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span>
+        <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#c73a69">array_lower</span><span style="color:#323232">(</span>a<span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">)</span>..<span style="color:#c73a69">array_upper</span><span style="color:#323232">(</span>a<span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">LOOP</span>
+            <span style="color:#3b6ac8">EXECUTE</span> <span style="color:#1094a0">'SELECT '</span>||func||<span style="color:#1094a0">'($1)'</span> <span style="color:#3b6ac8">USING</span> a<span style="color:#323232">[</span>i<span style="color:#323232">]</span> <span style="color:#3b6ac8">INTO</span> x<span style="color:#323232">;</span>
+            a<span style="color:#323232">[</span>i<span style="color:#323232">] :=</span> x<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<ul class="U">
+<li>INTO a[i] не работает, поэтому нужна отдельная переменная.</li>
+</ul>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">map</span><span style="color:#323232">(</span><span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">4.0</span><span style="color:#323232">,</span><span style="color:#1094a0">9.0</span><span style="color:#323232">,</span><span style="color:#1094a0">16.0</span><span style="color:#323232">],</span><span style="color:#1094a0">'sqrt'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+   map   
+---------
+ {2,3,4}
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">map</span><span style="color:#323232">(</span><span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[]::</span><span style="color:#a00050">float</span><span style="color:#323232">[],</span><span style="color:#1094a0">'sqrt'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ map 
+-----
+ {}
+(1 row)
+
+</pre></div>
+<p class="C">
+Другой вариант реализации с циклом FOREACH:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">map</span><span style="color:#323232">(</span>a <span style="color:#a00050">float</span><span style="color:#323232">[],</span> func <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">float</span><span style="color:#323232">[]</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    x <span style="color:#a00050">float</span><span style="color:#323232">;</span>
+    b <span style="color:#a00050">float</span><span style="color:#323232">[];</span> <span style="color:#969696">-- пустой массив</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">FOREACH</span> x <span style="color:#3b6ac8">IN ARRAY</span> a <span style="color:#3b6ac8">LOOP</span>
+        <span style="color:#3b6ac8">EXECUTE</span> <span style="color:#1094a0">'SELECT '</span>||func||<span style="color:#1094a0">'($1)'</span> <span style="color:#3b6ac8">USING</span> x <span style="color:#3b6ac8">INTO</span> x<span style="color:#323232">;</span>
+        b <span style="color:#323232">:=</span> b || x<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN</span> b<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">map</span><span style="color:#323232">(</span><span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">4.0</span><span style="color:#323232">,</span><span style="color:#1094a0">9.0</span><span style="color:#323232">,</span><span style="color:#1094a0">16.0</span><span style="color:#323232">],</span><span style="color:#1094a0">'sqrt'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+   map   
+---------
+ {2,3,4}
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">map</span><span style="color:#323232">(</span><span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[]::</span><span style="color:#a00050">float</span><span style="color:#323232">[],</span><span style="color:#1094a0">'sqrt'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ map 
+-----
+ 
+(1 row)
+
+</pre></div>
+<h1>
+Функция reduce
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">reduce</span><span style="color:#323232">(</span>a <span style="color:#a00050">float</span><span style="color:#323232">[],</span> func <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">float</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    i <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    r <span style="color:#a00050">float</span> <span style="color:#323232">:=</span> <span style="color:#3b6ac8">NULL</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">IF</span> <span style="color:#c73a69">cardinality</span><span style="color:#323232">(</span>a<span style="color:#323232">) &gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span>
+        r <span style="color:#323232">:=</span> a<span style="color:#323232">[</span><span style="color:#c73a69">array_lower</span><span style="color:#323232">(</span>a<span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">)];</span>
+        <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#c73a69">array_lower</span><span style="color:#323232">(</span>a<span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">)+</span><span style="color:#1094a0">1</span> .. <span style="color:#c73a69">array_upper</span><span style="color:#323232">(</span>a<span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">LOOP</span>
+            <span style="color:#3b6ac8">EXECUTE</span> <span style="color:#1094a0">'SELECT '</span>||func||<span style="color:#1094a0">'($1,$2)'</span> <span style="color:#3b6ac8">USING</span> r<span style="color:#323232">,</span> a<span style="color:#323232">[</span>i<span style="color:#323232">]</span> <span style="color:#3b6ac8">INTO</span> r<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN</span> r<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">reduce</span><span style="color:#323232">(</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">1.0</span><span style="color:#323232">,</span><span style="color:#1094a0">3.0</span><span style="color:#323232">,</span><span style="color:#1094a0">2.0</span><span style="color:#323232">],</span> <span style="color:#1094a0">'greatest'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ reduce 
+--------
+      3
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">reduce</span><span style="color:#323232">(</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">1.0</span><span style="color:#323232">],</span> <span style="color:#1094a0">'greatest'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ reduce 
+--------
+      1
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">reduce</span><span style="color:#323232">(</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[]::</span><span style="color:#a00050">float</span><span style="color:#323232">[],</span> <span style="color:#1094a0">'greatest'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ reduce 
+--------
+       
+(1 row)
+
+</pre></div>
+<p class="C">
+Вариант с циклом FOREACH:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">reduce</span><span style="color:#323232">(</span>a <span style="color:#a00050">float</span><span style="color:#323232">[],</span> func <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">float</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    x <span style="color:#a00050">float</span><span style="color:#323232">;</span>
+    r <span style="color:#a00050">float</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">first</span> <span style="color:#a00050">boolean</span> <span style="color:#323232">:=</span> <span style="color:#3b6ac8">true</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">FOREACH</span> x <span style="color:#3b6ac8">IN ARRAY</span> a <span style="color:#3b6ac8">LOOP</span>
+        <span style="color:#3b6ac8">IF first THEN</span>
+            r <span style="color:#323232">:=</span> x<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">first</span> <span style="color:#323232">:=</span> <span style="color:#3b6ac8">false</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">ELSE</span>
+            <span style="color:#3b6ac8">EXECUTE</span> <span style="color:#1094a0">'SELECT '</span>||func||<span style="color:#1094a0">'($1,$2)'</span> <span style="color:#3b6ac8">USING</span> r<span style="color:#323232">,</span> x <span style="color:#3b6ac8">INTO</span> r<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN</span> r<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">reduce</span><span style="color:#323232">(</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">1.0</span><span style="color:#323232">,</span><span style="color:#1094a0">3.0</span><span style="color:#323232">,</span><span style="color:#1094a0">2.0</span><span style="color:#323232">],</span> <span style="color:#1094a0">'greatest'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ reduce 
+--------
+      3
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">reduce</span><span style="color:#323232">(</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">1.0</span><span style="color:#323232">],</span> <span style="color:#1094a0">'greatest'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ reduce 
+--------
+      1
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">reduce</span><span style="color:#323232">(</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[]::</span><span style="color:#a00050">float</span><span style="color:#323232">[],</span> <span style="color:#1094a0">'greatest'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ reduce 
+--------
+       
+(1 row)
+
+</pre></div>
+<h1>
+Полиморфный вариант map
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP FUNCTION</span> <span style="color:#c73a69">map</span><span style="color:#323232">(</span><span style="color:#a00050">float</span><span style="color:#323232">[],</span><span style="color:#a00050">text</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DROP FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">map</span><span style="color:#323232">(</span>a <span style="color:#a00050">anyarray</span><span style="color:#323232">,</span> func <span style="color:#a00050">text</span><span style="color:#323232">,</span> elem <span style="color:#a00050">anyelement</span> <span style="color:#3b6ac8">DEFAULT NULL</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">anyarray</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    x elem<span style="color:#323232">%</span><span style="color:#3b6ac8">TYPE</span><span style="color:#323232">;</span>
+    b a<span style="color:#323232">%</span><span style="color:#3b6ac8">TYPE</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">FOREACH</span> x <span style="color:#3b6ac8">IN ARRAY</span> a <span style="color:#3b6ac8">LOOP</span>
+        <span style="color:#3b6ac8">EXECUTE</span> <span style="color:#1094a0">'SELECT '</span>||func||<span style="color:#1094a0">'($1)'</span> <span style="color:#3b6ac8">USING</span> x <span style="color:#3b6ac8">INTO</span> x<span style="color:#323232">;</span>
+        b <span style="color:#323232">:=</span> b || x<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN</span> b<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<ul class="U">
+<li>Требуется фиктивный параметр тип anyelement, чтобы внутри функции объявить переменную такого же типа.</li>
+</ul>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">map</span><span style="color:#323232">(</span><span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">4.0</span><span style="color:#323232">,</span><span style="color:#1094a0">9.0</span><span style="color:#323232">,</span><span style="color:#1094a0">16.0</span><span style="color:#323232">],</span><span style="color:#1094a0">'sqrt'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                           map                           
+---------------------------------------------------------
+ {2.000000000000000,3.000000000000000,4.000000000000000}
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">map</span><span style="color:#323232">(</span><span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[]::</span><span style="color:#a00050">float</span><span style="color:#323232">[],</span><span style="color:#1094a0">'sqrt'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ map 
+-----
+ 
+(1 row)
+
+</pre></div>
+<p class="C">
+Пример вызова с другим типом данных:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">map</span><span style="color:#323232">(</span><span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">' a '</span><span style="color:#323232">,</span><span style="color:#1094a0">'  b'</span><span style="color:#323232">,</span><span style="color:#1094a0">'c  '</span><span style="color:#323232">],</span><span style="color:#1094a0">'btrim'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+   map   
+---------
+ {a,b,c}
+(1 row)
+
+</pre></div>
+<h1>
+Полиморфный вариант reduce
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP FUNCTION</span> <span style="color:#c73a69">reduce</span><span style="color:#323232">(</span><span style="color:#a00050">float</span><span style="color:#323232">[],</span><span style="color:#a00050">text</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DROP FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">reduce</span><span style="color:#323232">(</span>a <span style="color:#a00050">anyarray</span><span style="color:#323232">,</span> func <span style="color:#a00050">text</span><span style="color:#323232">,</span> elem <span style="color:#a00050">anyelement</span> <span style="color:#3b6ac8">DEFAULT NULL</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">anyelement</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    x elem<span style="color:#323232">%</span><span style="color:#3b6ac8">TYPE</span><span style="color:#323232">;</span>
+    r elem<span style="color:#323232">%</span><span style="color:#3b6ac8">TYPE</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">first</span> <span style="color:#a00050">boolean</span> <span style="color:#323232">:=</span> <span style="color:#3b6ac8">true</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">FOREACH</span> x <span style="color:#3b6ac8">IN ARRAY</span> a <span style="color:#3b6ac8">LOOP</span>
+        <span style="color:#3b6ac8">IF first THEN</span>
+            r <span style="color:#323232">:=</span> x<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">first</span> <span style="color:#323232">:=</span> <span style="color:#3b6ac8">false</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">ELSE</span>
+            <span style="color:#3b6ac8">EXECUTE</span> <span style="color:#1094a0">'SELECT '</span>||func||<span style="color:#1094a0">'($1,$2)'</span> <span style="color:#3b6ac8">USING</span> r<span style="color:#323232">,</span> x <span style="color:#3b6ac8">INTO</span> r<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN</span> r<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION add</span><span style="color:#323232">(</span>x <span style="color:#a00050">anyelement</span><span style="color:#323232">,</span> y <span style="color:#a00050">anyelement</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">anyelement</span> <span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">RETURN</span> x <span style="color:#323232">+</span> y<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">reduce</span><span style="color:#323232">(</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">1</span><span style="color:#323232">,-</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span><span style="color:#1094a0">4</span><span style="color:#323232">],</span> <span style="color:#1094a0">'add'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ reduce 
+--------
+      3
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">reduce</span><span style="color:#323232">(</span> <span style="color:#3b6ac8">ARRAY</span><span style="color:#323232">[</span><span style="color:#1094a0">'a'</span><span style="color:#323232">,</span><span style="color:#1094a0">'b'</span><span style="color:#323232">,</span><span style="color:#1094a0">'c'</span><span style="color:#323232">],</span><span style="color:#1094a0">'concat'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ reduce 
+--------
+ abc
+(1 row)
+
+</pre></div>
+</body>
+</html>

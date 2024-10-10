@@ -1,0 +1,841 @@
+<html><head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+    <style>
+    p.C    { font-size: 80%; }
+    li     { font-size: 80%; }
+    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+    div.E  { padding-left: 0px; font-weight: bold; }
+    div.R  { padding-left: 0px; }
+    </style>
+    </head>
+    <body style="margin: 59.5px;">
+    <!-- body -->
+    <!-- 4 -->
+    <h1>
+    Проверки корректности
+    </h1>
+    <p class="C">
+    Команда ASSERT позволяет указать условия, нарушения которых является непредвиденной ошибкой. Можно провести определенную аналогию между такими условиями и ограничениями целостности в базе данных.
+    </p>
+    <p class="C">
+    Вот пример функции, возвращающей номер подъезда по номеру квартиры:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">entrance</span><span style="color:#323232">(</span>
+        floors <span style="color:#a00050">integer</span><span style="color:#323232">,</span>
+        flats_per_floor <span style="color:#a00050">integer</span><span style="color:#323232">,</span>
+        flat_no <span style="color:#a00050">integer</span>
+    <span style="color:#323232">)</span>
+    <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span>
+    <span style="color:#3b6ac8">AS</span> $$
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">RETURN</span> <span style="color:#c73a69">floor</span><span style="color:#323232">((</span>flat_no <span style="color:#323232">-</span> <span style="color:#1094a0">1</span><span style="color:#323232">)::</span><span style="color:#a00050">real</span> <span style="color:#323232">/ (</span>floors <span style="color:#323232">*</span> flats_per_floor<span style="color:#323232">)) +</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql <span style="color:#3b6ac8">IMMUTABLE</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE FUNCTION
+    </pre></div>
+    <p class="C">
+    Убедиться в правильности можно при помощи тестирования, проверив результат на некоторых «интересных» значениях:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">entrance</span><span style="color:#323232">(</span><span style="color:#1094a0">9</span><span style="color:#323232">,</span> <span style="color:#1094a0">4</span><span style="color:#323232">,</span> <span style="color:#1094a0">1</span><span style="color:#323232">),</span> <span style="color:#c73a69">entrance</span><span style="color:#323232">(</span><span style="color:#1094a0">9</span><span style="color:#323232">,</span> <span style="color:#1094a0">4</span><span style="color:#323232">,</span> <span style="color:#1094a0">36</span><span style="color:#323232">),</span> <span style="color:#c73a69">entrance</span><span style="color:#323232">(</span><span style="color:#1094a0">9</span><span style="color:#323232">,</span> <span style="color:#1094a0">4</span><span style="color:#323232">,</span> <span style="color:#1094a0">37</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> entrance | entrance | entrance 
+    ----------+----------+----------
+            1 |        1 |        2
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    Но при некорректных входных значениях функция будет выдавать бессмысленный результат, который, например, может быть передан дальше в другие подпрограммы, которые из-за этого тоже могут повести себя неправильно. Тестирование только данной функции здесь никак не поможет.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">entrance</span><span style="color:#323232">(</span><span style="color:#1094a0">9</span><span style="color:#323232">,</span> <span style="color:#1094a0">4</span><span style="color:#323232">,</span> <span style="color:#1094a0">0</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> entrance 
+    ----------
+            0
+    (1 row)
+    
+    </pre></div>
+    <p class="C">
+    Можно обезопасить себя, добавив проверку:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">entrance</span><span style="color:#323232">(</span>
+        floors <span style="color:#a00050">integer</span><span style="color:#323232">,</span>
+        flats_per_floor <span style="color:#a00050">integer</span><span style="color:#323232">,</span>
+        flat_no <span style="color:#a00050">integer</span>
+    <span style="color:#323232">)</span>
+    <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span>
+    <span style="color:#3b6ac8">AS</span> $$
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">ASSERT</span> floors <span style="color:#323232">&gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">AND</span> flats_per_floor <span style="color:#323232">&gt;</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">AND</span> flat_no <span style="color:#323232">&gt;</span> <span style="color:#1094a0">0</span><span style="color:#323232">,</span>
+            <span style="color:#1094a0">'Некорректные входные параметры'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">RETURN</span> <span style="color:#c73a69">floor</span><span style="color:#323232">((</span>flat_no <span style="color:#323232">-</span> <span style="color:#1094a0">1</span><span style="color:#323232">)::</span><span style="color:#a00050">real</span> <span style="color:#323232">/ (</span>floors <span style="color:#323232">*</span> flats_per_floor<span style="color:#323232">)) +</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql <span style="color:#3b6ac8">IMMUTABLE</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE FUNCTION
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">entrance</span><span style="color:#323232">(</span><span style="color:#1094a0">9</span><span style="color:#323232">,</span> <span style="color:#1094a0">4</span><span style="color:#323232">,</span> <span style="color:#1094a0">0</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">ERROR:  Некорректные входные параметры
+    CONTEXT:  PL/pgSQL function entrance(integer,integer,integer) line 3 at ASSERT
+    </pre></div>
+    <p class="C">
+    Теперь некорректный вызов сразу же приведет к ошибке.
+    </p>
+    <!-- end -->
+    
+    
+    </body></html>
+
+
+    <html><head>
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+        <style>
+        p.C    { font-size: 80%; }
+        li     { font-size: 80%; }
+        h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+        div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+        div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+        div.R1 { padding-left: 0px; page-break-inside: avoid; }
+        div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+        div.E  { padding-left: 0px; font-weight: bold; }
+        div.R  { padding-left: 0px; }
+        </style>
+        </head>
+        <body style="margin: 59.5px;">
+        <!-- body -->
+        <!-- 8 -->
+        <h1>
+        Команда RAISE
+        </h1>
+        <p class="C">
+        Создадим функцию для подсчета количества строк в таблице, имя которой передается параметром.
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">get_count</span><span style="color:#323232">(</span>tabname <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">bigint</span>
+        <span style="color:#3b6ac8">AS</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            cmd <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+            retval <span style="color:#a00050">bigint</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            cmd <span style="color:#323232">:=</span> <span style="color:#1094a0">'SELECT COUNT(*) FROM '</span> || <span style="color:#c73a69">quote_ident</span><span style="color:#323232">(</span>tabname<span style="color:#323232">);</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'cmd: %'</span><span style="color:#323232">,</span> cmd<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">EXECUTE</span> cmd <span style="color:#3b6ac8">INTO</span> retval<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">RETURN</span> retval<span style="color:#323232">;</span> 
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql <span style="color:#3b6ac8">STABLE</span><span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">CREATE FUNCTION
+        </pre></div>
+        <p class="C">
+        Для динамического выполнения текст команды лучше предварительно записывать в переменную. В случае ошибок можно получить содержимое переменной.
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">get_count</span><span style="color:#323232">(</span><span style="color:#1094a0">'pg_class'</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  cmd: SELECT COUNT(*) FROM pg_class
+         get_count 
+        -----------
+               395
+        (1 row)
+        
+        </pre></div>
+        <p class="C">
+        Строка, начинающаяся с «NOTICE» — наша отладочная информация.
+        </p>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        RAISE можно использовать для отслеживания хода выполнения долгого запроса.
+        </p>
+        <p class="C">
+        Предположим, что внутри кода четко выделяются три этапа выполнения. И по ходу работы подпрограммы мы хотим понимать, где сейчас находимся.
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PROCEDURE</span> <span style="color:#c73a69">long_running</span><span style="color:#323232">()</span>
+        <span style="color:#3b6ac8">AS</span> $$
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'long_running. Stage 1/3...'</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">2</span><span style="color:#323232">);</span>
+        
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'long_running. Stage 2/3...'</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+        
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'long_running. Stage 3/3...'</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+        
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'long_running. Done.'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">CREATE PROCEDURE
+        </pre></div>
+        <p class="C">
+        Команда RAISE выдает сообщения сразу, а не в конце работы функции:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">long_running</span><span style="color:#323232">();</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  long_running. Stage 1/3...
+        NOTICE:  long_running. Stage 2/3...
+        NOTICE:  long_running. Stage 3/3...
+        NOTICE:  long_running. Done.
+        CALL
+        </pre></div>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        Такой подход удобен, когда можно вызвать функцию в отдельном сеансе. Если же функция вызывается из приложения, то удобнее писать и смотреть в журнал сервера.
+        </p>
+        <p class="C">
+        Напишем процедуру raise_msg для выдачи сообщения с уровнем, установленным в пользовательском параметре app.raise_level:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE PROCEDURE</span> <span style="color:#c73a69">raise_msg</span><span style="color:#323232">(</span>msg <span style="color:#a00050">text</span><span style="color:#323232">)</span>
+        <span style="color:#3b6ac8">AS</span> $$
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">CASE</span> <span style="color:#c73a69">current_setting</span><span style="color:#323232">(</span><span style="color:#1094a0">'app.raise_level'</span><span style="color:#323232">,</span> <span style="color:#00a150">true</span><span style="color:#323232">)</span>
+                <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">'NOTICE'</span>  <span style="color:#3b6ac8">THEN RAISE NOTICE</span>  <span style="color:#1094a0">'%, %, %'</span><span style="color:#323232">,</span> <span style="color:#c73a69">user</span><span style="color:#323232">,</span> <span style="color:#c73a69">clock_timestamp</span><span style="color:#323232">(),</span> msg<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">'DEBUG'</span>   <span style="color:#3b6ac8">THEN RAISE DEBUG</span>   <span style="color:#1094a0">'%, %, %'</span><span style="color:#323232">,</span> <span style="color:#c73a69">user</span><span style="color:#323232">,</span> <span style="color:#c73a69">clock_timestamp</span><span style="color:#323232">(),</span> msg<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">'LOG'</span>     <span style="color:#3b6ac8">THEN RAISE LOG</span>     <span style="color:#1094a0">'%, %, %'</span><span style="color:#323232">,</span> <span style="color:#c73a69">user</span><span style="color:#323232">,</span> <span style="color:#c73a69">clock_timestamp</span><span style="color:#323232">(),</span> msg<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">'INFO'</span>    <span style="color:#3b6ac8">THEN RAISE INFO</span>    <span style="color:#1094a0">'%, %, %'</span><span style="color:#323232">,</span> <span style="color:#c73a69">user</span><span style="color:#323232">,</span> <span style="color:#c73a69">clock_timestamp</span><span style="color:#323232">(),</span> msg<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">'WARNING'</span> <span style="color:#3b6ac8">THEN RAISE WARNING</span> <span style="color:#1094a0">'%, %, %'</span><span style="color:#323232">,</span> <span style="color:#c73a69">user</span><span style="color:#323232">,</span> <span style="color:#c73a69">clock_timestamp</span><span style="color:#323232">(),</span> msg<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">ELSE NULL</span><span style="color:#323232">;</span> <span style="color:#969696">-- все прочие значения отключают вывод сообщений</span>
+            <span style="color:#3b6ac8">END CASE</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">CREATE PROCEDURE
+        </pre></div>
+        <p class="C">
+        Для целей примера установим параметр на уровне сеанса и переделаем процедуру long_running так, чтобы она использовала raise_msg:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> app.raise_level <span style="color:#3b6ac8">TO</span> <span style="color:#1094a0">'NONE'</span><span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">SET
+        </pre></div>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE PROCEDURE</span> <span style="color:#c73a69">long_running</span><span style="color:#323232">()</span>
+        <span style="color:#3b6ac8">AS</span> $$
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">raise_msg</span><span style="color:#323232">(</span><span style="color:#1094a0">'long_running. Stage 1/3...'</span><span style="color:#323232">);</span>
+            <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">2</span><span style="color:#323232">);</span>
+        
+            <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">raise_msg</span><span style="color:#323232">(</span><span style="color:#1094a0">'long_running. Stage 2/3...'</span><span style="color:#323232">);</span>
+            <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+        
+            <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">raise_msg</span><span style="color:#323232">(</span><span style="color:#1094a0">'long_running. Stage 3/3...'</span><span style="color:#323232">);</span>
+            <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+        
+            <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">raise_msg</span><span style="color:#323232">(</span><span style="color:#1094a0">'long_running. Done.'</span><span style="color:#323232">);</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">CREATE PROCEDURE
+        </pre></div>
+        <p class="C">
+        Теперь в «обычной» жизни (app.raise_level = NONE) отладочные сообщения не будут выдаваться:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">long_running</span><span style="color:#323232">();</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">CALL
+        </pre></div>
+        <p class="C">
+        Запуская функцию в отдельном сеансе, мы можем получить отладочные сообщения, выставив app.raise_level в NOTICE:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> app.raise_level <span style="color:#3b6ac8">TO</span> <span style="color:#1094a0">'NOTICE'</span><span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">SET
+        </pre></div>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">long_running</span><span style="color:#323232">();</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  student, 2023-07-26 11:08:40.90565+03, long_running. Stage 1/3...
+        NOTICE:  student, 2023-07-26 11:08:42.907148+03, long_running. Stage 2/3...
+        NOTICE:  student, 2023-07-26 11:08:45.909375+03, long_running. Stage 3/3...
+        NOTICE:  student, 2023-07-26 11:08:46.911062+03, long_running. Done.
+        CALL
+        </pre></div>
+        <p class="C">
+        Если же мы хотим включить отладку в приложении с записью в журнал сервера, то переключаем app.raise_level в LOG:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> app.raise_level <span style="color:#3b6ac8">TO</span> <span style="color:#1094a0">'LOG'</span><span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">SET
+        </pre></div>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">long_running</span><span style="color:#323232">();</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">CALL
+        </pre></div>
+        <p class="C">
+        Смотрим в журнал сервера:
+        </p>
+        <div class="E">
+        <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">tail</span> <span style="color:#323232">-</span>n <span style="color:#1094a0">20</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>log<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>postgresql-12-main.log | <span style="color:#3b6ac8">grep</span> long_running
+        </pre>
+        </div>
+        <div class="R"><pre class="R">2023-07-26 11:08:46.991 MSK [28510] student@plpgsql_debug LOG:  student, 2023-07-26 11:08:46.991451+03, long_running. Stage 1/3...
+            SQL statement "CALL raise_msg('long_running. Stage 1/3...')"
+            PL/pgSQL function long_running() line 3 at CALL
+        2023-07-26 11:08:46.991 MSK [28510] student@plpgsql_debug STATEMENT:  CALL long_running();
+        2023-07-26 11:08:48.993 MSK [28510] student@plpgsql_debug LOG:  student, 2023-07-26 11:08:48.993554+03, long_running. Stage 2/3...
+            SQL statement "CALL raise_msg('long_running. Stage 2/3...')"
+            PL/pgSQL function long_running() line 6 at CALL
+        2023-07-26 11:08:48.993 MSK [28510] student@plpgsql_debug STATEMENT:  CALL long_running();
+        2023-07-26 11:08:51.994 MSK [28510] student@plpgsql_debug LOG:  student, 2023-07-26 11:08:51.994377+03, long_running. Stage 3/3...
+            SQL statement "CALL raise_msg('long_running. Stage 3/3...')"
+            PL/pgSQL function long_running() line 9 at CALL
+        2023-07-26 11:08:51.994 MSK [28510] student@plpgsql_debug STATEMENT:  CALL long_running();
+        2023-07-26 11:08:52.996 MSK [28510] student@plpgsql_debug LOG:  student, 2023-07-26 11:08:52.996175+03, long_running. Done.
+            SQL statement "CALL raise_msg('long_running. Done.')"
+            PL/pgSQL function long_running() line 12 at CALL
+        2023-07-26 11:08:52.996 MSK [28510] student@plpgsql_debug STATEMENT:  CALL long_running();
+        </pre></div>
+        <p class="C">
+        Управляя параметрами app.raise_level, log_min_messages и client_min_messages, можно добиться различного поведения отладочных сообщений.
+        </p>
+        <p class="C">
+        Важно, что для этого не нужно менять код приложения.
+        </p>
+        <!-- end -->
+        
+        
+        </body></html>
+
+        <html><head>
+            <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+            <style>
+            p.C    { font-size: 80%; }
+            li     { font-size: 80%; }
+            h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+            div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+            div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+            div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+            div.R1 { padding-left: 0px; page-break-inside: avoid; }
+            div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+            div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+            div.E  { padding-left: 0px; font-weight: bold; }
+            div.R  { padding-left: 0px; }
+            </style>
+            </head>
+            <body style="margin: 59.5px;">
+            <!-- body -->
+            <!-- 10 -->
+            <h1>
+            Статус сеанса
+            </h1>
+            <p class="C">
+            Посмотрим, как использовать для отладки параметр application_name. Первый сеанс меняет значение этого параметра, второй — периодически опрашивает представление pg_stat_activity.
+            </p>
+            <p class="C">
+            Новый вариант процедуры:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE PROCEDURE</span> <span style="color:#c73a69">long_running</span><span style="color:#323232">()</span>
+            <span style="color:#3b6ac8">AS</span> $$
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">SET LOCAL</span> application_name <span style="color:#3b6ac8">TO</span> <span style="color:#1094a0">"long_running. Stage 1/3..."</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">2</span><span style="color:#323232">);</span>
+            
+                <span style="color:#3b6ac8">SET LOCAL</span> application_name <span style="color:#3b6ac8">TO</span> <span style="color:#1094a0">"long_running. Stage 2/3..."</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+            
+                <span style="color:#3b6ac8">SET LOCAL</span> application_name <span style="color:#3b6ac8">TO</span> <span style="color:#1094a0">"long_running. Stage 3/3..."</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+            
+                <span style="color:#3b6ac8">SET LOCAL</span> application_name <span style="color:#3b6ac8">TO</span> <span style="color:#1094a0">"long_running. Done."</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">CREATE PROCEDURE
+            </pre></div>
+            <p class="C">
+            Запускаем в первом сеансе:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">long_running</span><span style="color:#323232">();</span>
+            </pre>
+            </div>
+            <p class="C">
+            Во втором с паузой в две секунды обновляем строку из pg_stat_activity:
+            </p>
+            <div class="S2">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> pid<span style="color:#323232">,</span> usename<span style="color:#323232">,</span> application_name
+            <span style="color:#3b6ac8">FROM</span> pg_stat_activity
+            <span style="color:#3b6ac8">WHERE</span> datname <span style="color:#323232">=</span> <span style="color:#1094a0">'plpgsql_debug'</span> <span style="color:#3b6ac8">AND</span> pid <span style="color:#323232">&lt;&gt;</span> <span style="color:#c73a69">pg_backend_pid</span><span style="color:#323232">();</span>
+            </pre>
+            </div>
+            <div class="R2"><pre class="R2">  pid  | usename |      application_name      
+            -------+---------+----------------------------
+             28510 | student | long_running. Stage 1/3...
+            (1 row)
+            
+            </pre></div>
+            <div class="S2">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\g</span>
+            </pre>
+            </div>
+            <div class="R2"><pre class="R2">  pid  | usename |      application_name      
+            -------+---------+----------------------------
+             28510 | student | long_running. Stage 2/3...
+            (1 row)
+            
+            </pre></div>
+            <div class="S2">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\g</span>
+            </pre>
+            </div>
+            <div class="R2"><pre class="R2">  pid  | usename |      application_name      
+            -------+---------+----------------------------
+             28510 | student | long_running. Stage 3/3...
+            (1 row)
+            
+            </pre></div>
+            <div class="S2">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\g</span>
+            </pre>
+            </div>
+            <div class="R2"><pre class="R2">  pid  | usename | application_name 
+            -------+---------+------------------
+             28510 | student | psql
+            (1 row)
+            
+            
+            </pre></div>
+            <div class="R1"><pre class="R1">CALL
+            </pre></div>
+            <!-- end -->
+            
+            
+            </body></html>
+
+
+            <html><head>
+                <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+                <style>
+                p.C    { font-size: 80%; }
+                li     { font-size: 80%; }
+                h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+                div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+                div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+                div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+                div.R1 { padding-left: 0px; page-break-inside: avoid; }
+                div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+                div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+                div.E  { padding-left: 0px; font-weight: bold; }
+                div.R  { padding-left: 0px; }
+                </style>
+                </head>
+                <body style="margin: 59.5px;">
+                <!-- body -->
+                <!-- 12 -->
+                <h1>
+                Запись в таблицу: расширение dblink
+                </h1>
+                <p class="C">
+                Установим расширение:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE EXTENSION</span> dblink<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE EXTENSION
+                </pre></div>
+                <p class="C">
+                Создаем таблицу для записи сообщений.
+                </p>
+                <p class="C">
+                В таблице полезно сохранять информацию о пользователе и времени вставки. Столбец id нужен для гарантированной сортировки результата в порядке добавления строк.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">log</span> <span style="color:#323232">(</span>
+                    id       <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">PRIMARY KEY GENERATED ALWAYS AS IDENTITY</span><span style="color:#323232">,</span>
+                    username <span style="color:#a00050">text</span><span style="color:#323232">,</span>
+                    ts       <span style="color:#a00050">timestamptz</span><span style="color:#323232">,</span>
+                    message  <span style="color:#a00050">text</span>
+                <span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE TABLE
+                </pre></div>
+                <p class="C">
+                Теперь создадим процедуру для добавления записей в таблицу log. Процедура открывает новый сеанс, выполняет вставку в отдельной транзакции и закрывает сеанс.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PROCEDURE</span> <span style="color:#c73a69">write_log</span><span style="color:#323232">(</span>message <span style="color:#a00050">text</span><span style="color:#323232">)</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">DECLARE</span>
+                    cmd <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">BEGIN</span>
+                    cmd <span style="color:#323232">:=</span> <span style="color:#c73a69">format</span><span style="color:#323232">(</span>
+                        <span style="color:#1094a0">'INSERT INTO log (username, ts, message)</span>
+                <span style="color:#1094a0">         VALUES (%L, %L::timestamptz, %L)'</span><span style="color:#323232">,</span>
+                        <span style="color:#c73a69">user</span><span style="color:#323232">,</span> <span style="color:#c73a69">clock_timestamp</span><span style="color:#323232">()::</span><span style="color:#a00050">text</span><span style="color:#323232">,</span> write_log.message
+                    <span style="color:#323232">);</span>
+                    <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">dblink</span><span style="color:#323232">(</span><span style="color:#1094a0">'dbname='</span> || <span style="color:#c73a69">current_database</span><span style="color:#323232">(),</span> cmd<span style="color:#323232">);</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE PROCEDURE
+                </pre></div>
+                <p class="C">
+                Создаем новый вариант long_running:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE PROCEDURE</span> <span style="color:#c73a69">long_running</span><span style="color:#323232">()</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">write_log</span><span style="color:#323232">(</span><span style="color:#1094a0">'long_running. Stage 1/3...'</span><span style="color:#323232">);</span>
+                    <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">2</span><span style="color:#323232">);</span>
+                
+                    <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">write_log</span><span style="color:#323232">(</span><span style="color:#1094a0">'long_running. Stage 2/3...'</span><span style="color:#323232">);</span>
+                    <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+                
+                    <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">write_log</span><span style="color:#323232">(</span><span style="color:#1094a0">'long_running. Stage 3/3...'</span><span style="color:#323232">);</span>
+                    <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+                
+                    <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">write_log</span><span style="color:#323232">(</span><span style="color:#1094a0">'long_running. Done.'</span><span style="color:#323232">);</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE PROCEDURE
+                </pre></div>
+                <p class="C">
+                Для проверки запустим процедуру long_running в отдельной транзакции, которую в конце откатим.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">BEGIN
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">long_running</span><span style="color:#323232">();</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CALL
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ROLLBACK</span><span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">ROLLBACK
+                </pre></div>
+                <p class="C">
+                Убедимся, что в таблице сохранились все вызовы write_log. По значениям ts можно проверить, сколько времени прошло между вызовами.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> username<span style="color:#323232">,</span> <span style="color:#c73a69">to_char</span><span style="color:#323232">(</span>ts<span style="color:#323232">,</span> <span style="color:#1094a0">'HH24:MI:SS'</span><span style="color:#323232">)</span> as ts<span style="color:#323232">,</span> message
+                <span style="color:#3b6ac8">FROM</span> log
+                <span style="color:#3b6ac8">ORDER BY</span> id<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1"> username |    ts    |          message           
+                ----------+----------+----------------------------
+                 student  | 11:09:00 | long_running. Stage 1/3...
+                 student  | 11:09:02 | long_running. Stage 2/3...
+                 student  | 11:09:05 | long_running. Stage 3/3...
+                 student  | 11:09:06 | long_running. Done.
+                (4 rows)
+                
+                </pre></div>
+                <!-- end -->
+                
+                
+                </body></html>
+
+                <html><head>
+                    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+                    <style>
+                    p.C    { font-size: 80%; }
+                    li     { font-size: 80%; }
+                    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+                    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+                    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+                    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+                    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+                    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+                    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+                    div.E  { padding-left: 0px; font-weight: bold; }
+                    div.R  { padding-left: 0px; }
+                    </style>
+                    </head>
+                    <body style="margin: 59.5px;">
+                    <!-- body -->
+                    <!-- 14 -->
+                    <h1>
+                    Запись в файл: pg_file_write
+                    </h1>
+                    <p class="C">
+                    Установим расширение:
+                    </p>
+                    <div class="S1">
+                    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE EXTENSION</span> adminpack<span style="color:#323232">;</span>
+                    </pre>
+                    </div>
+                    <div class="R1"><pre class="R1">CREATE EXTENSION
+                    </pre></div>
+                    <p class="C">
+                    Теперь создадим процедуру write_file, которая будет записывать отладочную информацию в файл. Пользователь postgres, запустивший экземпляр СУБД, должен иметь возможность записи в этот файл, поэтому расположим его в домашнем каталоге этого пользователя.
+                    </p>
+                    <div class="S1">
+                    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PROCEDURE</span> <span style="color:#c73a69">write_file</span><span style="color:#323232">(</span>message <span style="color:#a00050">text</span><span style="color:#323232">)</span>
+                    <span style="color:#3b6ac8">AS</span> $$
+                    <span style="color:#3b6ac8">DECLARE</span>
+                        filename <span style="color:#3b6ac8">CONSTANT</span> <span style="color:#a00050">text</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">'/var/lib/postgresql/log.txt'</span><span style="color:#323232">;</span>
+                        message <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">BEGIN</span>
+                        message <span style="color:#323232">:=</span> <span style="color:#c73a69">format</span><span style="color:#323232">(</span>E<span style="color:#1094a0">'%s, %s, %s\n'</span><span style="color:#323232">,</span>
+                            <span style="color:#c73a69">session_user</span><span style="color:#323232">,</span> <span style="color:#c73a69">clock_timestamp</span><span style="color:#323232">()::</span><span style="color:#a00050">text</span><span style="color:#323232">,</span> write_file.message
+                        <span style="color:#323232">);</span>
+                        <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_file_write</span><span style="color:#323232">(</span>filename<span style="color:#323232">,</span> message<span style="color:#323232">,</span> <span style="color:#969696">/* append */</span> <span style="color:#00a150">true</span><span style="color:#323232">);</span>
+                    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                    </pre>
+                    </div>
+                    <div class="R1"><pre class="R1">CREATE PROCEDURE
+                    </pre></div>
+                    <p class="C">
+                    Функция записывает сообщение, переданное параметром, отдельной строкой в файл журнала, добавляя информациею об авторе и дате.
+                    </p>
+                    <p class="C">
+                    Создаем новый вариант long_running.
+                    </p>
+                    <div class="S1">
+                    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE PROCEDURE</span> <span style="color:#c73a69">long_running</span><span style="color:#323232">()</span>
+                    <span style="color:#3b6ac8">AS</span> $$
+                    <span style="color:#3b6ac8">BEGIN</span>
+                        <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">write_file</span><span style="color:#323232">(</span><span style="color:#1094a0">'long_running. Stage 1/3...'</span><span style="color:#323232">);</span>
+                        <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">2</span><span style="color:#323232">);</span>
+                    
+                        <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">write_file</span><span style="color:#323232">(</span><span style="color:#1094a0">'long_running. Stage 2/3...'</span><span style="color:#323232">);</span>
+                        <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+                    
+                        <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">write_file</span><span style="color:#323232">(</span><span style="color:#1094a0">'long_running. Stage 3/3...'</span><span style="color:#323232">);</span>
+                        <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+                    
+                        <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">write_file</span><span style="color:#323232">(</span><span style="color:#1094a0">'long_running. Done.'</span><span style="color:#323232">);</span>
+                    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                    </pre>
+                    </div>
+                    <div class="R1"><pre class="R1">CREATE PROCEDURE
+                    </pre></div>
+                    <p class="C">
+                    Для проверки запустим long_running в отдельной транзакции, которую в конце откатим.
+                    </p>
+                    <div class="S1">
+                    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+                    </pre>
+                    </div>
+                    <div class="R1"><pre class="R1">BEGIN
+                    </pre></div>
+                    <div class="S1">
+                    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">long_running</span><span style="color:#323232">();</span>
+                    </pre>
+                    </div>
+                    <div class="R1"><pre class="R1">CALL
+                    </pre></div>
+                    <div class="S1">
+                    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ROLLBACK</span><span style="color:#323232">;</span>
+                    </pre>
+                    </div>
+                    <div class="R1"><pre class="R1">ROLLBACK
+                    </pre></div>
+                    <p class="C">
+                    Проверим, что записи в журнале появились (от имени пользователя postgres операционной системы):
+                    </p>
+                    <div class="E">
+                    <pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cat</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>lib<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>log.txt
+                    </pre>
+                    </div>
+                    <div class="R"><pre class="R">student, 2023-07-26 11:09:07.028205+03, long_running. Stage 1/3...
+                    student, 2023-07-26 11:09:09.030894+03, long_running. Stage 2/3...
+                    student, 2023-07-26 11:09:12.034972+03, long_running. Stage 3/3...
+                    student, 2023-07-26 11:09:13.03703+03, long_running. Done.
+                    </pre></div>
+                    <p class="C">
+                    Чтобы пользователь student мог получить доступ к этому файлу, нужно использовать команду sudo.
+                    </p>
+                    <!-- end -->
+                    
+                    
+                    </body></html>
+
+
+                    <html><head>
+                        <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+                        <style>
+                        p.C    { font-size: 80%; }
+                        li     { font-size: 80%; }
+                        h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+                        div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+                        div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+                        div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+                        div.R1 { padding-left: 0px; page-break-inside: avoid; }
+                        div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+                        div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+                        div.E  { padding-left: 0px; font-weight: bold; }
+                        div.R  { padding-left: 0px; }
+                        </style>
+                        </head>
+                        <body style="margin: 59.5px;">
+                        <!-- body -->
+                        <!-- 18 -->
+                        <h1>
+                        Трассировка сеансов
+                        </h1>
+                        <p class="C">
+                        Простой пример включения трассировки — установка параметра log_statement в значение all (записывать все команды, включая DDL, модификацию данных и запросы).
+                        </p>
+                        <div class="S1">
+                        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> log_statement <span style="color:#323232">=</span> <span style="color:#1094a0">'all'</span><span style="color:#323232">;</span>
+                        </pre>
+                        </div>
+                        <div class="R1"><pre class="R1">SET
+                        </pre></div>
+                        <p class="C">
+                        Выполним какой-нибудь запрос:
+                        </p>
+                        <div class="S1">
+                        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">get_count</span><span style="color:#323232">(</span><span style="color:#1094a0">'pg_views'</span><span style="color:#323232">);</span>
+                        </pre>
+                        </div>
+                        <div class="R1"><pre class="R1">NOTICE:  cmd: SELECT COUNT(*) FROM pg_views
+                         get_count 
+                        -----------
+                               124
+                        (1 row)
+                        
+                        </pre></div>
+                        <p class="C">
+                        И выключим трассировку:
+                        </p>
+                        <div class="S1">
+                        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">RESET</span> log_statement<span style="color:#323232">;</span>
+                        </pre>
+                        </div>
+                        <div class="R1"><pre class="R1">RESET
+                        </pre></div>
+                        <p class="C">
+                        Информация о выполненных командах окажется в журнале сервера:
+                        </p>
+                        <div class="E">
+                        <pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">tail</span> <span style="color:#323232">-</span>n <span style="color:#1094a0">2</span> <span style="color:#323232">/</span>var<span style="color:#323232">/</span>log<span style="color:#323232">/</span>postgresql<span style="color:#323232">/</span>postgresql-12-main.log
+                        </pre>
+                        </div>
+                        <div class="R"><pre class="R">2023-07-26 11:09:13.253 MSK [28510] student@plpgsql_debug LOG:  statement: SELECT get_count('pg_views');
+                        2023-07-26 11:09:13.302 MSK [28510] student@plpgsql_debug LOG:  statement: RESET log_statement;
+                        </pre></div>
+                        <p class="C">
+                        Однако в журнал попадает только команда верхнего уровня, но не запрос внутри функции get_count.
+                        </p>
+                        <p class="C">
+                        Воспользуемся расширением auto_explain. Это расширение не нужно устанавливать в базу данных, но требуется загрузить в память. Это можно сделать для всего экземпляра с помощью параметра shared_preload_libraries, либо только текущего процесса:
+                        </p>
+                        <div class="S1">
+                        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">LOAD</span> <span style="color:#1094a0">'auto_explain'</span><span style="color:#323232">;</span>
+                        </pre>
+                        </div>
+                        <div class="R1"><pre class="R1">LOAD
+                        </pre></div>
+                        <p class="C">
+                        Установим трассировку всех команд независимо от длительности выполнения:
+                        </p>
+                        <div class="S1">
+                        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> auto_explain.log_min_duration <span style="color:#323232">=</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+                        </pre>
+                        </div>
+                        <div class="R1"><pre class="R1">SET
+                        </pre></div>
+                        <p class="C">
+                        Включим трассировку вложенных запросов:
+                        </p>
+                        <div class="S1">
+                        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> auto_explain.log_nested_statements <span style="color:#323232">=</span> on<span style="color:#323232">;</span>
+                        </pre>
+                        </div>
+                        <div class="R1"><pre class="R1">SET
+                        </pre></div>
+                        <p class="C">
+                        Сообщения выводятся с помощью того же механизма, что использует команда RAISE. По умолчанию используется уровень LOG, что обычно соответствует выводу в журнал. Изменив параметр, можно получать трассировку непосредственно в консоли:
+                        </p>
+                        <div class="S1">
+                        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> auto_explain.log_level <span style="color:#323232">=</span> <span style="color:#1094a0">'NOTICE'</span><span style="color:#323232">;</span>
+                        </pre>
+                        </div>
+                        <div class="R1"><pre class="R1">SET
+                        </pre></div>
+                        <p class="C">
+                        Повторим запрос:
+                        </p>
+                        <div class="S1">
+                        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">get_count</span><span style="color:#323232">(</span><span style="color:#1094a0">'pg_views'</span><span style="color:#323232">);</span>
+                        </pre>
+                        </div>
+                        <div class="R1"><pre class="R1">NOTICE:  cmd: SELECT COUNT(*) FROM pg_views
+                        NOTICE:  duration: 0.070 ms  plan:
+                        Query Text: SELECT COUNT(*) FROM pg_views
+                        Aggregate  (cost=18.25..18.26 rows=1 width=8)
+                          -&gt;  Seq Scan on pg_class c  (cost=0.00..17.94 rows=124 width=0)
+                                Filter: (relkind = 'v'::"char")
+                        NOTICE:  duration: 0.322 ms  plan:
+                        Query Text: SELECT get_count('pg_views');
+                        Result  (cost=0.00..0.26 rows=1 width=8)
+                         get_count 
+                        -----------
+                               124
+                        (1 row)
+                        
+                        </pre></div>
+                        <p class="C">
+                        Видим не только вызов функции, но и вложенный запрос, вместе с планами выполнения.
+                        </p>
+                        <!-- end -->
+                        
+                        
+                        </body></html>
+
+                        
+
+
+
+
+

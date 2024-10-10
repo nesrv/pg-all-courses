@@ -1,0 +1,406 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Пользователь и аутентификация в кластере 9.4
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-9.4<span style="color:#323232">/</span>bin<span style="color:#323232">/</span><span style="color:#00a150">psql</span> 
+</pre>
+</div>
+<div class="S5">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE USER</span> dbuser <span style="color:#3b6ac8">PASSWORD</span> <span style="color:#1094a0">'mypassword'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R5"><pre class="R5">
+CREATE ROLE
+</pre></div>
+<p class="C">
+Исправим pg_hba.conf (добавим нужную строку в начало файла):
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cd</span> <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-9.4<span style="color:#323232">/</span>data<span style="color:#323232">; {</span> <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">&quot;local all dbuser md5&quot;</span><span style="color:#323232">;</span> <span style="color:#3b6ac8">cat</span> pg_hba.conf<span style="color:#323232">; } &gt;</span> pg_hba.conf.new<span style="color:#323232">;</span> <span style="color:#3b6ac8">mv</span> pg_hba.conf<span style="color:#323232">{</span>.new<span style="color:#323232">,}</span>
+</pre>
+</div>
+<p class="C">
+Вот что получилось (не считая комментариев):
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">egrep</span> <span style="color:#1094a0">&quot;^[^#]&quot;</span> <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-9.4<span style="color:#323232">/</span>data<span style="color:#323232">/</span>pg_hba.conf
+</pre>
+</div>
+<div class="R"><pre class="R">
+local all dbuser md5
+local   all             all                                     trust
+host    all             all             127.0.0.1/32            trust
+host    all             all             ::1/128                 trust
+</pre></div>
+<p class="C">
+Добавим пароль в .pgpass, чтобы не вводить его вручную (при выполнении задания
+этот шаг лучше пропустить: будет непонятно, срабатывает аутентификация по
+паролю или безусловный доступ, включенный по умолчанию).
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">'*:*:*:dbuser:mypassword'</span> <span style="color:#323232">&gt; /</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>.pgpass
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">chmod</span> <span style="color:#1094a0">0600</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>.pgpass
+</pre>
+</div>
+<h1>
+Таблица в кластере 9.4
+</h1>
+<p class="C">
+Сначала создадим базу данных.
+</p>
+<div class="S5">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> admin_upgrade<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R5"><pre class="R5">
+CREATE DATABASE
+</pre></div>
+<div class="S5">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> admin_upgrade
+</pre>
+</div>
+<div class="R5"><pre class="R5">
+You are now connected to database &quot;admin_upgrade&quot; as user &quot;postgres&quot;.
+</pre></div>
+<p class="C">
+Тип данных hstore доступен в расширении hstore.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#3b6ac8">make</span> <span style="color:#323232">-</span>C <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>postgresql-9.4<span style="color:#1094a0">.8</span><span style="color:#323232">/</span>contrib<span style="color:#323232">/</span>hstore install | <span style="color:#3b6ac8">tail</span>
+</pre>
+</div>
+<div class="R"><pre class="R">
+make: Entering directory '/home/student/postgresql-9.4.8/contrib/hstore'
+/bin/mkdir -p '/usr/local/pgsql-9.4/lib'
+/bin/mkdir -p '/usr/local/pgsql-9.4/share/extension'
+/bin/mkdir -p '/usr/local/pgsql-9.4/share/extension'
+/usr/bin/install -c -m 755  hstore.so '/usr/local/pgsql-9.4/lib/hstore.so'
+/usr/bin/install -c -m 644 hstore.control '/usr/local/pgsql-9.4/share/extension/'
+/usr/bin/install -c -m 644 hstore--1.3.sql hstore--1.2--1.3.sql hstore--1.1--1.2.sql hstore--1.0--1.1.sql hstore--unpackaged--1.0.sql '/usr/local/pgsql-9.4/share/extension/'
+make: Leaving directory '/home/student/postgresql-9.4.8/contrib/hstore'
+</pre></div>
+<div class="S5">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE EXTENSION</span> hstore<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R5"><pre class="R5">
+CREATE EXTENSION
+</pre></div>
+<p class="C">
+Переключимся под пользователя dbuser и создадим таблицу.
+</p>
+<div class="S5">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> <span style="color:#323232">-</span> dbuser
+</pre>
+</div>
+<div class="R5"><pre class="R5">
+You are now connected to database &quot;admin_upgrade&quot; as user &quot;dbuser&quot;.
+</pre></div>
+<div class="S5">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">test</span><span style="color:#323232">(</span>id <span style="color:#a00050">serial</span><span style="color:#323232">,</span> kv hstore<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R5"><pre class="R5">
+CREATE TABLE
+</pre></div>
+<div class="S5">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">test</span><span style="color:#323232">(</span>kv<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'a=&gt;1,b=&gt;2'</span><span style="color:#323232">::</span><span style="color:#a00050">hstore</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R5"><pre class="R5">
+INSERT 0 1
+</pre></div>
+<div class="S5">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">test</span><span style="color:#323232">(</span>kv<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'c=&gt;3,d=&gt;4'</span><span style="color:#323232">::</span><span style="color:#a00050">hstore</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R5"><pre class="R5">
+INSERT 0 1
+</pre></div>
+<h1>
+Резервная копия
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-9.4<span style="color:#323232">/</span>bin<span style="color:#323232">/</span><span style="color:#00a150">pg_dumpall</span> <span style="color:#323232">&gt; /</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>dump.sql
+</pre>
+</div>
+<p class="C">
+Добавим табличное пространство по умолчанию:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">grep</span> <span style="color:#1094a0">'CREATE DATABASE admin_upgrade'</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>dump.sql
+</pre>
+</div>
+<div class="R"><pre class="R">
+CREATE DATABASE admin_upgrade WITH TEMPLATE = template0 OWNER = postgres;
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">sed</span> <span style="color:#323232">-</span>i <span style="color:#1094a0">'s/\(CREATE DATABASE admin_upgrade WITH\)/\1 TABLESPACE = ts/'</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>dump.sql
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#3b6ac8">grep</span> <span style="color:#1094a0">'CREATE DATABASE admin_upgrade'</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>dump.sql
+</pre>
+</div>
+<div class="R"><pre class="R">
+CREATE DATABASE admin_upgrade WITH TABLESPACE = ts TEMPLATE = template0 OWNER = postgres;
+</pre></div>
+<p class="C">
+Останавливаем сервер.
+</p>
+<div class="S5">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\q</span>
+</pre>
+</div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-9.4<span style="color:#323232">/</span>bin<span style="color:#323232">/</span><span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-9.4<span style="color:#323232">/</span>data stop
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to shut down.... done
+server stopped
+</pre></div>
+<h1>
+Обновление на 10: аутентификация
+</h1>
+<p class="C">
+Изменяем pg_hba.conf:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cd</span> <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-10<span style="color:#323232">/</span>data<span style="color:#323232">; {</span> <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">&quot;local all dbuser md5&quot;</span><span style="color:#323232">;</span> <span style="color:#3b6ac8">cat</span> pg_hba.conf<span style="color:#323232">; } &gt;</span> pg_hba.conf.new<span style="color:#323232">;</span> <span style="color:#3b6ac8">mv</span> pg_hba.conf<span style="color:#323232">{</span>.new<span style="color:#323232">,}</span>
+</pre>
+</div>
+<p class="C">
+Вот что получилось:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">egrep</span> <span style="color:#1094a0">&quot;^[^#]&quot;</span> <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-10<span style="color:#323232">/</span>data<span style="color:#323232">/</span>pg_hba.conf
+</pre>
+</div>
+<div class="R"><pre class="R">
+local all dbuser md5
+local   all             all                                     trust
+host    all             all             127.0.0.1/32            trust
+host    all             all             ::1/128                 trust
+local   replication     all                                     trust
+host    replication     all             127.0.0.1/32            trust
+host    replication     all             ::1/128                 trust
+</pre></div>
+<p class="C">
+Видно, что в версии 10 содержимое pg_hba.conf изменилось; потому не стоит
+просто копировать старый файл.
+</p>
+<p class="C">
+Настройки postgresql.conf не переносим, хотя в реальной жизни это, конечно,
+необходимо.
+</p>
+<h1>
+Обновление на 10: табличное пространство
+</h1>
+<p class="C">
+Создаем каталог для табличного пространства.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">rm</span> <span style="color:#323232">-</span>rf <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>ts_dir
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">mkdir</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>ts_dir
+</pre>
+</div>
+<p class="C">
+Стартуем кластер 10 и создаем табличное пространство.
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-10<span style="color:#323232">/</span>bin<span style="color:#323232">/</span><span style="color:#00a150">pg_ctl</span> <span style="color:#323232">-</span>w <span style="color:#323232">-</span>l <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres<span style="color:#323232">/</span>logfile-10 <span style="color:#323232">-</span>D <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-10<span style="color:#323232">/</span>data start
+</pre>
+</div>
+<div class="R"><pre class="R">
+waiting for server to start.... done
+server started
+</pre></div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-10<span style="color:#323232">/</span>bin<span style="color:#323232">/</span><span style="color:#00a150">psql</span> 
+</pre>
+</div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLESPACE</span> ts <span style="color:#3b6ac8">LOCATION</span> <span style="color:#1094a0">'/home/postgres/ts_dir'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+CREATE TABLESPACE
+</pre></div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\q</span>
+</pre>
+</div>
+<h1>
+Обновление на 10: восстановление из копии
+</h1>
+<p class="C">
+Создаем расширение:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#a00050">sudo</span> <span style="color:#3b6ac8">make</span> <span style="color:#323232">-</span>C <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>postgresql-10.6<span style="color:#323232">/</span>contrib<span style="color:#323232">/</span>hstore install | <span style="color:#3b6ac8">tail</span>
+</pre>
+</div>
+<div class="R"><pre class="R">
+make: Entering directory '/home/student/postgresql-10.6/contrib/hstore'
+/bin/mkdir -p '/usr/local/pgsql-10/lib'
+/bin/mkdir -p '/usr/local/pgsql-10/share/extension'
+/bin/mkdir -p '/usr/local/pgsql-10/share/extension'
+/usr/bin/install -c -m 755  hstore.so '/usr/local/pgsql-10/lib/hstore.so'
+/usr/bin/install -c -m 644 ./hstore.control '/usr/local/pgsql-10/share/extension/'
+/usr/bin/install -c -m 644 ./hstore--1.4.sql ./hstore--1.3--1.4.sql ./hstore--1.2--1.3.sql ./hstore--1.1--1.2.sql ./hstore--1.0--1.1.sql ./hstore--unpackaged--1.0.sql  '/usr/local/pgsql-10/share/extension/'
+make: Leaving directory '/home/student/postgresql-10.6/contrib/hstore'
+</pre></div>
+<p class="C">
+Восстанавливаем кластер из резервной копии:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-10<span style="color:#323232">/</span>bin<span style="color:#323232">/</span><span style="color:#00a150">psql</span> <span style="color:#323232">-</span>f <span style="color:#323232">/</span>home<span style="color:#323232">/</span>student<span style="color:#323232">/</span>dump.sql
+</pre>
+</div>
+<div class="R"><pre class="R">
+SET
+SET
+SET
+CREATE ROLE
+ALTER ROLE
+psql:/home/student/dump.sql:16: ERROR:  role &quot;postgres&quot; already exists
+ALTER ROLE
+CREATE DATABASE
+REVOKE
+REVOKE
+GRANT
+GRANT
+You are now connected to database &quot;admin_upgrade&quot; as user &quot;postgres&quot;.
+SET
+SET
+SET
+SET
+SET
+SET
+SET
+CREATE EXTENSION
+COMMENT
+CREATE EXTENSION
+COMMENT
+SET
+SET
+SET
+CREATE TABLE
+ALTER TABLE
+CREATE SEQUENCE
+ALTER TABLE
+ALTER SEQUENCE
+ALTER TABLE
+COPY 2
+ setval 
+--------
+      2
+(1 row)
+
+REVOKE
+REVOKE
+GRANT
+GRANT
+You are now connected to database &quot;postgres&quot; as user &quot;postgres&quot;.
+SET
+SET
+SET
+SET
+SET
+SET
+SET
+COMMENT
+CREATE EXTENSION
+COMMENT
+REVOKE
+REVOKE
+GRANT
+GRANT
+You are now connected to database &quot;template1&quot; as user &quot;postgres&quot;.
+SET
+SET
+SET
+SET
+SET
+SET
+SET
+COMMENT
+CREATE EXTENSION
+COMMENT
+REVOKE
+REVOKE
+GRANT
+GRANT
+</pre></div>
+<p class="C">
+При создании роли postgres выдается ошибка, поскольку такая роль уже
+существует; это нормально.
+</p>
+<h1>
+Проверка работоспособности
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql-10<span style="color:#323232">/</span>bin<span style="color:#323232">/</span><span style="color:#00a150">psql</span> <span style="color:#323232">-</span>d admin_upgrade <span style="color:#323232">-</span>U dbuser
+</pre>
+</div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\conninfo</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+You are connected to database &quot;admin_upgrade&quot; as user &quot;dbuser&quot; via socket in &quot;/tmp&quot; at port &quot;5433&quot;.
+</pre></div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT version</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+                                                    version                                                    
+---------------------------------------------------------------------------------------------------------------
+ PostgreSQL 10.6 on i686-pc-linux-gnu, compiled by gcc (Ubuntu 5.4.0-6ubuntu1~16.04.10) 5.4.0 20160609, 32-bit
+(1 row)
+
+</pre></div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">from</span> test<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+ id |         kv         
+----+--------------------
+  1 | &quot;a&quot;=&gt;&quot;1&quot;, &quot;b&quot;=&gt;&quot;2&quot;
+  2 | &quot;c&quot;=&gt;&quot;3&quot;, &quot;d&quot;=&gt;&quot;4&quot;
+(2 rows)
+
+</pre></div>
+<div class="S4">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_relation_filepath</span><span style="color:#323232">(</span><span style="color:#1094a0">'test'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R4"><pre class="R4">
+            pg_relation_filepath             
+---------------------------------------------
+ pg_tblspc/16384/PG_10_201707211/16386/16510
+(1 row)
+
+</pre></div>
+</body>
+</html>

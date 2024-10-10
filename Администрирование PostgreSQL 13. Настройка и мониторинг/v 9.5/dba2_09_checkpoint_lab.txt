@@ -1,0 +1,188 @@
+
+Создание базы и настройка
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+=> create database db9;
+CREATE DATABASE
+
+=> \c db9
+You are now connected to database "db9" as user "postgres".
+
+=> alter system reset all;
+ALTER SYSTEM
+
+=> alter system set bgwriter_lru_maxpages = 0;
+ALTER SYSTEM
+
+=> alter system set checkpoint_timeout = '30s';
+ALTER SYSTEM
+
+=> alter system set log_checkpoints = on;
+ALTER SYSTEM
+
+=> alter system set log_line_prefix = '%t ';
+ALTER SYSTEM
+
+=> \q
+
+pg_ctl restart -w -m fast -l /home/postgres/logfile 
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+psql 
+
+=> \c db9
+You are now connected to database "db9" as user "postgres".
+
+Таблицы для теста:
+
+pgbench -i db9 
+NOTICE:  table "pgbench_history" does not exist, skipping
+NOTICE:  table "pgbench_tellers" does not exist, skipping
+NOTICE:  table "pgbench_accounts" does not exist, skipping
+NOTICE:  table "pgbench_branches" does not exist, skipping
+creating tables...
+100000 of 100000 tuples (100%) done (elapsed 0.11 s, remaining 0.00 s)
+vacuum...
+set primary keys...
+done.
+
+Статистика
+~~~~~~~~~~
+
+
+=> select pg_stat_reset_shared('bgwriter');
+ pg_stat_reset_shared 
+----------------------
+ 
+(1 row)
+
+
+Нагрузка
+~~~~~~~~
+
+
+=> select pg_current_xlog_location() as start_lsn \gset
+
+pgbench -T 180 -P 10 db9 
+starting vacuum...end.
+progress: 10.0 s, 914.9 tps, lat 1.090 ms stddev 0.485
+progress: 20.0 s, 929.7 tps, lat 1.074 ms stddev 0.448
+progress: 30.0 s, 919.3 tps, lat 1.086 ms stddev 0.561
+progress: 40.0 s, 917.7 tps, lat 1.088 ms stddev 0.497
+progress: 50.0 s, 902.9 tps, lat 1.106 ms stddev 0.557
+progress: 60.0 s, 911.6 tps, lat 1.095 ms stddev 0.578
+progress: 70.0 s, 902.9 tps, lat 1.106 ms stddev 0.506
+progress: 80.0 s, 909.5 tps, lat 1.098 ms stddev 0.532
+progress: 90.0 s, 906.2 tps, lat 1.102 ms stddev 0.515
+progress: 100.0 s, 914.3 tps, lat 1.092 ms stddev 0.427
+progress: 110.0 s, 901.4 tps, lat 1.108 ms stddev 0.614
+progress: 120.0 s, 917.0 tps, lat 1.089 ms stddev 0.571
+progress: 130.0 s, 913.7 tps, lat 1.093 ms stddev 0.469
+progress: 140.0 s, 918.8 tps, lat 1.087 ms stddev 0.523
+progress: 150.0 s, 913.4 tps, lat 1.093 ms stddev 0.574
+progress: 160.0 s, 874.4 tps, lat 1.142 ms stddev 0.832
+progress: 170.0 s, 902.6 tps, lat 1.106 ms stddev 0.698
+progress: 180.0 s, 917.1 tps, lat 1.089 ms stddev 0.480
+transaction type: TPC-B (sort of)
+scaling factor: 1
+query mode: simple
+number of clients: 1
+number of threads: 1
+duration: 180 s
+number of transactions actually processed: 163875
+latency average: 1.097 ms
+latency stddev: 0.555 ms
+tps = 910.413167 (including connections establishing)
+tps = 910.425275 (excluding connections establishing)
+
+=> select pg_current_xlog_location() as end_lsn \gset
+
+Объем журнала
+~~~~~~~~~~~~~
+
+
+=> select pg_size_pretty(:'end_lsn'::pg_lsn - :'start_lsn'::pg_lsn);
+ pg_size_pretty 
+----------------
+ 152 MB
+(1 row)
+
+
+Выполнение контрольной точки
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Средний объем генерируемых журнальных записей в минуту:
+
+=> select pg_size_pretty(((:'end_lsn'::pg_lsn - :'start_lsn'::pg_lsn)/3)::numeric(20));
+ pg_size_pretty 
+----------------
+ 51 MB
+(1 row)
+
+
+Максимальный размер журнала:
+
+=> select pg_size_pretty(setting::numeric*16*1024*1024) from pg_settings where name='max_wal_size';
+ pg_size_pretty 
+----------------
+ 1024 MB
+(1 row)
+
+
+Если генерируемый объем не превышает максимальный, то основная часть контрольных точек будет выполнена по расписанию.
+
+Проверим статистику:
+
+=> select checkpoints_timed, checkpoints_req from pg_stat_bgwriter;
+ checkpoints_timed | checkpoints_req 
+-------------------+-----------------
+                 6 |               0
+(1 row)
+
+
+Журнал сообщений сервера
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+tail -n 20 /home/postgres/logfile 
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+LOG:  database system is shut down
+2017-12-14 19:03:59 MSK LOG:  database system was shut down at 2017-12-14 19:03:58 MSK
+2017-12-14 19:03:59 MSK LOG:  MultiXact member wraparound protections are now enabled
+2017-12-14 19:03:59 MSK LOG:  database system is ready to accept connections
+2017-12-14 19:03:59 MSK LOG:  autovacuum launcher started
+2017-12-14 19:04:29 MSK LOG:  checkpoint starting: time
+2017-12-14 19:04:44 MSK LOG:  checkpoint complete: wrote 2059 buffers (12.6%); 0 transaction log file(s) added, 0 removed, 0 recycled; write=14.466 s, sync=0.052 s, total=14.539 s; sync files=44, longest=0.026 s, average=0.001 s; distance=24939 kB, estimate=24939 kB
+2017-12-14 19:04:59 MSK LOG:  checkpoint starting: time
+2017-12-14 19:05:14 MSK LOG:  checkpoint complete: wrote 2070 buffers (12.6%); 0 transaction log file(s) added, 1 removed, 0 recycled; write=14.965 s, sync=0.044 s, total=15.023 s; sync files=17, longest=0.025 s, average=0.002 s; distance=24920 kB, estimate=24937 kB
+2017-12-14 19:05:29 MSK LOG:  checkpoint starting: time
+2017-12-14 19:05:44 MSK LOG:  checkpoint complete: wrote 2028 buffers (12.4%); 0 transaction log file(s) added, 1 removed, 1 recycled; write=14.860 s, sync=0.050 s, total=14.925 s; sync files=7, longest=0.031 s, average=0.007 s; distance=25098 kB, estimate=25098 kB
+2017-12-14 19:05:59 MSK LOG:  checkpoint starting: time
+2017-12-14 19:06:14 MSK LOG:  checkpoint complete: wrote 2114 buffers (12.9%); 0 transaction log file(s) added, 0 removed, 1 recycled; write=14.966 s, sync=0.046 s, total=15.027 s; sync files=17, longest=0.030 s, average=0.002 s; distance=24311 kB, estimate=25020 kB
+2017-12-14 19:06:29 MSK LOG:  checkpoint starting: time
+2017-12-14 19:06:44 MSK LOG:  checkpoint complete: wrote 1980 buffers (12.1%); 0 transaction log file(s) added, 0 removed, 2 recycled; write=14.964 s, sync=0.058 s, total=15.031 s; sync files=5, longest=0.044 s, average=0.011 s; distance=23660 kB, estimate=24884 kB
+2017-12-14 19:06:59 MSK LOG:  checkpoint starting: time
+
+
+Время записи на диск - следствие установки параметра checkpoint_completion_target = 0.5 (15 секунд в нашем случае).
+
+Восстанавливаем настройки
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+=> alter system reset all;
+ALTER SYSTEM
+
+pg_ctl restart -w -m fast -l /home/postgres/logfile 
+waiting for server to shut down.... done
+server stopped
+waiting for server to start.... done
+server started
+
+=> \q

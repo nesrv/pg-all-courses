@@ -1,0 +1,77 @@
+
+Табличное пространство
+~~~~~~~~~~~~~~~~~~~~~~
+
+
+mkdir /home/postgres/ts_dir 
+        psql 
+
+        => create tablespace ts location '/home/postgres/ts_dir';
+        CREATE TABLESPACE
+
+
+База данных
+~~~~~~~~~~~
+
+
+        => create database db6 template template0 tablespace ts;
+        CREATE DATABASE
+
+        => \c db6
+        You are now connected to database "db6" as user "postgres".
+
+
+Таблица
+~~~~~~~
+
+
+        => create table t(n numeric) tablespace pg_default;
+        CREATE TABLE
+
+
+Файлы, относящиеся к таблице
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => select pg_relation_filepath('t') as filepath \gset
+
+        => \setenv FILEPATH :filepath
+
+        => \! ls $PGDATA/$FILEPATH*
+        /usr/local/pgsql/data/base/16389/16390
+
+
+Перемещение таблицы
+~~~~~~~~~~~~~~~~~~~
+
+
+        => alter table t set tablespace ts;
+        ALTER TABLE
+
+
+Файлы, относящиеся к таблице
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => select pg_relation_filepath('t') as filepath \gset
+
+        => \setenv FILEPATH :filepath
+
+        => \! ls $PGDATA/$FILEPATH*
+        /usr/local/pgsql/data/pg_tblspc/16388/PG_9.4_201409291/16389/16396
+
+
+Удаление табличного пространства
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+        => \c postgres
+        You are now connected to database "postgres" as user "postgres".
+
+        => drop database db6;
+        DROP DATABASE
+
+        => drop tablespace ts;
+        DROP TABLESPACE
+
+        => \q

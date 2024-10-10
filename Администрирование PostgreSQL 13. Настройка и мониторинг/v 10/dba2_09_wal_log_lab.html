@@ -1,0 +1,204 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Размер журнальных записей
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> wal_log<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> wal_log
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;wal_log&quot; as user &quot;postgres&quot;.
+</pre></div>
+<p class="C">
+Запомним начальную позицию в журнале:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_current_wal_insert_lsn</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_current_wal_insert_lsn 
+---------------------------
+ 0/2C46450C
+(1 row)
+
+</pre></div>
+<p class="C">
+Создадим таблицу и добавим строки:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">PRIMARY KEY</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">),(</span><span style="color:#1094a0">2</span><span style="color:#323232">),(</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 3
+</pre></div>
+<p class="C">
+Запомним конечную позицию:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_current_wal_insert_lsn</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_current_wal_insert_lsn 
+---------------------------
+ 0/2C480D70
+(1 row)
+
+</pre></div>
+<p class="C">
+Размер журнальных записей:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">'0/2C480D70'</span><span style="color:#323232">::</span><span style="color:#a00050">pg_lsn</span> <span style="color:#323232">-</span> <span style="color:#1094a0">'0/2C46450C'</span><span style="color:#323232">::</span><span style="color:#a00050">pg_lsn</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ ?column? 
+----------
+   116836
+(1 row)
+
+</pre></div>
+<h1>
+Состав журнальных записей
+</h1>
+<p class="C">
+Журнальный файл:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_walfile_name</span><span style="color:#323232">(</span><span style="color:#1094a0">'0/2C46450C'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+     pg_walfile_name      
+--------------------------
+ 00000001000000000000002C
+(1 row)
+
+</pre></div>
+<p class="C">
+Смотрим записи:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#00a150">pg_waldump</span> <span style="color:#323232">-</span>p <span style="color:#323232">/</span>usr<span style="color:#323232">/</span>local<span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span>data<span style="color:#323232">/</span>pg_wal <span style="color:#323232">-</span>s <span style="color:#1094a0">0</span><span style="color:#323232">/</span><span style="color:#1094a0">2</span>C46450C <span style="color:#323232">-</span>e <span style="color:#1094a0">0</span><span style="color:#323232">/</span><span style="color:#1094a0">2</span>C480D70 <span style="color:#1094a0">00000001000000000000002</span>C
+</pre>
+</div>
+<div class="R"><pre class="R">
+rmgr: Storage     len (rec/tot):     42/    42, tx:          0, lsn: 0/2C46450C, prev 0/2C463DE4, desc: CREATE base/25194/25195
+rmgr: Heap        len (rec/tot):     54/  7566, tx:     155589, lsn: 0/2C464538, prev 0/2C46450C, desc: INSERT off 21, blkref #0: rel 1663/25194/1247 blk 6 FPW
+rmgr: Btree       len (rec/tot):     53/  6109, tx:     155589, lsn: 0/2C4662DC, prev 0/2C464538, desc: INSERT_LEAF off 376, blkref #0: rel 1663/25194/2703 blk 1 FPW
+rmgr: Btree       len (rec/tot):     53/  2077, tx:     155589, lsn: 0/2C467ABC, prev 0/2C4662DC, desc: INSERT_LEAF off 30, blkref #0: rel 1663/25194/2704 blk 2 FPW
+rmgr: Heap        len (rec/tot):     54/  7938, tx:     155589, lsn: 0/2C4682F0, prev 0/2C467ABC, desc: INSERT off 140, blkref #0: rel 1663/25194/2608 blk 40 FPW
+rmgr: Btree       len (rec/tot):     53/  5133, tx:     155589, lsn: 0/2C46A208, prev 0/2C4682F0, desc: INSERT_LEAF off 193, blkref #0: rel 1663/25194/2673 blk 25 FPW
+rmgr: Btree       len (rec/tot):     53/  7821, tx:     155589, lsn: 0/2C46B618, prev 0/2C46A208, desc: INSERT_LEAF off 198, blkref #0: rel 1663/25194/2674 blk 36 FPW
+rmgr: Heap        len (rec/tot):    203/   203, tx:     155589, lsn: 0/2C46D4BC, prev 0/2C46B618, desc: INSERT off 22, blkref #0: rel 1663/25194/1247 blk 6
+rmgr: Btree       len (rec/tot):     60/    60, tx:     155589, lsn: 0/2C46D588, prev 0/2C46D4BC, desc: INSERT_LEAF off 376, blkref #0: rel 1663/25194/2703 blk 1
+rmgr: Btree       len (rec/tot):     53/  5081, tx:     155589, lsn: 0/2C46D5C4, prev 0/2C46D588, desc: INSERT_LEAF off 61, blkref #0: rel 1663/25194/2704 blk 1 FPW
+rmgr: Heap        len (rec/tot):     80/    80, tx:     155589, lsn: 0/2C46E9B4, prev 0/2C46D5C4, desc: INSERT off 141, blkref #0: rel 1663/25194/2608 blk 40
+rmgr: Btree       len (rec/tot):     68/    68, tx:     155589, lsn: 0/2C46EA04, prev 0/2C46E9B4, desc: INSERT_LEAF off 193, blkref #0: rel 1663/25194/2673 blk 25
+rmgr: Btree       len (rec/tot):     53/  5949, tx:     155589, lsn: 0/2C46EA48, prev 0/2C46EA04, desc: INSERT_LEAF off 85, blkref #0: rel 1663/25194/2674 blk 32 FPW
+rmgr: Heap        len (rec/tot):     54/   850, tx:     155589, lsn: 0/2C47019C, prev 0/2C46EA48, desc: INSERT off 1, blkref #0: rel 1663/25194/1259 blk 0 FPW
+rmgr: Btree       len (rec/tot):     53/  5565, tx:     155589, lsn: 0/2C4704F0, prev 0/2C47019C, desc: INSERT_LEAF off 342, blkref #0: rel 1663/25194/2662 blk 1 FPW
+rmgr: Btree       len (rec/tot):     53/  1825, tx:     155589, lsn: 0/2C471AB0, prev 0/2C4704F0, desc: INSERT_LEAF off 35, blkref #0: rel 1663/25194/2663 blk 2 FPW
+rmgr: Btree       len (rec/tot):     53/  3413, tx:     155589, lsn: 0/2C4721E8, prev 0/2C471AB0, desc: INSERT_LEAF off 162, blkref #0: rel 1663/25194/3455 blk 4 FPW
+rmgr: Heap        len (rec/tot):     54/  7518, tx:     155589, lsn: 0/2C472F40, prev 0/2C4721E8, desc: INSERT off 32, blkref #0: rel 1663/25194/1249 blk 15 FPW
+rmgr: Btree       len (rec/tot):     53/  1737, tx:     155589, lsn: 0/2C474CB4, prev 0/2C472F40, desc: INSERT_LEAF off 46, blkref #0: rel 1663/25194/2658 blk 12 FPW
+rmgr: Btree       len (rec/tot):     53/  1273, tx:     155589, lsn: 0/2C475380, prev 0/2C474CB4, desc: INSERT_LEAF off 59, blkref #0: rel 1663/25194/2659 blk 9 FPW
+rmgr: Heap        len (rec/tot):    167/   167, tx:     155589, lsn: 0/2C47587C, prev 0/2C475380, desc: INSERT off 33, blkref #0: rel 1663/25194/1249 blk 15
+rmgr: Btree       len (rec/tot):     68/    68, tx:     155589, lsn: 0/2C475924, prev 0/2C47587C, desc: INSERT_LEAF off 46, blkref #0: rel 1663/25194/2658 blk 12
+rmgr: Btree       len (rec/tot):     64/    64, tx:     155589, lsn: 0/2C475968, prev 0/2C475924, desc: INSERT_LEAF off 59, blkref #0: rel 1663/25194/2659 blk 9
+rmgr: Heap        len (rec/tot):    167/   167, tx:     155589, lsn: 0/2C4759A8, prev 0/2C475968, desc: INSERT off 34, blkref #0: rel 1663/25194/1249 blk 15
+rmgr: Btree       len (rec/tot):     68/    68, tx:     155589, lsn: 0/2C475A50, prev 0/2C4759A8, desc: INSERT_LEAF off 48, blkref #0: rel 1663/25194/2658 blk 12
+rmgr: Btree       len (rec/tot):     64/    64, tx:     155589, lsn: 0/2C475A94, prev 0/2C475A50, desc: INSERT_LEAF off 59, blkref #0: rel 1663/25194/2659 blk 9
+rmgr: Heap        len (rec/tot):    167/   167, tx:     155589, lsn: 0/2C475AD4, prev 0/2C475A94, desc: INSERT off 35, blkref #0: rel 1663/25194/1249 blk 15
+rmgr: Btree       len (rec/tot):     68/    68, tx:     155589, lsn: 0/2C475B7C, prev 0/2C475AD4, desc: INSERT_LEAF off 46, blkref #0: rel 1663/25194/2658 blk 12
+rmgr: Btree       len (rec/tot):     64/    64, tx:     155589, lsn: 0/2C475BC0, prev 0/2C475B7C, desc: INSERT_LEAF off 59, blkref #0: rel 1663/25194/2659 blk 9
+rmgr: Heap        len (rec/tot):    167/   167, tx:     155589, lsn: 0/2C475C00, prev 0/2C475BC0, desc: INSERT off 37, blkref #0: rel 1663/25194/1249 blk 15
+rmgr: Btree       len (rec/tot):     68/    68, tx:     155589, lsn: 0/2C475CA8, prev 0/2C475C00, desc: INSERT_LEAF off 49, blkref #0: rel 1663/25194/2658 blk 12
+rmgr: Btree       len (rec/tot):     64/    64, tx:     155589, lsn: 0/2C475CEC, prev 0/2C475CA8, desc: INSERT_LEAF off 59, blkref #0: rel 1663/25194/2659 blk 9
+rmgr: Heap        len (rec/tot):    167/   167, tx:     155589, lsn: 0/2C475D2C, prev 0/2C475CEC, desc: INSERT off 39, blkref #0: rel 1663/25194/1249 blk 15
+rmgr: Btree       len (rec/tot):     68/    68, tx:     155589, lsn: 0/2C475DD4, prev 0/2C475D2C, desc: INSERT_LEAF off 46, blkref #0: rel 1663/25194/2658 blk 12
+rmgr: Btree       len (rec/tot):     64/    64, tx:     155589, lsn: 0/2C475E18, prev 0/2C475DD4, desc: INSERT_LEAF off 59, blkref #0: rel 1663/25194/2659 blk 9
+rmgr: XLOG        len (rec/tot):     49/  8241, tx:     155589, lsn: 0/2C475E58, prev 0/2C475E18, desc: FPI_FOR_HINT , blkref #0: rel 1663/25194/1249 fork fsm blk 2 FPW
+rmgr: Heap        len (rec/tot):     54/  7862, tx:     155589, lsn: 0/2C477EA0, prev 0/2C475E58, desc: INSERT off 54, blkref #0: rel 1663/25194/1249 blk 30 FPW
+rmgr: Btree       len (rec/tot):     72/    72, tx:     155589, lsn: 0/2C479D6C, prev 0/2C477EA0, desc: INSERT_LEAF off 50, blkref #0: rel 1663/25194/2658 blk 12
+rmgr: Btree       len (rec/tot):     64/    64, tx:     155589, lsn: 0/2C479DB4, prev 0/2C479D6C, desc: INSERT_LEAF off 59, blkref #0: rel 1663/25194/2659 blk 9
+rmgr: Heap        len (rec/tot):     80/    80, tx:     155589, lsn: 0/2C479DF4, prev 0/2C479DB4, desc: INSERT off 142, blkref #0: rel 1663/25194/2608 blk 40
+rmgr: Btree       len (rec/tot):     53/  7005, tx:     155589, lsn: 0/2C479E44, prev 0/2C479DF4, desc: INSERT_LEAF off 271, blkref #0: rel 1663/25194/2673 blk 32 FPW
+rmgr: Btree       len (rec/tot):     53/  4581, tx:     155589, lsn: 0/2C47B9B8, prev 0/2C479E44, desc: INSERT_LEAF off 102, blkref #0: rel 1663/25194/2674 blk 22 FPW
+rmgr: Standby     len (rec/tot):     42/    42, tx:     155589, lsn: 0/2C47CBB4, prev 0/2C47B9B8, desc: LOCK xid 155589 db 25194 rel 25195 
+rmgr: Storage     len (rec/tot):     42/    42, tx:     155589, lsn: 0/2C47CBE0, prev 0/2C47CBB4, desc: CREATE base/25194/25198
+rmgr: Standby     len (rec/tot):     42/    42, tx:     155589, lsn: 0/2C47CC0C, prev 0/2C47CBE0, desc: LOCK xid 155589 db 25194 rel 25198 
+rmgr: Heap        len (rec/tot):    199/   199, tx:     155589, lsn: 0/2C47CC38, prev 0/2C47CC0C, desc: INSERT off 2, blkref #0: rel 1663/25194/1259 blk 0
+rmgr: Btree       len (rec/tot):     60/    60, tx:     155589, lsn: 0/2C47CD00, prev 0/2C47CC38, desc: INSERT_LEAF off 343, blkref #0: rel 1663/25194/2662 blk 1
+rmgr: Btree       len (rec/tot):     68/    68, tx:     155589, lsn: 0/2C47CD3C, prev 0/2C47CD00, desc: INSERT_LEAF off 36, blkref #0: rel 1663/25194/2663 blk 2
+rmgr: Btree       len (rec/tot):     64/    64, tx:     155589, lsn: 0/2C47CD80, prev 0/2C47CD3C, desc: INSERT_LEAF off 163, blkref #0: rel 1663/25194/3455 blk 4
+rmgr: Heap        len (rec/tot):    167/   167, tx:     155589, lsn: 0/2C47CDC0, prev 0/2C47CD80, desc: INSERT off 55, blkref #0: rel 1663/25194/1249 blk 30
+rmgr: Btree       len (rec/tot):     64/    64, tx:     155589, lsn: 0/2C47CE68, prev 0/2C47CDC0, desc: INSERT_LEAF off 53, blkref #0: rel 1663/25194/2658 blk 12
+rmgr: Btree       len (rec/tot):     64/    64, tx:     155589, lsn: 0/2C47CEA8, prev 0/2C47CE68, desc: INSERT_LEAF off 66, blkref #0: rel 1663/25194/2659 blk 9
+rmgr: Heap        len (rec/tot):     54/  7014, tx:     155589, lsn: 0/2C47CEE8, prev 0/2C47CEA8, desc: INSERT off 34, blkref #0: rel 1663/25194/2610 blk 2 FPW
+rmgr: Btree       len (rec/tot):     53/  2253, tx:     155589, lsn: 0/2C47EA64, prev 0/2C47CEE8, desc: INSERT_LEAF off 135, blkref #0: rel 1663/25194/2678 blk 1 FPW
+rmgr: Btree       len (rec/tot):     53/  2253, tx:     155589, lsn: 0/2C47F334, prev 0/2C47EA64, desc: INSERT_LEAF off 135, blkref #0: rel 1663/25194/2679 blk 1 FPW
+rmgr: Heap        len (rec/tot):     54/  1766, tx:     155589, lsn: 0/2C47FC04, prev 0/2C47F334, desc: INSERT off 3, blkref #0: rel 1663/25194/2606 blk 0 FPW
+rmgr: Btree       len (rec/tot):     53/   197, tx:     155589, lsn: 0/2C480300, prev 0/2C47FC04, desc: INSERT_LEAF off 2, blkref #0: rel 1663/25194/2664 blk 1 FPW
+rmgr: Btree       len (rec/tot):     53/   141, tx:     155589, lsn: 0/2C4803C8, prev 0/2C480300, desc: INSERT_LEAF off 3, blkref #0: rel 1663/25194/2665 blk 1 FPW
+rmgr: Btree       len (rec/tot):     53/   141, tx:     155589, lsn: 0/2C480458, prev 0/2C4803C8, desc: INSERT_LEAF off 1, blkref #0: rel 1663/25194/2666 blk 1 FPW
+rmgr: Btree       len (rec/tot):     53/   141, tx:     155589, lsn: 0/2C4804E8, prev 0/2C480458, desc: INSERT_LEAF off 3, blkref #0: rel 1663/25194/2667 blk 1 FPW
+rmgr: Heap        len (rec/tot):     80/    80, tx:     155589, lsn: 0/2C480578, prev 0/2C4804E8, desc: INSERT off 143, blkref #0: rel 1663/25194/2608 blk 40
+rmgr: Btree       len (rec/tot):     68/    68, tx:     155589, lsn: 0/2C4805C8, prev 0/2C480578, desc: INSERT_LEAF off 274, blkref #0: rel 1663/25194/2673 blk 32
+rmgr: Btree       len (rec/tot):     68/    68, tx:     155589, lsn: 0/2C48060C, prev 0/2C4805C8, desc: INSERT_LEAF off 199, blkref #0: rel 1663/25194/2674 blk 36
+rmgr: Heap        len (rec/tot):     80/    80, tx:     155589, lsn: 0/2C480650, prev 0/2C48060C, desc: INSERT off 144, blkref #0: rel 1663/25194/2608 blk 40
+rmgr: Btree       len (rec/tot):     68/    68, tx:     155589, lsn: 0/2C4806A0, prev 0/2C480650, desc: INSERT_LEAF off 272, blkref #0: rel 1663/25194/2673 blk 32
+rmgr: Btree       len (rec/tot):     68/    68, tx:     155589, lsn: 0/2C4806E4, prev 0/2C4806A0, desc: INSERT_LEAF off 97, blkref #0: rel 1663/25194/2674 blk 22
+rmgr: XLOG        len (rec/tot):     49/   113, tx:     155589, lsn: 0/2C480728, prev 0/2C4806E4, desc: FPI , blkref #0: rel 1663/25194/25198 blk 0 FPW
+rmgr: Heap        len (rec/tot):    184/   184, tx:     155589, lsn: 0/2C48079C, prev 0/2C480728, desc: INPLACE off 1, blkref #0: rel 1663/25194/1259 blk 0
+rmgr: Heap        len (rec/tot):    184/   184, tx:     155589, lsn: 0/2C480854, prev 0/2C48079C, desc: INPLACE off 2, blkref #0: rel 1663/25194/1259 blk 0
+rmgr: Transaction len (rec/tot):    645/   645, tx:     155589, lsn: 0/2C48090C, prev 0/2C480854, desc: COMMIT 2019-08-12 17:22:00.558982 MSK; inval msgs: catcache 50 catcache 49 catcache 50 catcache 49 catcache 50 catcache 49 catcache 7 catcache 6 catcache 32 catcache 19 catcache 74 catcache 73 catcache 74 catcache 73 catcache 50 catcache 49 catcache 7 catcache 6 catcache 7 catcache 6 catcache 7 catcache 6 catcache 7 catcache 6 catcache 7 catcache 6 catcache 7 catcache 6 catcache 7 catcache 6 relcache 25195 relcache 25198 relcache 25198 relcache 25195 snapshot 2608 snapshot 2608 relcache 25195
+rmgr: Heap        len (rec/tot):     59/    59, tx:     155590, lsn: 0/2C480B94, prev 0/2C48090C, desc: INSERT+INIT off 1, blkref #0: rel 1663/25194/25195 blk 0
+rmgr: Btree       len (rec/tot):     78/    78, tx:     155590, lsn: 0/2C480BD0, prev 0/2C480B94, desc: NEWROOT lev 0, blkref #0: rel 1663/25194/25198 blk 1, blkref #2: rel 1663/25194/25198 blk 0
+rmgr: Btree       len (rec/tot):     60/    60, tx:     155590, lsn: 0/2C480C20, prev 0/2C480BD0, desc: INSERT_LEAF off 1, blkref #0: rel 1663/25194/25198 blk 1
+rmgr: Heap        len (rec/tot):     59/    59, tx:     155590, lsn: 0/2C480C5C, prev 0/2C480C20, desc: INSERT off 2, blkref #0: rel 1663/25194/25195 blk 0
+rmgr: Btree       len (rec/tot):     60/    60, tx:     155590, lsn: 0/2C480C98, prev 0/2C480C5C, desc: INSERT_LEAF off 2, blkref #0: rel 1663/25194/25198 blk 1
+rmgr: Heap        len (rec/tot):     59/    59, tx:     155590, lsn: 0/2C480CD4, prev 0/2C480C98, desc: INSERT off 3, blkref #0: rel 1663/25194/25195 blk 0
+rmgr: Btree       len (rec/tot):     60/    60, tx:     155590, lsn: 0/2C480D10, prev 0/2C480CD4, desc: INSERT_LEAF off 3, blkref #0: rel 1663/25194/25198 blk 1
+rmgr: Transaction len (rec/tot):     34/    34, tx:     155590, lsn: 0/2C480D4C, prev 0/2C480D10, desc: COMMIT 2019-08-12 17:22:00.582422 MSK
+</pre></div>
+<p class="C">
+Вначале (до первой операции COMMIT) происходит активная работа с таблицами
+и индексами системного каталога. За счет этого размер записей и получился
+существенно больше, чем в демонстрации.
+</p>
+</body>
+</html>

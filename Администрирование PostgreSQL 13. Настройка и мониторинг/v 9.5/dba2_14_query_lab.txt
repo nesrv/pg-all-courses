@@ -1,0 +1,83 @@
+
+База и таблица
+~~~~~~~~~~~~~~
+
+
+=> create database db14;
+CREATE DATABASE
+
+=> \c db14
+You are now connected to database "db14" as user "postgres".
+
+=> create table t(id serial primary key, n integer);
+CREATE TABLE
+
+=> insert into t(n) select (random()*100)::integer from generate_series(1,1000000);
+INSERT 0 1000000
+
+=> \timing on
+Timing is on.
+
+Долгий запрос
+~~~~~~~~~~~~~
+
+Обычный оператор:
+
+=> do $$
+=> begin
+=>   for i in 1..100 loop
+=>     execute 'select sum(n)::integer from t';
+=>   end loop;
+=> end;
+=> $$ language plpgsql;
+DO
+Time: 11840,887 ms
+
+Подготовленный оператор:
+
+=> do $$
+=> declare
+=>   res integer;
+=> begin
+=>   for i in 1..100 loop
+=>     select sum(n)::integer into res from t;
+=>   end loop;
+=> end;
+=> $$ language plpgsql;
+DO
+Time: 11769,769 ms
+
+Время изменилось незначительно - большую часть занимает выполнение запроса.
+
+Быстрый запрос
+~~~~~~~~~~~~~~
+
+Обычный оператор:
+
+=> do $$
+=> begin
+=>   for i in 1..100000 loop
+=>     execute 'select n from t where id = 42';
+=>   end loop;
+=> end;
+=> $$ language plpgsql;
+DO
+Time: 3159,778 ms
+
+Подготовленный оператор:
+
+=> do $$
+=> declare
+=>   res integer;
+=> begin
+=>   for i in 1..100000 loop
+=>     select n into res from t where id = 42;
+=>   end loop;
+=> end;
+=> $$ language plpgsql;
+DO
+Time: 498,934 ms
+
+Время сократилось существенно - разбор и планирование занимает большую часть общего времени.
+
+=> \q

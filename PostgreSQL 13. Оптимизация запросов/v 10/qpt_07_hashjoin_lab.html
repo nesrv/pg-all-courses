@@ -1,0 +1,123 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Список занятых мест
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> f.flight_id<span style="color:#323232">,</span> bp.seat_no
+  <span style="color:#3b6ac8">FROM</span> flights f
+    <span style="color:#3b6ac8">JOIN</span> boarding_passes bp <span style="color:#3b6ac8">ON</span> bp.flight_id <span style="color:#323232">=</span> f.flight_id<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Hash Join  (cost=7985.51..225367.71 rows=7925845 width=7)
+   Hash Cond: (bp.flight_id = f.flight_id)
+   -&gt;  Seq Scan on boarding_passes bp  (cost=0.00..133919.45 rows=7925845 width=7)
+   -&gt;  Hash  (cost=4564.67..4564.67 rows=214867 width=4)
+         -&gt;  Seq Scan on flights f  (cost=0.00..4564.67 rows=214867 width=4)
+(5 rows)
+
+</pre></div>
+<p class="C">
+Использовано соединение хешированием.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">COSTS OFF</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">ANALYZE</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">SELECT</span> f.flight_id<span style="color:#323232">,</span> bp.seat_no
+  <span style="color:#3b6ac8">FROM</span> flights f
+    <span style="color:#3b6ac8">JOIN</span> boarding_passes bp <span style="color:#3b6ac8">ON</span> bp.flight_id <span style="color:#323232">=</span> f.flight_id<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Hash Join (actual time=220.598..10245.637 rows=7925812 loops=1)
+   Hash Cond: (bp.flight_id = f.flight_id)
+   -&gt;  Seq Scan on boarding_passes bp (actual time=0.499..3678.391 rows=7925812 loops=1)
+   -&gt;  Hash (actual time=219.576..219.577 rows=214867 loops=1)
+         Buckets: 262144  Batches: 2  Memory Usage: 3553kB
+         -&gt;  Seq Scan on flights f (actual time=0.482..110.486 rows=214867 loops=1)
+ Planning time: 0.248 ms
+ Execution time: 12249.401 ms
+(8 rows)
+
+</pre></div>
+<p class="C">
+Хеш-таблица не поместилась целиком в память, потребовалось 2 пакета.
+</p>
+<h1>
+Количество занятых мест
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span>
+  <span style="color:#3b6ac8">FROM</span> flights f
+    <span style="color:#3b6ac8">JOIN</span> boarding_passes bp <span style="color:#3b6ac8">ON</span> bp.flight_id <span style="color:#323232">=</span> f.flight_id<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=136907.22..136907.23 rows=1 width=8)
+   -&gt;  Gather  (cost=136907.01..136907.22 rows=2 width=8)
+         Workers Planned: 2
+         -&gt;  Partial Aggregate  (cost=135907.01..135907.02 rows=1 width=8)
+               -&gt;  Hash Join  (cost=7985.51..127650.92 rows=3302435 width=0)
+                     Hash Cond: (bp.flight_id = f.flight_id)
+                     -&gt;  Parallel Seq Scan on boarding_passes bp  (cost=0.00..87685.35 rows=3302435 width=4)
+                     -&gt;  Hash  (cost=4564.67..4564.67 rows=214867 width=4)
+                           -&gt;  Seq Scan on flights f  (cost=0.00..4564.67 rows=214867 width=4)
+(9 rows)
+
+</pre></div>
+<p class="C">
+Здесь планировщик использовал параллельный план. В предыдущем запросе это
+не было оправдано из-за высокой стоимости пересылки данных между процессами,
+а в данном случае передается только одно число.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">EXPLAIN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">COSTS OFF</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">ANALYZE</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span>
+  <span style="color:#3b6ac8">FROM</span> flights f
+    <span style="color:#3b6ac8">JOIN</span> boarding_passes bp <span style="color:#3b6ac8">ON</span> bp.flight_id <span style="color:#323232">=</span> f.flight_id<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                                     QUERY PLAN                                                     
+--------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate (actual time=11603.584..11603.585 rows=1 loops=1)
+   -&gt;  Gather (actual time=11594.714..11614.365 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         -&gt;  Partial Aggregate (actual time=11583.669..11583.670 rows=1 loops=3)
+               -&gt;  Hash Join (actual time=518.764..9210.885 rows=2641937 loops=3)
+                     Hash Cond: (bp.flight_id = f.flight_id)
+                     -&gt;  Parallel Seq Scan on boarding_passes bp (actual time=0.025..2976.753 rows=2641937 loops=3)
+                     -&gt;  Hash (actual time=514.073..514.074 rows=214867 loops=3)
+                           Buckets: 262144  Batches: 2  Memory Usage: 3553kB
+                           -&gt;  Seq Scan on flights f (actual time=0.022..254.237 rows=214867 loops=3)
+ Planning time: 0.266 ms
+ Execution time: 11614.454 ms
+(13 rows)
+
+</pre></div>
+<p class="C">
+Обратите внимание на поле loops в узлах выше и ниже Gather - оно соответствует
+реальному числу процессов, работавших над запросом.
+</p>
+</body>
+</html>

@@ -1,0 +1,236 @@
+
+Хэш-соединение
+~~~~~~~~~~~~~~
+
+
+=> create database db18;
+CREATE DATABASE
+
+=> \c db18
+You are now connected to database "db18" as user "postgres".
+
+=> create table b(id integer, s text);
+CREATE TABLE
+
+=> insert into b select s.id/10, repeat('a',100) from generate_series(0,999999) s(id);
+INSERT 0 1000000
+
+=> vacuum analyze b;
+VACUUM
+
+Увеличим work_mem и выполним соединение:
+
+=> set work_mem = '128MB';
+SET
+
+=> explain analyze
+=> with a(id,s) as (
+=>   select s.id, repeat('a',100) from generate_series(0,99999) s(id)
+=> )
+=> select * from a join b on a.id = b.id;
+                                                            QUERY PLAN                                                            
+----------------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=55291.00..71795.58 rows=10208 width=141) (actual time=669.752..1131.370 rows=1000000 loops=1)
+   Hash Cond: (a.id = b.id)
+   CTE a
+     ->  Function Scan on generate_series s  (cost=0.00..10.00 rows=1000 width=4) (actual time=8.920..36.847 rows=100000 loops=1)
+   ->  CTE Scan on a  (cost=0.00..20.00 rows=1000 width=36) (actual time=8.929..106.009 rows=100000 loops=1)
+   ->  Hash  (cost=26667.00..26667.00 rows=1000000 width=105) (actual time=659.594..659.594 rows=1000000 loops=1)
+         Buckets: 1048576  Batches: 1  Memory Usage: 126167kB
+         ->  Seq Scan on b  (cost=0.00..26667.00 rows=1000000 width=105) (actual time=0.030..239.250 rows=1000000 loops=1)
+ Planning time: 0.229 ms
+ Execution time: 1313.618 ms
+(10 rows)
+
+
+Из-за того, что число строк в CTE неизвестно, планировщик решает строить хэш-таблицу не по той выборке.
+При наличии корректной статистики расход памяти был 14403kB.
+
+
+Битовая карта
+~~~~~~~~~~~~~
+
+
+=> create table bm(n float);
+CREATE TABLE
+
+=> insert into bm select random() from generate_series(1,1000000);
+INSERT 0 1000000
+
+=> create index on bm(n);
+CREATE INDEX
+
+Запретим полное сканирование, чтобы доступ к таблице был с помощью индекса:
+
+=> set enable_seqscan = off;
+SET
+
+=> explain analyze select * from bm;
+                                                            QUERY PLAN                                                             
+-----------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on bm  (cost=16230.42..30655.42 rows=1000000 width=8) (actual time=99.725..328.019 rows=1000000 loops=1)
+   Heap Blocks: exact=4425
+   ->  Bitmap Index Scan on bm_n_idx  (cost=0.00..15980.42 rows=1000000 width=0) (actual time=98.341..98.341 rows=1000000 loops=1)
+ Planning time: 0.102 ms
+ Execution time: 495.552 ms
+(5 rows)
+
+
+Строка "Heap Blocks: exact=4425" показывает, что все 4425 страниц были охвачены битовой картой без потери точности.
+
+Уменьшим work_mem:
+
+=> set work_mem = '128kB';
+SET
+
+=> explain analyze select * from bm;
+                                                            QUERY PLAN                                                             
+-----------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on bm  (cost=16230.42..30655.42 rows=1000000 width=8) (actual time=86.681..304.139 rows=1000000 loops=1)
+   Heap Blocks: exact=1323 lossy=3102
+   ->  Bitmap Index Scan on bm_n_idx  (cost=0.00..15980.42 rows=1000000 width=0) (actual time=86.471..86.471 rows=1000000 loops=1)
+ Planning time: 0.042 ms
+ Execution time: 467.624 ms
+(5 rows)
+
+
+Теперь точная битовая карта не поместилась в памяти. Примерно четверть страниц по-прежнему охвачены с точностью до строк, а еще три четверти - с потерей точности.
+
+=> set enable_seqscan = on;
+SET
+
+
+
+Сортировка с ограничением
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+=> create table sortlimit(n float);
+CREATE TABLE
+
+=> insert into sortlimit select random() from generate_series(1,1000000);
+INSERT 0 1000000
+
+=> explain analyze select * from sortlimit order by n limit 10;
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=36036.22..36036.25 rows=10 width=8) (actual time=473.868..473.874 rows=10 loops=1)
+   ->  Sort  (cost=36036.22..38536.35 rows=1000050 width=8) (actual time=473.866..473.867 rows=10 loops=1)
+         Sort Key: n
+         Sort Method: top-N heapsort  Memory: 17kB
+         ->  Seq Scan on sortlimit  (cost=0.00..14425.50 rows=1000050 width=8) (actual time=0.014..227.568 rows=1000000 loops=1)
+ Planning time: 0.079 ms
+ Execution time: 473.892 ms
+(7 rows)
+
+
+Здесь используется метод сортировки top-N heapsort - оптимизация достигается за счет того, что проще несколько раз найти наибольшее значение, чем полностью отсортировать все строки.
+
+
+Использование временных файлов
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+=> set log_temp_files = 0;
+SET
+
+Функция generate_series:
+
+=> create table rnd(n integer);
+CREATE TABLE
+
+=> insert into rnd(n) select (random()*2)::integer from generate_series(1,1000000);
+LOG:  temporary file: path "base/pgsql_tmp/pgsql_tmp25218.2", size 14000000
+STATEMENT:  insert into rnd(n) select (random()*2)::integer from generate_series(1,1000000);
+INSERT 0 1000000
+
+Для выполнения потребовалось 14000000 байт (14 байт на строку).
+
+Использование CTE:
+
+=> explain analyze with r as (select * from rnd) select * from r;
+LOG:  temporary file: path "base/pgsql_tmp/pgsql_tmp25218.3", size 14000000
+STATEMENT:  explain analyze with r as (select * from rnd) select * from r;
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
+ CTE Scan on r  (cost=13923.10..33925.30 rows=1000110 width=4) (actual time=0.016..741.553 rows=1000000 loops=1)
+   CTE r
+     ->  Seq Scan on rnd  (cost=0.00..13923.10 rows=1000110 width=4) (actual time=0.014..233.778 rows=1000000 loops=1)
+ Planning time: 0.056 ms
+ Execution time: 916.855 ms
+(5 rows)
+
+
+Потребовался один временный файл для материализации CTE.
+
+Оконная функция:
+
+=> explain analyze select count(*) over (partition by n) from rnd;
+LOG:  temporary file: path "base/pgsql_tmp/pgsql_tmp25218.5", size 3503220
+STATEMENT:  explain analyze select count(*) over (partition by n) from rnd;
+LOG:  temporary file: path "base/pgsql_tmp/pgsql_tmp25218.6", size 7002030
+STATEMENT:  explain analyze select count(*) over (partition by n) from rnd;
+LOG:  temporary file: path "base/pgsql_tmp/pgsql_tmp25218.7", size 3494750
+STATEMENT:  explain analyze select count(*) over (partition by n) from rnd;
+LOG:  temporary file: path "base/pgsql_tmp/pgsql_tmp25218.4", size 14016512
+STATEMENT:  explain analyze select count(*) over (partition by n) from rnd;
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
+ WindowAgg  (cost=149492.20..166994.12 rows=1000110 width=4) (actual time=1343.955..2263.232 rows=1000000 loops=1)
+   ->  Sort  (cost=149492.20..151992.47 rows=1000110 width=4) (actual time=1121.228..1453.993 rows=1000000 loops=1)
+         Sort Key: n
+         Sort Method: external merge  Disk: 13688kB
+         ->  Seq Scan on rnd  (cost=0.00..13923.10 rows=1000110 width=4) (actual time=0.021..228.541 rows=1000000 loops=1)
+ Planning time: 0.042 ms
+ Execution time: 2455.591 ms
+(7 rows)
+
+
+Здесь оконная функция выполнила группировку (partition by) с помощью сортировки, так что потребовалось несколько временных файлов.
+
+
+Создание индекса
+~~~~~~~~~~~~~~~~
+
+
+=> set maintenance_work_mem = '1MB';
+SET
+
+=> \timing on
+Timing is on.
+
+=> create index rnd_n_idx on rnd(n);
+LOG:  temporary file: path "base/pgsql_tmp/pgsql_tmp25218.8", size 15998976
+STATEMENT:  create index rnd_n_idx on rnd(n);
+CREATE INDEX
+Time: 1267,412 ms
+
+=> \timing off
+Timing is off.
+
+=> drop index rnd_n_idx;
+DROP INDEX
+
+=> set maintenance_work_mem = '128MB';
+SET
+
+=> \timing on
+Timing is on.
+
+=> create index rnd_n_idx on rnd(n);
+CREATE INDEX
+Time: 774,179 ms
+
+=> \timing off
+Timing is off.
+
+=> \q
+LOG:  received fast shutdown request
+LOG:  aborting any active transactions
+LOG:  autovacuum launcher shutting down
+LOG:  shutting down
+waiting for server to shut down....LOG:  database system is shut down
+ done
+server stopped
+waiting for server to start.... done
+server started

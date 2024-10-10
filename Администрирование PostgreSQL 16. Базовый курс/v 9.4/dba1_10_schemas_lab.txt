@@ -1,0 +1,81 @@
+
+        psql 
+
+Пользователь
+~~~~~~~~~~~~
+
+
+        => create user usr createdb;
+        CREATE ROLE
+
+
+База данных
+~~~~~~~~~~~
+
+
+        => \c - usr
+        You are now connected to database "postgres" as user "usr".
+
+        => create database db10;
+        CREATE DATABASE
+
+        => \c db10
+        You are now connected to database "db10" as user "usr".
+
+
+Таблица
+~~~~~~~
+
+
+        => create table t(description text);
+        CREATE TABLE
+
+        => insert into t values ('public');
+        INSERT 0 1
+
+
+Схема
+~~~~~
+
+
+        => create schema usr;
+        CREATE SCHEMA
+
+
+Снова таблица
+~~~~~~~~~~~~~
+
+
+        => create table t(description text);
+        CREATE TABLE
+
+        => insert into t values ('usr');
+        INSERT 0 1
+
+
+
+        => select * from t;
+         description 
+        -------------
+         usr
+        (1 row)
+        
+
+
+Путь поиска
+~~~~~~~~~~~
+
+
+        => set search_path to public;
+        SET
+
+
+
+        => select * from t;
+         description 
+        -------------
+         public
+        (1 row)
+        
+
+        => \q

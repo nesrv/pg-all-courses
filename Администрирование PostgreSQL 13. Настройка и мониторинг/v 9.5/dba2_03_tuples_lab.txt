@@ -1,0 +1,140 @@
+
+Создаем базу данных, расширение и таблицу.
+
+=> create database db3;
+CREATE DATABASE
+
+=> \c db3
+You are now connected to database "db3" as user "postgres".
+
+=> create extension pageinspect;
+CREATE EXTENSION
+
+=> create table t(s text);
+CREATE TABLE
+
+Начинаем транзакцию.
+
+=> begin;
+BEGIN
+
+Вставляем первую строку.
+
+=> insert into t values ('first');
+INSERT 0 1
+
+=> select txid_current();
+ txid_current 
+--------------
+       558024
+(1 row)
+
+
+=> select *, xmin, xmax from t;
+   s   |  xmin  | xmax 
+-------+--------+------
+ first | 558024 |    0
+(1 row)
+
+
+=> select lp, t_xmin, t_xmax from heap_page_items(get_raw_page('t',0)) order by lp;
+ lp | t_xmin | t_xmax 
+----+--------+--------
+  1 | 558024 |      0
+(1 row)
+
+
+Точка сохранения и вторая строка.
+
+=> savepoint sp;
+SAVEPOINT
+
+=> insert into t values ('second');
+INSERT 0 1
+
+=> select txid_current();
+ txid_current 
+--------------
+       558024
+(1 row)
+
+
+N.B. Функция txid_current() выдает номер основной, а не вложенной, транзакции.
+
+=> select *, xmin, xmax from t;
+   s    |  xmin  | xmax 
+--------+--------+------
+ first  | 558024 |    0
+ second | 558025 |    0
+(2 rows)
+
+
+=> select lp, t_xmin, t_xmax from heap_page_items(get_raw_page('t',0)) order by lp;
+ lp | t_xmin | t_xmax 
+----+--------+--------
+  1 | 558024 |      0
+  2 | 558025 |      0
+(2 rows)
+
+
+Откат и вставка третьей строки.
+
+=> rollback to sp;
+ROLLBACK
+
+=> insert into t values ('third');
+INSERT 0 1
+
+=> select txid_current();
+ txid_current 
+--------------
+       558024
+(1 row)
+
+
+=> select *, xmin, xmax from t;
+   s   |  xmin  | xmax 
+-------+--------+------
+ first | 558024 |    0
+ third | 558026 |    0
+(2 rows)
+
+
+=> select lp, t_xmin, t_xmax from heap_page_items(get_raw_page('t',0)) order by lp;
+ lp | t_xmin | t_xmax 
+----+--------+--------
+  1 | 558024 |      0
+  2 | 558025 |      0
+  3 | 558026 |      0
+(3 rows)
+
+
+N.B. В странице продолжаем видеть откаченную строку.
+Фиксация изменений.
+
+=> commit;
+COMMIT
+
+=> select *, xmin, xmax from t;
+   s   |  xmin  | xmax 
+-------+--------+------
+ first | 558024 |    0
+ third | 558026 |    0
+(2 rows)
+
+
+=> select lp, t_xmin, t_xmax,
+=> (t_infomask & 256) > 0 as xmin_committed, (t_infomask & 512) > 0 as xmin_aborted
+=> from heap_page_items(get_raw_page('t',0))
+=> order by lp;
+ lp | t_xmin | t_xmax | xmin_committed | xmin_aborted 
+----+--------+--------+----------------+--------------
+  1 | 558024 |      0 | t              | f
+  2 | 558025 |      0 | f              | t
+  3 | 558026 |      0 | t              | f
+(3 rows)
+
+
+N.B. Каждая вложенная транзакция имеет собственный статус.
+
+=> \q

@@ -1,0 +1,119 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Запуск psql и просмотр информацию о подключении
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">postgres$ <span style="color:#00a150">psql</span> 
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\conninfo</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are connected to database &quot;postgres&quot; as user &quot;postgres&quot; via socket in &quot;/tmp&quot; at port &quot;5432&quot;.
+</pre></div>
+<h1>
+Таблица pg_tables
+</h1>
+<p class="C">
+Ограничим выборку 5 записями.  Обратите внимание: если записи не помещаются
+по ширине на экран, то они переносятся на новые строки.  Просмотр результатов
+запроса становится неудобным.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> pg_tables <span style="color:#3b6ac8">LIMIT</span> <span style="color:#1094a0">5</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ schemaname |    tablename    | tableowner | tablespace | hasindexes | hasrules | hastriggers | rowsecurity 
+------------+-----------------+------------+------------+------------+----------+-------------+-------------
+ pg_catalog | pg_statistic    | postgres   |            | t          | f        | f           | f
+ pg_catalog | pg_user_mapping | postgres   |            | t          | f        | f           | f
+ pg_catalog | pg_policy       | postgres   |            | t          | f        | f           | f
+ pg_catalog | pg_authid       | postgres   | pg_global  | t          | f        | f           | f
+ pg_catalog | pg_subscription | postgres   | pg_global  | t          | f        | f           | f
+(5 rows)
+
+</pre></div>
+<h1>
+Настройка постраничного просмотра в .psqlrc
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">&quot;\setenv PAGER 'less -XS'&quot;</span> <span style="color:#323232">&gt;&gt;</span> ~<span style="color:#323232">/</span>.psqlrc
+</pre>
+</div>
+<h1>
+Печать времени выполнения
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">&quot;</span><span style="color:#dc6816">\t</span><span style="color:#1094a0">iming on&quot;</span> <span style="color:#323232">&gt;&gt;</span> ~<span style="color:#323232">/</span>.psqlrc
+</pre>
+</div>
+<h1>
+Настройка приглашения
+</h1>
+<p class="C">
+Для добавления информации о роли нужно в начало переменных PROMPT1 и PROMPT2
+добавить %n@
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">&quot;\set PROMPT1 '%n&#64;%/%R%# '&quot;</span> <span style="color:#323232">&gt;&gt;</span> ~<span style="color:#323232">/</span>.psqlrc
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">echo</span> <span style="color:#1094a0">&quot;\set PROMPT2 '%n&#64;%/%R%# '&quot;</span> <span style="color:#323232">&gt;&gt;</span> ~<span style="color:#323232">/</span>.psqlrc
+</pre>
+</div>
+<p class="C">
+В итоге содержимое файла .psqlrc станет таким:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cat</span> ~<span style="color:#323232">/</span>.psqlrc
+</pre>
+</div>
+<div class="R"><pre class="R">
+\setenv PAGER 'less -XS'
+\timing on
+\set PROMPT1 '%n@%/%R%# '
+\set PROMPT2 '%n@%/%R%# '
+</pre></div>
+<p class="C">
+Чтобы изменения вступили в силу, нужно выйти и заново войти в psql.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\q</span>
+</pre>
+</div>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">postgres$ <span style="color:#00a150">psql</span> 
+</pre>
+</div>
+<p class="C">
+Проверьте после повторного запуска:
+</p>
+<ul class="U">
+<li>как отображаются результаты запроса из pg_tables,</li>
+<li>что приглашение включает имя роли, </li>
+<li>что для каждого запроса выводится время выполнения.</li>
+</ul>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\q</span>
+</pre>
+</div>
+</body>
+</html>

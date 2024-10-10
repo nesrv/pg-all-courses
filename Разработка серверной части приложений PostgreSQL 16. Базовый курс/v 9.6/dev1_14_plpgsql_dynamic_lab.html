@@ -1,0 +1,238 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Получение матричного отчета
+</h1>
+<p class="C">
+Вспомогательная функция для формирования текста динамического запроса:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">form_query</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    query_text <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+    r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#969696">-- Первые два столбца: имя схемы и общее количество функций в ней</span>
+    query_text <span style="color:#323232">:=</span> <span style="color:#1094a0">'SELECT pronamespace::regnamespace::text AS schema,COUNT(*) AS total'</span><span style="color:#323232">;</span>
+
+    <span style="color:#969696">-- Динамическая часть запроса. Получаем список владельцев функций.</span>
+    <span style="color:#969696">-- Для каждого владельца - отдельный столбец запроса</span>
+    <span style="color:#3b6ac8">FOR</span> r <span style="color:#3b6ac8">IN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">SELECT DISTINCT</span> proowner <span style="color:#3b6ac8">AS owner FROM</span> pg_proc <span style="color:#3b6ac8">ORDER BY</span> <span style="color:#1094a0">1</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">LOOP</span>
+        query_text <span style="color:#323232">:=</span> query_text || 
+            <span style="color:#c73a69">format</span><span style="color:#323232">(</span><span style="color:#1094a0">'</span>
+<span style="color:#1094a0">      ,SUM(CASE WHEN proowner = %s THEN 1 ELSE 0 END) %I'</span><span style="color:#323232">,</span>
+                   r.<span style="color:#3b6ac8">owner</span><span style="color:#323232">,</span> r.<span style="color:#3b6ac8">owner</span><span style="color:#323232">::</span><span style="color:#a00050">regrole</span><span style="color:#323232">);</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+
+    <span style="color:#969696">-- Завершаем запрос</span>
+    query_text <span style="color:#323232">:=</span> query_text || 
+        <span style="color:#1094a0">'</span>
+<span style="color:#1094a0">FROM pg_proc GROUP BY pronamespace::regnamespace ORDER BY schema'</span><span style="color:#323232">;</span>
+
+    <span style="color:#3b6ac8">RETURN</span> query_text<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Итоговый текст запроса:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">select</span> <span style="color:#c73a69">form_query</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                             form_query                              
+---------------------------------------------------------------------
+ SELECT pronamespace::regnamespace::text AS schema,COUNT(*) AS total+
+       ,SUM(CASE WHEN proowner = 10 THEN 1 ELSE 0 END) postgres     +
+       ,SUM(CASE WHEN proowner = 16384 THEN 1 ELSE 0 END) student   +
+ FROM pg_proc GROUP BY pronamespace::regnamespace ORDER BY schema
+(1 row)
+
+</pre></div>
+<p class="C">
+Теперь создаем функцию для матричного отчета:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">matrix</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS SETOF</span> <span style="color:#a00050">record</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">RETURN QUERY EXECUTE</span> <span style="color:#c73a69">form_query</span><span style="color:#323232">();</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Простое выполнение запроса приведет к ошибке, т. к. не указана структура
+возвращаемых записей:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">matrix</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ERROR:  a column definition list is required for functions returning &quot;record&quot;
+LINE 1: SELECT * FROM matrix();
+                      ^
+</pre></div>
+<p class="C">
+В этом состоит важное ограничение на использование функций, возвращающих
+произвольную выборку. В момент вызова необходимо знать и указать структуру
+возвращаемой записи.
+</p>
+<p class="C">
+В общем случае структура возвращаемой записи может быть неизвестна, но,
+применительно к нашему матричному отчету, можно выполнить еще один запрос,
+который покажет, как правильно вызвать функцию matrix.
+</p>
+<p class="C">
+Подготовим текст запроса:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">form_query_call</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    query_call <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+    r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    query_call <span style="color:#323232">:=</span> <span style="color:#1094a0">'SELECT * FROM matrix() AS m(schema text, total bigint'</span><span style="color:#323232">;</span>
+
+    <span style="color:#3b6ac8">FOR</span> r <span style="color:#3b6ac8">IN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">SELECT DISTINCT</span> proowner <span style="color:#3b6ac8">AS owner FROM</span> pg_proc <span style="color:#3b6ac8">ORDER BY</span> <span style="color:#1094a0">1</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">LOOP</span>
+        query_call <span style="color:#323232">:=</span> query_call || <span style="color:#1094a0">', '</span> ||r.<span style="color:#3b6ac8">owner</span><span style="color:#323232">::</span><span style="color:#a00050">regrole</span><span style="color:#323232">::</span><span style="color:#a00050">text</span> || <span style="color:#1094a0">' bigint'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    query_call <span style="color:#323232">:=</span> query_call || <span style="color:#1094a0">')'</span><span style="color:#323232">;</span>
+
+    <span style="color:#3b6ac8">RETURN</span> query_call<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Теперь мы можем первым запросом получить структуру матричного отчета,
+а вторым запросом его сформировать:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN ISOLATION LEVEL REPEATABLE READ</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+BEGIN
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">form_query_call</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">AS</span> query_call <span style="color:#00a150">\gset</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\echo :query_call</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SELECT * FROM matrix() AS m(schema text, total bigint, postgres bigint, student bigint)
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">:query_call</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+       schema       | total | postgres | student 
+--------------------+-------+----------+---------
+ information_schema |    12 |       12 |       0
+ pg_catalog         |  2811 |     2811 |       0
+ public             |     3 |        0 |       3
+(3 rows)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+COMMIT
+</pre></div>
+<p class="C">
+Матричный отчет корректно формируется.
+</p>
+<p class="C">
+Примечание. Уровень изоляции REPEATABLE READ гарантирует, что отчет
+сформируется, даже если между двумя запросами появится функция у нового
+владельца.
+</p>
+<p class="C">
+Примечание. Можно было бы и напрямую выполнить запрос, возвращаемый функцией
+form_query. Но задача получить в клиентском приложении список возвращаемых
+столбцов все равно останется. Функция form_query_call показывает, как ее
+можно решить дополнительным запросом.
+</p>
+<p class="C">
+Еще один вариант решения заключается в том, чтобы вместо набора записей
+произвольной структуры возвращать набор строк сложносоставного типа.  Например:
+json, xml, hstore.
+</p>
+<p class="C">
+Пример функции, возвращающей строки с json:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">matrix_to_json</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS SETOF</span> json
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">FOR</span> r <span style="color:#3b6ac8">IN EXECUTE</span> <span style="color:#c73a69">form_query</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">LOOP</span>
+        <span style="color:#3b6ac8">RETURN NEXT</span> <span style="color:#c73a69">row_to_json</span><span style="color:#323232">(</span>r<span style="color:#323232">);</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+При вызове структуру записи указывать не нужно:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">matrix_to_json</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                            matrix_to_json                            
+----------------------------------------------------------------------
+ {&quot;schema&quot;:&quot;information_schema&quot;,&quot;total&quot;:12,&quot;postgres&quot;:12,&quot;student&quot;:0}
+ {&quot;schema&quot;:&quot;pg_catalog&quot;,&quot;total&quot;:2811,&quot;postgres&quot;:2811,&quot;student&quot;:0}
+ {&quot;schema&quot;:&quot;public&quot;,&quot;total&quot;:4,&quot;postgres&quot;:0,&quot;student&quot;:4}
+(3 rows)
+
+</pre></div>
+<p class="C">
+Но задача получить структуру json по-прежнему остается.
+</p>
+</body>
+</html>

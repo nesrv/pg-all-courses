@@ -1,0 +1,171 @@
+
+База и таблица
+~~~~~~~~~~~~~~
+
+=> create database db15;
+CREATE DATABASE
+
+=> \c db15
+You are now connected to database "db15" as user "postgres".
+
+=> create table t(a integer, b integer, s varchar(1000));
+CREATE TABLE
+
+=> insert into t(a,b,s) select (random()*99)::integer, (random()*999999)::integer, repeat('x',1000) from generate_series(1,1000000);
+INSERT 0 1000000
+
+=> create index on t(a);
+CREATE INDEX
+
+=> vacuum analyze t;
+VACUUM
+
+=> set enable_bitmapscan=off;
+SET
+
+Распределение данных:
+
+=> select count(distinct a), count(distinct b) from t;
+ count | count  
+-------+--------
+   100 | 631960
+(1 row)
+
+
+
+Выборка 1%
+~~~~~~~~~~
+
+=> explain analyze select * from t where a = 1;
+                                                         QUERY PLAN                                                         
+----------------------------------------------------------------------------------------------------------------------------
+ Index Scan using t_a_idx on t  (cost=0.42..38649.97 rows=9933 width=1012) (actual time=1.870..1544.072 rows=10201 loops=1)
+   Index Cond: (a = 1)
+ Planning time: 1.052 ms
+ Execution time: 1548.652 ms
+(4 rows)
+
+
+Запретим index scan.
+
+=> set enable_indexscan=off;
+SET
+
+=> explain analyze select * from t where a = 1;
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ Seq Scan on t  (cost=0.00..155358.01 rows=9933 width=1012) (actual time=2.113..3861.927 rows=10201 loops=1)
+   Filter: (a = 1)
+   Rows Removed by Filter: 989799
+ Planning time: 0.059 ms
+ Execution time: 3873.038 ms
+(5 rows)
+
+
+Для небольшой выборки доступ по индексу эффективнее.
+
+=> set enable_indexscan=on;
+SET
+
+
+Выборка 50%
+~~~~~~~~~~~
+
+=> explain analyze select * from t where a < 50;
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
+ Seq Scan on t  (cost=0.00..155358.01 rows=500434 width=1012) (actual time=0.660..3811.553 rows=500448 loops=1)
+   Filter: (a < 50)
+   Rows Removed by Filter: 499552
+ Planning time: 0.073 ms
+ Execution time: 3953.923 ms
+(5 rows)
+
+
+Запретим seq scan.
+
+=> set enable_seqscan=off;
+SET
+
+=> explain analyze select * from t where a < 50;
+                                                           QUERY PLAN                                                            
+---------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using t_a_idx on t  (cost=0.42..584423.95 rows=500434 width=1012) (actual time=0.597..81487.505 rows=500448 loops=1)
+   Index Cond: (a < 50)
+ Planning time: 0.075 ms
+ Execution time: 81714.797 ms
+(4 rows)
+
+
+Для большой выборки полное сканирование может оказаться более выгодным.
+
+=> set enable_seqscan=on;
+SET
+
+
+Порядок сортировки при создании индекса
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Порядок важен для многоколоночных индексов.
+Построим индекс по столбцам a и b:
+
+=> create index on t(a, b);
+CREATE INDEX
+
+Индекс может использоваться для такого запроса:
+
+=> explain select * from t where a < 1 order by a, b;
+                                 QUERY PLAN                                  
+-----------------------------------------------------------------------------
+ Index Scan using t_a_b_idx on t  (cost=0.42..20704.30 rows=5233 width=1012)
+   Index Cond: (a < 1)
+(2 rows)
+
+
+И для такого:
+
+=> explain select * from t where a < 1 order by a desc, b desc;
+                                      QUERY PLAN                                      
+--------------------------------------------------------------------------------------
+ Index Scan Backward using t_a_b_idx on t  (cost=0.42..20704.30 rows=5233 width=1012)
+   Index Cond: (a < 1)
+(2 rows)
+
+
+Но не для такого (сортировка в разных направлениях):
+
+=> explain select * from t where a < 1 order by a, b desc;
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Sort  (cost=23329.65..23342.73 rows=5233 width=1012)
+   Sort Key: a, b DESC
+   ->  Index Scan using t_a_idx on t  (cost=0.42..20689.42 rows=5233 width=1012)
+         Index Cond: (a < 1)
+(4 rows)
+
+
+Здесь приходится отдельно выполнять сортировку результатов.
+В этом случае поможет другой индекс:
+
+=> create index t_a_b_desc on t(a, b desc);
+CREATE INDEX
+
+=> explain select * from t where a < 1 order by a, b desc;
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ Index Scan using t_a_b_desc on t  (cost=0.42..20704.30 rows=5233 width=1012)
+   Index Cond: (a < 1)
+(2 rows)
+
+
+А также для запроса с обратным порядком сортировки:
+
+=> explain select * from t where a < 1 order by a desc, b;
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
+ Index Scan Backward using t_a_b_desc on t  (cost=0.42..20704.30 rows=5233 width=1012)
+   Index Cond: (a < 1)
+(2 rows)
+
+
+=> \q

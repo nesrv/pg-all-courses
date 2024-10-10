@@ -1,0 +1,869 @@
+<html><head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+    <style>
+    p.C    { font-size: 80%; }
+    li     { font-size: 80%; }
+    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+    div.E  { padding-left: 0px; font-weight: bold; }
+    div.R  { padding-left: 0px; }
+    </style>
+    </head>
+    <body style="margin: 59.5px;">
+    <!-- body -->
+    <!-- 4 -->
+    <h1>
+    Команды, не возвращающие результат
+    </h1>
+    <p class="C">
+    Если результат запроса не нужен, заменяем SELECT на PERFORM:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">do_something</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">void</span>
+    <span style="color:#3b6ac8">AS</span> $$
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Что-то сделалось.'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE FUNCTION
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">do_something</span><span style="color:#323232">();</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">NOTICE:  Что-то сделалось.
+    DO
+    </pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Внутри PL/pgSQL можно использовать без изменений практически любые команды SQL, не возвращающие результат:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">test</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+        <span style="color:#3b6ac8">INSERT INTO</span> test <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">),(</span><span style="color:#1094a0">2</span><span style="color:#323232">),(</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+        <span style="color:#3b6ac8">UPDATE</span> test <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> n <span style="color:#323232">+</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">WHERE</span> n <span style="color:#323232">&gt;</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">DELETE FROM</span> test <span style="color:#3b6ac8">WHERE</span> n <span style="color:#323232">=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">DROP TABLE</span> test<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">DO
+    </pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <h1>
+    Управление транзакциями в процедурах
+    </h1>
+    <p class="C">
+    В процедурах (и в анонимных блоках кода) на PL/pgSQL можно также использовать команды управления транзакциями:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">test</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE TABLE
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PROCEDURE</span> <span style="color:#c73a69">foo</span><span style="color:#323232">()</span>
+    <span style="color:#3b6ac8">AS</span> $$
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">INSERT INTO</span> test <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+        <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">INSERT INTO</span> test <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">2</span><span style="color:#323232">);</span>
+        <span style="color:#3b6ac8">ROLLBACK</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE PROCEDURE
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">foo</span><span style="color:#323232">();</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CALL
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> test<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1"> n 
+    ---
+     1
+    (1 row)
+    
+    </pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Действуют определенные ограничения. Во-первых, процедура должна начинать новую транзакцию, то есть не должна выполняться в контексте уже начатой ранее.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">BEGIN
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">foo</span><span style="color:#323232">();</span> <span style="color:#969696">-- ошибка</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">ERROR:  invalid transaction termination
+    CONTEXT:  PL/pgSQL function foo() line 4 at COMMIT
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ROLLBACK</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">ROLLBACK
+    </pre></div>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Во-вторых, в стеке вызовов процедуры не должно быть ничего, кроме операторов CALL.
+    </p>
+    <p class="C">
+    Иными словами, если процедура вызывает процедуру, которая вызывает процедуру... которая выполняет команду управления транзакцией, то все работает:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE PROCEDURE</span> <span style="color:#c73a69">foo</span><span style="color:#323232">()</span>
+    <span style="color:#3b6ac8">AS</span> $$
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">bar</span><span style="color:#323232">();</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE PROCEDURE
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PROCEDURE</span> <span style="color:#c73a69">bar</span><span style="color:#323232">()</span>
+    <span style="color:#3b6ac8">AS</span> $$
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">baz</span><span style="color:#323232">();</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE PROCEDURE
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PROCEDURE</span> <span style="color:#c73a69">baz</span><span style="color:#323232">()</span>
+    <span style="color:#3b6ac8">AS</span> $$
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE PROCEDURE
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">foo</span><span style="color:#323232">();</span> <span style="color:#969696">-- работает</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CALL
+    </pre></div>
+    <p class="C">
+    Но стоит в этой цепочке появиться, например, вызову функции, как получается, что транзакция должна завершиться где-то «посередине» оператора SELECT, а это недопустимо:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">qux</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">void</span> 
+    <span style="color:#3b6ac8">AS</span> $$
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">bar</span><span style="color:#323232">();</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE FUNCTION
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">qux</span><span style="color:#323232">();</span> <span style="color:#969696">-- ошибка</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">ERROR:  invalid transaction termination
+    CONTEXT:  PL/pgSQL function baz() line 3 at COMMIT
+    SQL statement "CALL baz()"
+    PL/pgSQL function bar() line 3 at CALL
+    SQL statement "CALL bar()"
+    PL/pgSQL function qux() line 3 at CALL
+    </pre></div>
+    <!-- end -->
+    
+    
+    </body></html>
+
+
+    <html><head>
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+        <style>
+        p.C    { font-size: 80%; }
+        li     { font-size: 80%; }
+        h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+        div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+        div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+        div.R1 { padding-left: 0px; page-break-inside: avoid; }
+        div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+        div.E  { padding-left: 0px; font-weight: bold; }
+        div.R  { padding-left: 0px; }
+        </style>
+        </head>
+        <body style="margin: 59.5px;">
+        <!-- body -->
+        <!-- 6 -->
+        <h1>
+        Команды, возвращающие одну строку
+        </h1>
+        <p class="C">
+        Наверное, наиболее часто используется в PL/pgSQL команда SELECT, возвращающая одну строку. Пример, который не получилось бы выполнить с помощью выражения с подзапросом (потому что возвращаются сразу два столбца):
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span><span style="color:#323232">,</span> code <span style="color:#a00050">text</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">CREATE TABLE
+        </pre></div>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Раз'</span><span style="color:#323232">), (</span><span style="color:#1094a0">2</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Два'</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">INSERT 0 2
+        </pre></div>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> code <span style="color:#3b6ac8">INTO</span> r <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> id <span style="color:#323232">=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> r<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  (1,Раз)
+        DO
+        </pre></div>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        Команды INSERT, UPDATE, DELETE тоже могут возвращать результат с помощью фразы RETURNING. Их можно использовать в PL/pgSQL точно так же, как SELECT, добавив фразу INTO:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> code <span style="color:#323232">=</span> code || <span style="color:#1094a0">'!'</span> <span style="color:#3b6ac8">WHERE</span> id <span style="color:#323232">=</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">RETURNING</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">INTO</span> r<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Изменили: %'</span><span style="color:#323232">,</span> r<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  Изменили: (1,Раз!)
+        DO
+        </pre></div>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <h1>
+        Проверки при создании и при выполнении подпрограмм
+        </h1>
+        <p class="C">
+        PL/pgSQL может выдавать предупреждения в некоторых подозрительных случаях. Для этого надо установить параметр (значение по умолчанию — none):
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> plpgsql.extra_warnings <span style="color:#323232">=</span> <span style="color:#1094a0">'all'</span><span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">SET
+        </pre></div>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PROCEDURE</span> <span style="color:#c73a69">bugs</span><span style="color:#323232">(</span><span style="color:#3b6ac8">INOUT</span> a <span style="color:#a00050">integer</span><span style="color:#323232">)</span>
+        <span style="color:#3b6ac8">AS</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            a <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+            b <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">SELECT</span> id <span style="color:#3b6ac8">INTO</span> a<span style="color:#323232">,</span> b <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">WARNING:  variable "a" shadows a previously defined variable
+        LINE 4:     a integer;
+                    ^
+        CREATE PROCEDURE
+        </pre></div>
+        <p class="C">
+        Это предупреждение о перекрывающих друг друга определениях переменных.
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">bugs</span><span style="color:#323232">(</span><span style="color:#1094a0">42</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">WARNING:  query returned more than one row
+        HINT:  Make sure the query returns a single row, or use LIMIT 1.
+        WARNING:  number of source and target fields in assignment does not match
+        DETAIL:  strict_multi_assignment check of extra_warnings is active.
+        HINT:  Make sure the query returns the exact list of columns.
+         a  
+        ----
+         42
+        (1 row)
+        
+        </pre></div>
+        <p class="C">
+        А здесь мы видим два предупреждения времени выполнения: запрос вернул более одной строки, а в предложении INTO указано неверное число параметров (PL/pgSQL присвоит второму неопределенное значение). Других проверок в настоящее время не предусмотрено, но они могут появиться в следующих версиях PostgreSQL.
+        </p>
+        <p class="C">
+        В качестве значения параметра plpgsql.extra_warnings можно указать коды отдельных проверок. Установка аналогичного параметра plpgsql.extra_errors будет вызывать не предупреждения, а ошибки.
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">RESET</span> plpgsql.extra_warnings<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">RESET
+        </pre></div>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        Стороннее расширение plpgsql_check, написанное и развиваемое Павлом Стехуле, позволяет проверить код более детально. Расширение уже установлено в виртуальной машине курса.
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE EXTENSION</span> plpgsql_check<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">CREATE EXTENSION
+        </pre></div>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">plpgsql_check_function</span><span style="color:#323232">(</span><span style="color:#1094a0">'bugs(integer)'</span><span style="color:#323232">);</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">                        plpgsql_check_function                         
+        -----------------------------------------------------------------------
+         warning:00000:5:statement block:parameter "a" is overlapped
+         Detail: Local variable overlap function parameter.
+         warning:00000:6:SQL statement:too few attributes for target variables
+         Detail: There are more target variables than output columns in query.
+         Hint: Check target variables in SELECT INTO statement.
+         warning extra:00000:3:DECLARE:never read variable "a"
+         warning extra:00000:4:DECLARE:never read variable "b"
+         warning extra:00000:unused parameter "a"
+         warning extra:00000:unmodified OUT variable "a"
+        (9 rows)
+        
+        </pre></div>
+        <p class="C">
+        Дополнительно обнаружены неиспользуемые переменные и тот факт, что выходному параметру не присваивается значение.
+        </p>
+        <p class="C">
+        Расширение имеет множество возможностей для обнаружения проблем в коде, в том числе и на этапе выполнения. Кроме того, расширение включает и профилировщик для целей оптимизации PL/pgSQL-кода.
+        </p>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <h1>
+        Устранение неоднозначностей именования
+        </h1>
+        <p class="C">
+        Получится ли выполнить следующий код?
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            id   <span style="color:#a00050">integer</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+            code <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> code <span style="color:#3b6ac8">INTO</span> id<span style="color:#323232">,</span> code
+            <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> id <span style="color:#323232">=</span> id<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%, %'</span><span style="color:#323232">,</span> id<span style="color:#323232">,</span> code<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">ERROR:  column reference "id" is ambiguous
+        LINE 1: SELECT id, code                   FROM t WHERE id = id
+                       ^
+        DETAIL:  It could refer to either a PL/pgSQL variable or a table column.
+        QUERY:  SELECT id, code                   FROM t WHERE id = id
+        CONTEXT:  PL/pgSQL function inline_code_block line 6 at SQL statement
+        </pre></div>
+        <p class="C">
+        Не получится из-за неоднозначности в SELECT: id может означать и имя столбца, и имя переменной:
+        </p>
+        <p class="C">
+        Причем во фразе INTO неоднозначности нет — она относится только к PL/pgSQL. В сообщении, кстати, видно, как PL/pgSQL вырезает фразу INTO, прежде чем передать запрос в SQL.
+        </p>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        Есть несколько подходов к устранению неоднозначностей.
+        </p>
+        <p class="C">
+        Первый состоит в том, чтобы неоднозначностей не допускать. Для этого к переменным добавляют префикс, который обычно выбирается в зависимости от «класса» переменной, например:
+        </p>
+        <ul class="U">
+        <li>
+        Для параметров p_ (parameter);
+        </li>
+        <li>
+        Для обычных переменных l_ (local) или v_ (variable);
+        </li>
+        <li>
+        Для констант c_ (constant);
+        </li>
+        </ul>
+        <p class="C">
+        Это простой и действенный способ, если использовать его систематически и никогда не использовать префиксы в именах столбцов. К минусам можно отнести некоторую неряшливость и пестроту кода из-за лишних подчеркиваний.
+        </p>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        Вот как это может выглядеть в нашем случае:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            l_id   <span style="color:#a00050">integer</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+            l_code <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> code <span style="color:#3b6ac8">INTO</span> l_id<span style="color:#323232">,</span> l_code
+            <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> id <span style="color:#323232">=</span> l_id<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%, %'</span><span style="color:#323232">,</span> l_id<span style="color:#323232">,</span> l_code<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  1, Раз!
+        DO
+        </pre></div>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        Второй способ состоит в использовании квалифицированных имен — к имени объекта через точку дописывается уточняющий квалификатор:
+        </p>
+        <ul class="U">
+        <li>
+        Для столбца — имя или псевдоним таблицы;
+        </li>
+        <li>
+        Для переменной — метку блока;
+        </li>
+        <li>
+        Для параметра — имя функции.
+        </li>
+        </ul>
+        <p class="C">
+        Такой способ более «честный», чем добавление префиксов, поскольку работает для любых названий столбцов.
+        </p>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        Вот как будет выглядеть наш пример с использованием квалификаторов:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#00a150">&lt;&lt;local&gt;&gt;</span>
+        <span style="color:#3b6ac8">DECLARE</span>
+            id   <span style="color:#a00050">integer</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+            code <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">SELECT</span> t.id<span style="color:#323232">,</span> t.code <span style="color:#3b6ac8">INTO</span> local.id<span style="color:#323232">,</span> local.code
+            <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> t.id <span style="color:#323232">=</span> local.id<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%, %'</span><span style="color:#323232">,</span> id<span style="color:#323232">,</span> code<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  1, Раз!
+        DO
+        </pre></div>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        Третий вариант — установить приоритет переменных над столбцами или наоборот, столбцов над переменными. За это отвечает конфигурационный параметр plpgsql.variable_conflict.
+        </p>
+        <p class="C">
+        В ряде случаев это упрощает разрешение конфликтов, но не устраняет их полностью. Кроме того, неявное правило (которое, к тому же, может внезапно поменяться) непременно приведет к тому, что какой-то код будет выполняться не так, как предполагал разработчик.
+        </p>
+        <p class="C">
+        Тем не менее приведем пример. Здесь устанавливается приоритет переменных, поэтому достаточно квалифицировать только столбцы таблицы:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> plpgsql.variable_conflict <span style="color:#323232">=</span> use_variable<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">SET
+        </pre></div>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            id   <span style="color:#a00050">integer</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+            code <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">SELECT</span> t.id<span style="color:#323232">,</span> t.code <span style="color:#3b6ac8">INTO</span> id<span style="color:#323232">,</span> code
+            <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> t.id <span style="color:#323232">=</span> id<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%, %'</span><span style="color:#323232">,</span> id<span style="color:#323232">,</span> code<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  1, Раз!
+        DO
+        </pre></div>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">RESET</span> plpgsql.variable_conflict<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">RESET
+        </pre></div>
+        <p class="C">
+        Какой способ выбрать — дело опыта и вкуса. Мы рекомендуем остановиться либо на первом (префиксы), либо на втором (квалификаторы), и не смешивать их в одном проекте, поскольку систематичность крайне важна для облегчения понимания кода.
+        </p>
+        <p class="C">
+        В курсе мы будем использовать второй способ, но только в тех случаях, когда это действительно необходимо — чтобы не загромождать примеры.
+        </p>
+        <p class="C">
+        Однако в коде, предназначенном для промышленной эксплуатации, думать о неоднозначностях надо всегда: нет никакой гарантии, что завтра в таблице не появится новый столбец с именем, совпадающим с вашей переменной!
+        </p>
+        <!-- end -->
+        
+        
+        </body></html>
+
+
+        <html><head>
+            <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+            <style>
+            p.C    { font-size: 80%; }
+            li     { font-size: 80%; }
+            h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+            div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+            div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+            div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+            div.R1 { padding-left: 0px; page-break-inside: avoid; }
+            div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+            div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+            div.E  { padding-left: 0px; font-weight: bold; }
+            div.R  { padding-left: 0px; }
+            </style>
+            </head>
+            <body style="margin: 59.5px;">
+            <!-- body -->
+            <!-- 8 -->
+            <h1>
+            Ровно одна строка
+            </h1>
+            <p class="C">
+            Что произойдет, если запрос вернет несколько строк?
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> code <span style="color:#3b6ac8">INTO</span> r <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> r<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">NOTICE:  (2,Два)
+            DO
+            </pre></div>
+            <p class="C">
+            В переменную будет записана только первая строка. Поскольку мы не указали ORDER BY, то порядок строк в общем случае непредсказуем:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1"> id | code 
+            ----+------
+              2 | Два
+              1 | Раз!
+            (2 rows)
+            
+            </pre></div>
+            <p class="C">
+            Поскольку в командах INSERT, UPDATE, DELETE нет возможности указать порядок строк, то команда, затрагивающая несколько строк, приводит к ошибке:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> code <span style="color:#323232">=</span> code || <span style="color:#1094a0">'!'</span> <span style="color:#3b6ac8">RETURNING</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">INTO</span> r<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Изменили: %'</span><span style="color:#323232">,</span> r<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">ERROR:  query returned more than one row
+            HINT:  Make sure the query returns a single row, or use LIMIT 1.
+            CONTEXT:  PL/pgSQL function inline_code_block line 5 at SQL statement
+            </pre></div>
+            <p class="C">
+            А если запрос не вернет ни одной строки?
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                r <span style="color:#323232">:= (-</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">'!!!'</span><span style="color:#323232">);</span>
+                <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> code <span style="color:#3b6ac8">INTO</span> r <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> <span style="color:#00a150">false</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> r<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">NOTICE:  (,)
+            DO
+            </pre></div>
+            <p class="C">
+            Переменные будут содержать неопределенные значения.
+            </p>
+            <p class="C">
+            То же относится и командам INSERT, UPDATE, DELETE. Например:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> code <span style="color:#323232">=</span> code || <span style="color:#1094a0">'!'</span> <span style="color:#3b6ac8">WHERE</span> id <span style="color:#323232">= -</span><span style="color:#1094a0">1</span>
+                    <span style="color:#3b6ac8">RETURNING</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">INTO</span> r<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Изменили: %'</span><span style="color:#323232">,</span> r<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">NOTICE:  Изменили: (,)
+            DO
+            </pre></div>
+            <p class="C">
+            Иногда хочется быть уверенным, что в результате выборки получилась ровно одна строка: ни больше, ни меньше. В этом случае удобно воспользоваться фразой INTO STRICT:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> code <span style="color:#3b6ac8">INTO STRICT</span> r <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> r<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">ERROR:  query returned more than one row
+            HINT:  Make sure the query returns a single row, or use LIMIT 1.
+            CONTEXT:  PL/pgSQL function inline_code_block line 5 at SQL statement
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> code <span style="color:#3b6ac8">INTO STRICT</span> r <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> <span style="color:#00a150">false</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%'</span><span style="color:#323232">,</span> r<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">ERROR:  query returned no rows
+            CONTEXT:  PL/pgSQL function inline_code_block line 5 at SQL statement
+            </pre></div>
+            <p class="C">
+            Как мы видели, команды INSERT, UPDATE, DELETE, затрагивающие несколько строк, приводят к ошибке. Фраза STRICT позволяет гарантировать, что строка будет ровно одна (а не ноль):
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> code <span style="color:#323232">=</span> code || <span style="color:#1094a0">'!'</span> <span style="color:#3b6ac8">WHERE</span> id <span style="color:#323232">= -</span><span style="color:#1094a0">1</span> <span style="color:#3b6ac8">RETURNING</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">INTO STRICT</span> r<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Изменили: %'</span><span style="color:#323232">,</span> r<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">ERROR:  query returned no rows
+            CONTEXT:  PL/pgSQL function inline_code_block line 5 at SQL statement
+            </pre></div>
+            <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+            <h1>
+            Явная проверка состояния
+            </h1>
+            <p class="C">
+            Другая возможность — проверять состояние последней выполненной SQL-команды:
+            </p>
+            <ul class="U">
+            <li>
+            Команда GET DIAGNOSTICS позволяет получить количество затронутых строк (row_count);
+            </li>
+            <li>
+            Предопределенная логическая переменная FOUND показывает, была ли затронута хотя бы одна строка.
+            </li>
+            </ul>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+                rowcount <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> code <span style="color:#3b6ac8">INTO</span> r <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">WHERE</span> <span style="color:#00a150">false</span><span style="color:#323232">;</span>
+            
+                <span style="color:#3b6ac8">GET DIAGNOSTICS</span> rowcount <span style="color:#323232">=</span> row_count<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'rowcount = %'</span><span style="color:#323232">,</span> rowcount<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'found = %'</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">FOUND</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">NOTICE:  rowcount = 0
+            NOTICE:  found = f
+            DO
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                r <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+                rowcount <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> code <span style="color:#3b6ac8">INTO</span> r <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+            
+                <span style="color:#3b6ac8">GET DIAGNOSTICS</span> rowcount <span style="color:#323232">=</span> row_count<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'rowcount = %'</span><span style="color:#323232">,</span> rowcount<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'found = %'</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">FOUND</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">NOTICE:  rowcount = 1
+            NOTICE:  found = t
+            DO
+            </pre></div>
+            <p class="C">
+            Заметьте: диагностика не позволяет обнаружить, что запросу соответствует несколько строк, поскольку row_count возвращает единицу.
+            </p>
+            <!-- end -->
+            
+            
+            </body></html>
+
+            <html><head>
+                <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+                <style>
+                p.C    { font-size: 80%; }
+                li     { font-size: 80%; }
+                h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+                div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+                div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+                div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+                div.R1 { padding-left: 0px; page-break-inside: avoid; }
+                div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+                div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+                div.E  { padding-left: 0px; font-weight: bold; }
+                div.R  { padding-left: 0px; }
+                </style>
+                </head>
+                <body style="margin: 59.5px;">
+                <!-- body -->
+                <!-- 10 -->
+                <h1>
+                Табличные функции
+                </h1>
+                <p class="C">
+                Пример табличной функции на PL/pgSQL:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">t</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS TABLE</span><span style="color:#323232">(</span><span style="color:#3b6ac8">LIKE</span> t<span style="color:#323232">)</span> 
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">RETURN QUERY SELECT</span> id<span style="color:#323232">,</span> code <span style="color:#3b6ac8">FROM</span> t <span style="color:#3b6ac8">ORDER BY</span> id<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">STABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE FUNCTION
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">t</span><span style="color:#323232">();</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1"> id | code 
+                ----+------
+                  1 | Раз!
+                  2 | Два
+                (2 rows)
+                
+                </pre></div>
+                <p class="C">
+                Другой вариант — возвращать значения построчно.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">days_of_week</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS SETOF</span> <span style="color:#a00050">text</span> 
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#1094a0">7</span> .. <span style="color:#1094a0">13</span> <span style="color:#3b6ac8">LOOP</span>
+                        <span style="color:#3b6ac8">RETURN NEXT</span> <span style="color:#c73a69">to_char</span><span style="color:#323232">(</span><span style="color:#c73a69">to_date</span><span style="color:#323232">(</span>i<span style="color:#323232">::</span><span style="color:#a00050">text</span><span style="color:#323232">,</span><span style="color:#1094a0">'J'</span><span style="color:#323232">),</span><span style="color:#1094a0">'TMDy'</span><span style="color:#323232">);</span>
+                    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">STABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE FUNCTION
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">days_of_week</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">WITH ORDINALITY</span><span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1"> days_of_week | ordinality 
+                --------------+------------
+                 Пн           |          1
+                 Вт           |          2
+                 Ср           |          3
+                 Чт           |          4
+                 Пт           |          5
+                 Сб           |          6
+                 Вс           |          7
+                (7 rows)
+                
+                </pre></div>
+                <p class="C">
+                Почему функция объявлена как STABLE?
+                </p>
+                <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+                <p class="C">
+                Потому что, хотя значение функции не зависит ни от параметров, ни от данных, оно тем не менее неявно зависит от текущей локали:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> lc_time <span style="color:#323232">=</span> <span style="color:#1094a0">'en_US.UTF8'</span><span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">SET
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">days_of_week</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">WITH ORDINALITY</span><span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1"> days_of_week | ordinality 
+                --------------+------------
+                 Mon          |          1
+                 Tue          |          2
+                 Wed          |          3
+                 Thu          |          4
+                 Fri          |          5
+                 Sat          |          6
+                 Sun          |          7
+                (7 rows)
+                
+                </pre></div>
+                <!-- end -->
+                
+                
+                </body></html>

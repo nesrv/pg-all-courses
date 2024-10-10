@@ -1,0 +1,15 @@
+CREATE OR REPLACE FUNCTION add_author(
+        last_name text, 
+        first_name text, 
+        surname text
+    ) RETURNS integer
+    AS $$
+    DECLARE
+        author_id integer;
+    BEGIN
+        INSERT INTO authors(last_name, first_name, surname)
+            VALUES (last_name, first_name, surname)
+            RETURNING authors.author_id INTO author_id;
+        RETURN author_id;
+    END;
+    $$ VOLATILE LANGUAGE plpgsql;

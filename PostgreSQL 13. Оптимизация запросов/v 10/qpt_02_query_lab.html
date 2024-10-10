@@ -1,0 +1,107 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Долгий запрос
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\timing</span> <span style="color:#3b6ac8">on</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+Timing is on.
+</pre></div>
+<p class="C">
+Обычный оператор:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+  <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#1094a0">1</span>.<span style="color:#1094a0">.10</span> <span style="color:#3b6ac8">LOOP</span>
+    <span style="color:#3b6ac8">EXECUTE</span> <span style="color:#1094a0">'SELECT avg(amount) FROM ticket_flights'</span><span style="color:#323232">;</span>
+  <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DO
+Time: 21286,115 ms (00:21,286)
+</pre></div>
+<p class="C">
+Подготовленный оператор:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+  <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#1094a0">1</span>.<span style="color:#1094a0">.10</span> <span style="color:#3b6ac8">LOOP</span>
+    <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">avg</span><span style="color:#323232">(</span>amount<span style="color:#323232">)</span> <span style="color:#3b6ac8">FROM</span> ticket_flights<span style="color:#323232">;</span>
+  <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DO
+Time: 20152,028 ms (00:20,152)
+</pre></div>
+<p class="C">
+Время изменилось незначительно - большую часть занимает выполнение запроса.
+</p>
+<h1>
+Быстрый запрос
+</h1>
+<p class="C">
+Обычный оператор:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+  <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#1094a0">1</span>.<span style="color:#1094a0">.100000</span> <span style="color:#3b6ac8">LOOP</span>
+    <span style="color:#3b6ac8">EXECUTE</span> <span style="color:#1094a0">'SELECT * FROM bookings WHERE book_ref = '</span><span style="color:#1094a0">'0824C5'</span><span style="color:#1094a0">''</span><span style="color:#323232">;</span>
+  <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DO
+Time: 4680,450 ms (00:04,680)
+</pre></div>
+<p class="C">
+Подготовленный оператор:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+  <span style="color:#3b6ac8">FOR</span> i <span style="color:#3b6ac8">IN</span> <span style="color:#1094a0">1</span>.<span style="color:#1094a0">.100000</span> <span style="color:#3b6ac8">LOOP</span>
+    <span style="color:#3b6ac8">PERFORM</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> bookings <span style="color:#3b6ac8">WHERE</span> book_ref <span style="color:#323232">=</span> <span style="color:#1094a0">'0824C5'</span><span style="color:#323232">;</span>
+  <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DO
+Time: 850,609 ms
+</pre></div>
+<p class="C">
+Время сократилось существенно - разбор и планирование занимает большую часть
+общего времени.
+</p>
+</body>
+</html>

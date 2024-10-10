@@ -1,0 +1,137 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Функция shorten
+</h1>
+<p class="C">
+Напишем более универсальную функцию: это не потребует усложнения кода,
+и позволит обойтись без "магических констант".
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">shorten</span><span style="color:#323232">(</span>s <span style="color:#a00050">text</span><span style="color:#323232">,</span> max_len <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">DEFAULT</span> <span style="color:#1094a0">45</span><span style="color:#323232">,</span> suffix <span style="color:#a00050">text</span> <span style="color:#3b6ac8">DEFAULT</span> <span style="color:#1094a0">'...'</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    suffix_len <span style="color:#a00050">integer</span> <span style="color:#323232">:=</span> <span style="color:#c73a69">length</span><span style="color:#323232">(</span>suffix<span style="color:#323232">);</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">RETURN CASE WHEN</span> <span style="color:#c73a69">length</span><span style="color:#323232">(</span>s<span style="color:#323232">) &gt;</span> max_len
+        <span style="color:#3b6ac8">THEN left</span><span style="color:#323232">(</span>s<span style="color:#323232">,</span> max_len <span style="color:#323232">-</span> suffix_len<span style="color:#323232">)</span> || suffix
+        <span style="color:#3b6ac8">ELSE</span> s
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Проверим:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">shorten</span><span style="color:#323232">(</span><span style="color:#1094a0">'Путешествия в некоторые удаленные страны мира в четырех частях: сочинение Лемюэля Гулливера, сначала хирурга, а затем капитана нескольких кораблей'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                    shorten                    
+-----------------------------------------------
+ &#1055;&#1091;&#1090;&#1077;&#1096;&#1077;&#1089;&#1090;&#1074;&#1080;&#1103; &#1074; &#1085;&#1077;&#1082;&#1086;&#1090;&#1086;&#1088;&#1099;&#1077; &#1091;&#1076;&#1072;&#1083;&#1077;&#1085;&#1085;&#1099;&#1077; &#1089;&#1090;&#1088;&#1072;&#1085;&#1099; &#1084;...
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">shorten</span><span style="color:#323232">(</span><span style="color:#1094a0">'Путешествия в некоторые удаленные страны мира в четырех частях: сочинение Лемюэля Гулливера, сначала хирурга, а затем капитана нескольких кораблей'</span><span style="color:#323232">,</span> <span style="color:#1094a0">30</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+            shorten             
+--------------------------------
+ &#1055;&#1091;&#1090;&#1077;&#1096;&#1077;&#1089;&#1090;&#1074;&#1080;&#1103; &#1074; &#1085;&#1077;&#1082;&#1086;&#1090;&#1086;&#1088;&#1099;&#1077; &#1091;&#1076;&#1072;...
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">book_name</span><span style="color:#323232">(</span>book_id <span style="color:#a00050">integer</span><span style="color:#323232">,</span> title <span style="color:#a00050">text</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">shorten</span><span style="color:#323232">(</span>title<span style="color:#323232">)</span> || <span style="color:#1094a0">'. '</span> ||
+       <span style="color:#c73a69">string_agg</span><span style="color:#323232">(</span><span style="color:#c73a69">author_name</span><span style="color:#323232">(</span>a.last_name<span style="color:#323232">,</span> a.first_name<span style="color:#323232">,</span> a.middle_name<span style="color:#323232">),</span> <span style="color:#1094a0">', '</span> <span style="color:#3b6ac8">ORDER BY</span> ash.seq_num<span style="color:#323232">)</span>
+<span style="color:#3b6ac8">FROM</span>   authors a
+       <span style="color:#3b6ac8">JOIN</span> authorship ash <span style="color:#3b6ac8">ON</span> a.author_id <span style="color:#323232">=</span> ash.author_id
+<span style="color:#3b6ac8">WHERE</span>  ash.book_id <span style="color:#323232">=</span> book_name.book_id<span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">STABLE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<h1>
+Функция shorten (перенос по словам)
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">shorten</span><span style="color:#323232">(</span>s <span style="color:#a00050">text</span><span style="color:#323232">,</span> max_len <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">DEFAULT</span> <span style="color:#1094a0">45</span><span style="color:#323232">,</span> suffix <span style="color:#a00050">text</span> <span style="color:#3b6ac8">DEFAULT</span> <span style="color:#1094a0">'...'</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">DECLARE</span>
+    suffix_len <span style="color:#a00050">integer</span> <span style="color:#323232">:=</span> <span style="color:#c73a69">length</span><span style="color:#323232">(</span>suffix<span style="color:#323232">);</span>
+    short <span style="color:#a00050">text</span> <span style="color:#323232">:=</span> suffix<span style="color:#323232">;</span>
+    pos <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">IF</span> <span style="color:#c73a69">length</span><span style="color:#323232">(</span>s<span style="color:#323232">) &lt;</span> max_len <span style="color:#3b6ac8">THEN</span>
+        <span style="color:#3b6ac8">RETURN</span> s<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">FOR</span> pos <span style="color:#3b6ac8">in</span> <span style="color:#1094a0">1</span> ..<span style="color:#3b6ac8">least</span><span style="color:#323232">(</span>max_len<span style="color:#323232">-</span>suffix_len<span style="color:#323232">+</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span> <span style="color:#c73a69">length</span><span style="color:#323232">(</span>s<span style="color:#323232">))</span> <span style="color:#3b6ac8">LOOP</span>
+        <span style="color:#3b6ac8">IF</span> <span style="color:#c73a69">substr</span><span style="color:#323232">(</span>s<span style="color:#323232">,</span>pos<span style="color:#323232">-</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">) !=</span> <span style="color:#1094a0">' '</span> <span style="color:#3b6ac8">AND</span> <span style="color:#c73a69">substr</span><span style="color:#323232">(</span>s<span style="color:#323232">,</span>pos<span style="color:#323232">,</span><span style="color:#1094a0">1</span><span style="color:#323232">) =</span> <span style="color:#1094a0">' '</span> <span style="color:#3b6ac8">THEN</span>
+            short <span style="color:#323232">:=</span> <span style="color:#3b6ac8">left</span><span style="color:#323232">(</span>s<span style="color:#323232">,</span> pos<span style="color:#323232">-</span><span style="color:#1094a0">1</span><span style="color:#323232">)</span> || suffix<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN</span> short<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Проверим:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">shorten</span><span style="color:#323232">(</span><span style="color:#1094a0">'Путешествия в некоторые удаленные страны мира в четырех частях: сочинение Лемюэля Гулливера, сначала хирурга, а затем капитана нескольких кораблей'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                   shorten                   
+---------------------------------------------
+ &#1055;&#1091;&#1090;&#1077;&#1096;&#1077;&#1089;&#1090;&#1074;&#1080;&#1103; &#1074; &#1085;&#1077;&#1082;&#1086;&#1090;&#1086;&#1088;&#1099;&#1077; &#1091;&#1076;&#1072;&#1083;&#1077;&#1085;&#1085;&#1099;&#1077; &#1089;&#1090;&#1088;&#1072;&#1085;&#1099;...
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">shorten</span><span style="color:#323232">(</span><span style="color:#1094a0">'Путешествия в некоторые удаленные страны мира в четырех частях: сочинение Лемюэля Гулливера, сначала хирурга, а затем капитана нескольких кораблей'</span><span style="color:#323232">,</span> <span style="color:#1094a0">30</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+          shorten           
+----------------------------
+ &#1055;&#1091;&#1090;&#1077;&#1096;&#1077;&#1089;&#1090;&#1074;&#1080;&#1103; &#1074; &#1085;&#1077;&#1082;&#1086;&#1090;&#1086;&#1088;&#1099;&#1077;...
+(1 row)
+
+</pre></div>
+</body>
+</html>

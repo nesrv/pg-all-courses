@@ -1,0 +1,265 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Триггер для обновления каталога
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">update_catalog</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS trigger</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+  <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">operations</span><span style="color:#323232">(</span>book_id<span style="color:#323232">,</span> qty_change<span style="color:#323232">)</span>
+      <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span>OLD.book_id<span style="color:#323232">,</span> NEW.onhand_qty <span style="color:#323232">-</span> <span style="color:#3b6ac8">coalesce</span><span style="color:#323232">(</span>OLD.onhand_qty<span style="color:#323232">,</span><span style="color:#1094a0">0</span><span style="color:#323232">));</span>
+  <span style="color:#3b6ac8">RETURN</span> NEW<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TRIGGER</span> update_catalog_trigger
+<span style="color:#3b6ac8">INSTEAD OF UPDATE ON</span> catalog_v
+<span style="color:#3b6ac8">FOR EACH ROW</span>
+<span style="color:#3b6ac8">EXECUTE PROCEDURE</span> <span style="color:#c73a69">update_catalog</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TRIGGER
+</pre></div>
+<h1>
+Проверка количества книг
+</h1>
+<p class="C">
+Добавляем к таблице книг поле наличного количества. Важно: не добавлять фразу
+DEFAULT, иначе эта операция будет обновлять все строки таблицы, удерживая
+блокировку - это долго и не нужно.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER TABLE</span> books <span style="color:#3b6ac8">ADD COLUMN</span> onhand_qty <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER TABLE
+</pre></div>
+<p class="C">
+Триггерная функция для обновления количества (предполагаем, что поле onhand_qty
+не может быть пустым):
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">update_onhand_qty</span><span style="color:#323232">()</span> <span style="color:#3b6ac8">RETURNS trigger</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">BEGIN</span>
+    <span style="color:#3b6ac8">UPDATE</span> books
+    <span style="color:#3b6ac8">SET</span> onhand_qty <span style="color:#323232">=</span> onhand_qty <span style="color:#323232">+</span> NEW.qty_change
+    <span style="color:#3b6ac8">WHERE</span> book_id <span style="color:#323232">=</span> NEW.book_id<span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">RETURN</span> NEW<span style="color:#323232">;</span>
+<span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Дальше все происходит внутри транзакции.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+BEGIN
+</pre></div>
+<p class="C">
+Блокируем операции на время транзакции:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">LOCK TABLE</span> operations<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+LOCK TABLE
+</pre></div>
+<p class="C">
+Начальное заполнение:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> books b
+<span style="color:#3b6ac8">SET</span> onhand_qty <span style="color:#323232">= (</span>
+    <span style="color:#3b6ac8">SELECT coalesce</span><span style="color:#323232">(</span><span style="color:#c73a69">sum</span><span style="color:#323232">(</span>qty_change<span style="color:#323232">),</span><span style="color:#1094a0">0</span><span style="color:#323232">)</span>
+    <span style="color:#3b6ac8">FROM</span> operations o
+    <span style="color:#3b6ac8">WHERE</span> o.book_id <span style="color:#323232">=</span> b.book_id
+<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 6
+</pre></div>
+<p class="C">
+Теперь, когда поле заполнено, задаем ограничения:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER TABLE</span> books <span style="color:#3b6ac8">ALTER COLUMN</span> onhand_qty <span style="color:#3b6ac8">SET DEFAULT</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER TABLE</span> books <span style="color:#3b6ac8">ALTER COLUMN</span> onhand_qty <span style="color:#3b6ac8">SET NOT NULL</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER TABLE</span> books <span style="color:#3b6ac8">ADD CHECK</span><span style="color:#323232">(</span>onhand_qty <span style="color:#323232">&gt;=</span> <span style="color:#1094a0">0</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER TABLE
+</pre></div>
+<p class="C">
+Универсальнее был бы AFTER-триггер, но он дороже, а мы знаем, что qty_change
+не изменяется.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TRIGGER</span> update_onhand_qty_trigger
+<span style="color:#3b6ac8">BEFORE INSERT ON</span> operations
+<span style="color:#3b6ac8">FOR EACH ROW</span>
+<span style="color:#3b6ac8">EXECUTE PROCEDURE</span> <span style="color:#c73a69">update_onhand_qty</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TRIGGER
+</pre></div>
+<p class="C">
+Готово.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+COMMIT
+</pre></div>
+<p class="C">
+Теперь books.onhand_qty обновляется, но представление catalog_v по-прежнему
+вызывает функцию для подсчета количества. Хоть в исходном запросе обращение к
+функции синтаксически не отличается от обращения к полю, запрос был запомнен
+в другом виде:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\d</span><span style="color:#323232">+</span> catalog_v
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                 View &quot;bookstore.catalog_v&quot;
+    Column    |  Type   | Modifiers | Storage  | Description 
+--------------+---------+-----------+----------+-------------
+ book_id      | integer |           | plain    | 
+ title        | text    |           | extended | 
+ onhand_qty   | integer |           | plain    | 
+ display_name | text    |           | extended | 
+ authors      | text    |           | extended | 
+View definition:
+ SELECT b.book_id,
+    b.title,
+    onhand_qty(b.*) AS onhand_qty,
+    book_name(b.book_id, b.title) AS display_name,
+    authors(b.*) AS authors
+   FROM books b
+  ORDER BY (book_name(b.book_id, b.title));
+Triggers:
+    update_catalog_trigger INSTEAD OF UPDATE ON catalog_v FOR EACH ROW EXECUTE PROCEDURE update_catalog()
+
+</pre></div>
+<p class="C">
+Пересоздадим представление:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE VIEW</span> catalog_v <span style="color:#3b6ac8">AS</span>
+<span style="color:#3b6ac8">SELECT</span> b.book_id<span style="color:#323232">,</span>
+       b.title<span style="color:#323232">,</span>
+       b.onhand_qty<span style="color:#323232">,</span>
+       <span style="color:#c73a69">book_name</span><span style="color:#323232">(</span>b.book_id<span style="color:#323232">,</span> b.title<span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> display_name<span style="color:#323232">,</span>
+       b.authors
+<span style="color:#3b6ac8">FROM</span>   books b
+<span style="color:#3b6ac8">ORDER BY</span> display_name<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE VIEW
+</pre></div>
+<p class="C">
+Теперь функцию можно удалить.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP FUNCTION</span> <span style="color:#c73a69">onhand_qty</span><span style="color:#323232">(</span>books<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DROP FUNCTION
+</pre></div>
+<p class="C">
+Небольшая проверка:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> catalog_v <span style="color:#3b6ac8">WHERE</span> book_id <span style="color:#323232">=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ book_id |         title         | onhand_qty |            display_name             |          authors           
+---------+-----------------------+------------+-------------------------------------+----------------------------
+       1 | &#1057;&#1082;&#1072;&#1079;&#1082;&#1072; &#1086; &#1094;&#1072;&#1088;&#1077; &#1057;&#1072;&#1083;&#1090;&#1072;&#1085;&#1077; |         19 | &#1057;&#1082;&#1072;&#1079;&#1082;&#1072; &#1086; &#1094;&#1072;&#1088;&#1077; &#1057;&#1072;&#1083;&#1090;&#1072;&#1085;&#1077;. &#1055;&#1091;&#1096;&#1082;&#1080;&#1085; &#1040;. &#1057;. | &#1055;&#1091;&#1096;&#1082;&#1080;&#1085; &#1040;&#1083;&#1077;&#1082;&#1089;&#1072;&#1085;&#1076;&#1088; &#1057;&#1077;&#1088;&#1075;&#1077;&#1077;&#1074;&#1080;&#1095;
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">operations</span><span style="color:#323232">(</span>book_id<span style="color:#323232">,</span> qty_change<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,+</span><span style="color:#1094a0">10</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> catalog_v <span style="color:#3b6ac8">WHERE</span> book_id <span style="color:#323232">=</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ book_id |         title         | onhand_qty |            display_name             |          authors           
+---------+-----------------------+------------+-------------------------------------+----------------------------
+       1 | &#1057;&#1082;&#1072;&#1079;&#1082;&#1072; &#1086; &#1094;&#1072;&#1088;&#1077; &#1057;&#1072;&#1083;&#1090;&#1072;&#1085;&#1077; |         29 | &#1057;&#1082;&#1072;&#1079;&#1082;&#1072; &#1086; &#1094;&#1072;&#1088;&#1077; &#1057;&#1072;&#1083;&#1090;&#1072;&#1085;&#1077;. &#1055;&#1091;&#1096;&#1082;&#1080;&#1085; &#1040;. &#1057;. | &#1055;&#1091;&#1096;&#1082;&#1080;&#1085; &#1040;&#1083;&#1077;&#1082;&#1089;&#1072;&#1085;&#1076;&#1088; &#1057;&#1077;&#1088;&#1075;&#1077;&#1077;&#1074;&#1080;&#1095;
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">operations</span><span style="color:#323232">(</span>book_id<span style="color:#323232">,</span> qty_change<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,-</span><span style="color:#1094a0">100</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ERROR:  new row for relation &quot;books&quot; violates check constraint &quot;books_onhand_qty_check&quot;
+DETAIL:  Failing row contains (1, &#1057;&#1082;&#1072;&#1079;&#1082;&#1072; &#1086; &#1094;&#1072;&#1088;&#1077; &#1057;&#1072;&#1083;&#1090;&#1072;&#1085;&#1077;, -71).
+CONTEXT:  SQL statement &quot;UPDATE books
+    SET onhand_qty = onhand_qty + NEW.qty_change
+    WHERE book_id = NEW.book_id&quot;
+PL/pgSQL function update_onhand_qty() line 3 at SQL statement
+</pre></div>
+</body>
+</html>

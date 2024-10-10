@@ -1,0 +1,194 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Функция для шестнадцатеричных чисел
+</h1>
+<p class="C">
+Сначала для удобства определим функцию для одной цифры.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">digit</span><span style="color:#323232">(</span>d <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">ascii</span><span style="color:#323232">(</span>d<span style="color:#323232">) -</span> <span style="color:#3b6ac8">CASE</span>
+        <span style="color:#3b6ac8">WHEN</span> d <span style="color:#3b6ac8">BETWEEN</span> <span style="color:#1094a0">'0'</span> <span style="color:#3b6ac8">AND</span> <span style="color:#1094a0">'9'</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#c73a69">ascii</span><span style="color:#323232">(</span><span style="color:#1094a0">'0'</span><span style="color:#323232">)</span>
+        <span style="color:#3b6ac8">ELSE</span> <span style="color:#c73a69">ascii</span><span style="color:#323232">(</span><span style="color:#1094a0">'A'</span><span style="color:#323232">) -</span> <span style="color:#1094a0">10</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Теперь основная функция:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">convert</span><span style="color:#323232">(</span>hex <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">WITH</span> <span style="color:#c73a69">s</span><span style="color:#323232">(</span>d<span style="color:#323232">,</span>ord<span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> <span style="color:#323232">(</span>
+    <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span>
+    <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">regexp_split_to_table</span><span style="color:#323232">(</span><span style="color:#3b6ac8">reverse</span><span style="color:#323232">(</span><span style="color:#c73a69">upper</span><span style="color:#323232">(</span>hex<span style="color:#323232">)),</span><span style="color:#1094a0">''</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">WITH ORDINALITY</span>
+<span style="color:#323232">)</span>
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">sum</span><span style="color:#323232">(</span><span style="color:#c73a69">digit</span><span style="color:#323232">(</span>d<span style="color:#323232">) *</span> <span style="color:#1094a0">16</span>^<span style="color:#323232">(</span>ord<span style="color:#323232">-</span><span style="color:#1094a0">1</span><span style="color:#323232">))::</span><span style="color:#a00050">integer</span>
+<span style="color:#3b6ac8">FROM</span> s<span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">convert</span><span style="color:#323232">(</span><span style="color:#1094a0">'0FE'</span><span style="color:#323232">),</span> <span style="color:#c73a69">convert</span><span style="color:#323232">(</span><span style="color:#1094a0">'0FF'</span><span style="color:#323232">),</span> <span style="color:#c73a69">convert</span><span style="color:#323232">(</span><span style="color:#1094a0">'100'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ convert | convert | convert 
+---------+---------+---------
+     254 |     255 |     256
+(1 row)
+
+</pre></div>
+<h1>
+Функция для любой системы счисления
+</h1>
+<p class="C">
+Предполагаем, что основание системы счисления от 2 до 36, то есть число
+записывается цифрами от 0 до 9, либо буквами от A до Z. В этом случае
+изменения минимальные.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP FUNCTION</span> <span style="color:#c73a69">convert</span><span style="color:#323232">(</span><span style="color:#a00050">text</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DROP FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">convert</span><span style="color:#323232">(</span>num <span style="color:#a00050">text</span><span style="color:#323232">,</span> radix <span style="color:#a00050">integer</span> <span style="color:#3b6ac8">DEFAULT</span> <span style="color:#1094a0">16</span><span style="color:#323232">)</span>
+<span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">WITH</span> <span style="color:#c73a69">s</span><span style="color:#323232">(</span>d<span style="color:#323232">,</span>ord<span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> <span style="color:#323232">(</span>
+    <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span>
+    <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">regexp_split_to_table</span><span style="color:#323232">(</span><span style="color:#3b6ac8">reverse</span><span style="color:#323232">(</span><span style="color:#c73a69">upper</span><span style="color:#323232">(</span>num<span style="color:#323232">)),</span><span style="color:#1094a0">''</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">WITH ORDINALITY</span>
+<span style="color:#323232">)</span>
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">sum</span><span style="color:#323232">(</span><span style="color:#c73a69">digit</span><span style="color:#323232">(</span>d<span style="color:#323232">) *</span> radix^<span style="color:#323232">(</span>ord<span style="color:#323232">-</span><span style="color:#1094a0">1</span><span style="color:#323232">))::</span><span style="color:#a00050">integer</span>
+<span style="color:#3b6ac8">FROM</span> s<span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">convert</span><span style="color:#323232">(</span><span style="color:#1094a0">'0110'</span><span style="color:#323232">,</span><span style="color:#1094a0">2</span><span style="color:#323232">),</span> <span style="color:#c73a69">convert</span><span style="color:#323232">(</span><span style="color:#1094a0">'0FF'</span><span style="color:#323232">),</span> <span style="color:#c73a69">convert</span><span style="color:#323232">(</span><span style="color:#1094a0">'Z'</span><span style="color:#323232">,</span><span style="color:#1094a0">36</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ convert | convert | convert 
+---------+---------+---------
+       6 |     255 |      35
+(1 row)
+
+</pre></div>
+<h1>
+Функция generate_series для строк
+</h1>
+<p class="C">
+Сначала напишем вспомогательные функции, переводящие строку в числовое
+представление и обратно.
+</p>
+<p class="C">
+Первая очень похожа на функцию из предыдущего задания:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">text2num</span><span style="color:#323232">(</span>s <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">WITH</span> <span style="color:#c73a69">s</span><span style="color:#323232">(</span>d<span style="color:#323232">,</span>ord<span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> <span style="color:#323232">(</span>
+    <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span>
+    <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">regexp_split_to_table</span><span style="color:#323232">(</span><span style="color:#3b6ac8">reverse</span><span style="color:#323232">(</span>s<span style="color:#323232">),</span><span style="color:#1094a0">''</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">WITH ORDINALITY</span>
+<span style="color:#323232">)</span>
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">sum</span><span style="color:#323232">( (</span><span style="color:#c73a69">ascii</span><span style="color:#323232">(</span>d<span style="color:#323232">)-</span><span style="color:#c73a69">ascii</span><span style="color:#323232">(</span><span style="color:#1094a0">'A'</span><span style="color:#323232">)) *</span> <span style="color:#1094a0">26</span>^<span style="color:#323232">(</span>ord<span style="color:#323232">-</span><span style="color:#1094a0">1</span><span style="color:#323232">))::</span><span style="color:#a00050">integer</span>
+<span style="color:#3b6ac8">FROM</span> s<span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<p class="C">
+Обратную функцию напишем с помощью рекурсивного запроса:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">num2text</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">,</span> digits <span style="color:#a00050">integer</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">WITH RECURSIVE</span> <span style="color:#c73a69">r</span><span style="color:#323232">(</span>num<span style="color:#323232">,</span>txt<span style="color:#323232">,</span> <span style="color:#3b6ac8">level</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> <span style="color:#323232">(</span>
+    <span style="color:#3b6ac8">SELECT</span> n<span style="color:#323232">/</span><span style="color:#1094a0">26</span><span style="color:#323232">,</span> <span style="color:#c73a69">chr</span><span style="color:#323232">(</span> n<span style="color:#323232">%</span><span style="color:#1094a0">26</span> <span style="color:#323232">+</span> <span style="color:#c73a69">ascii</span><span style="color:#323232">(</span><span style="color:#1094a0">'A'</span><span style="color:#323232">) )::</span><span style="color:#a00050">text</span><span style="color:#323232">,</span> <span style="color:#1094a0">1</span>
+    <span style="color:#3b6ac8">UNION ALL</span>
+    <span style="color:#3b6ac8">SELECT</span> r.num<span style="color:#323232">/</span><span style="color:#1094a0">26</span><span style="color:#323232">,</span> <span style="color:#c73a69">chr</span><span style="color:#323232">(</span> r.num<span style="color:#323232">%</span><span style="color:#1094a0">26</span> <span style="color:#323232">+</span> <span style="color:#c73a69">ascii</span><span style="color:#323232">(</span><span style="color:#1094a0">'A'</span><span style="color:#323232">) )</span> || r.txt<span style="color:#323232">,</span> r.<span style="color:#3b6ac8">level</span><span style="color:#323232">+</span><span style="color:#1094a0">1</span>
+    <span style="color:#3b6ac8">FROM</span> r
+    <span style="color:#3b6ac8">WHERE</span> r.<span style="color:#3b6ac8">level</span> <span style="color:#323232">&lt;</span> digits
+<span style="color:#323232">)</span>
+<span style="color:#3b6ac8">SELECT</span> r.txt <span style="color:#3b6ac8">FROM</span> r <span style="color:#3b6ac8">WHERE</span> r.<span style="color:#3b6ac8">level</span> <span style="color:#323232">=</span> digits<span style="color:#323232">;</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">num2text</span><span style="color:#323232">(</span> <span style="color:#c73a69">text2num</span><span style="color:#323232">(</span><span style="color:#1094a0">'ABC'</span><span style="color:#323232">),</span> <span style="color:#c73a69">length</span><span style="color:#323232">(</span><span style="color:#1094a0">'ABC'</span><span style="color:#323232">) );</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ num2text 
+----------
+ ABC
+(1 row)
+
+</pre></div>
+<p class="C">
+Теперь функцию generate_series для строк можно переписать, используя
+generate_series для целых чисел.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#3b6ac8">start</span> <span style="color:#a00050">text</span><span style="color:#323232">,</span> stop <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS SETOF</span> <span style="color:#a00050">text</span>
+<span style="color:#3b6ac8">AS</span> $$
+<span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">num2text</span><span style="color:#323232">(</span> g.n<span style="color:#323232">,</span> <span style="color:#c73a69">length</span><span style="color:#323232">(</span><span style="color:#3b6ac8">start</span><span style="color:#323232">) )</span>
+<span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#c73a69">text2num</span><span style="color:#323232">(</span><span style="color:#3b6ac8">start</span><span style="color:#323232">),</span> <span style="color:#c73a69">text2num</span><span style="color:#323232">(</span>stop<span style="color:#323232">))</span> <span style="color:#c73a69">g</span><span style="color:#323232">(</span>n<span style="color:#323232">);</span>
+$$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE sql</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE FUNCTION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">'AZ'</span><span style="color:#323232">,</span><span style="color:#1094a0">'BC'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ generate_series 
+-----------------
+ AZ
+ BA
+ BB
+ BC
+(4 rows)
+
+</pre></div>
+</body>
+</html>

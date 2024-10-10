@@ -1,0 +1,269 @@
+<html><head>
+  <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+  <style>
+  p.C    { font-size: 80%; }
+  li     { font-size: 80%; }
+  h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+  div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+  div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+  div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+  div.R1 { padding-left: 0px; page-break-inside: avoid; }
+  div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+  div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+  div.E  { padding-left: 0px; font-weight: bold; }
+  div.R  { padding-left: 0px; }
+  </style>
+  </head>
+  <body style="margin: 59.5px;">
+  <!-- body -->
+  <!-- 6 -->
+  <h1>
+  Видимость версий строк
+  </h1>
+  <p class="C">
+  Как убедиться в том, что одна и та же строка может существовать в нескольких версиях?
+  </p>
+  <p class="C">
+  Создадим таблицу:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>s <span style="color:#a00050">text</span><span style="color:#323232">);</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">CREATE TABLE
+  </pre></div>
+  <p class="C">
+  И вставим одну строку. Напомним, что если не начать транзакцию явно командой BEGIN, psql выполняет команду и немедленно фиксирует результат:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'Первая версия'</span><span style="color:#323232">);</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">INSERT 0 1
+  </pre></div>
+  <p class="C">
+  Начнем транзакцию и выведем ее номер:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">BEGIN
+  </pre></div>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">txid_current</span><span style="color:#323232">();</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1"> txid_current 
+  --------------
+            502
+  (1 row)
+  
+  </pre></div>
+  <p class="C">
+  Транзакция видит первую (и пока единственную) версию строки:
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*,</span> <span style="color:#a00050">xmin</span><span style="color:#323232">,</span> <span style="color:#a00050">xmax</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">       s       | xmin | xmax 
+  ---------------+------+------
+   Первая версия |  501 |    0
+  (1 row)
+  
+  </pre></div>
+  <p class="C">
+  Здесь мы дополнительно показываем номера транзакций, ограничивающих видимость данной версии строки. Строка создана предыдущей транзакцией, а xmax=0 означает, что эта версия актуальна.
+  </p>
+  <p class="C">
+  Теперь начнем другую транзакцию в другом сеансе:
+  </p>
+  <div class="S2">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R2"><pre class="R2">BEGIN
+  </pre></div>
+  <div class="S2">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">txid_current</span><span style="color:#323232">();</span>
+  </pre>
+  </div>
+  <div class="R2"><pre class="R2"> txid_current 
+  --------------
+            503
+  (1 row)
+  
+  </pre></div>
+  <p class="C">
+  Транзакция видит ту же единственную версию:
+  </p>
+  <div class="S2">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*,</span> <span style="color:#a00050">xmin</span><span style="color:#323232">,</span> <span style="color:#a00050">xmax</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R2"><pre class="R2">       s       | xmin | xmax 
+  ---------------+------+------
+   Первая версия |  501 |    0
+  (1 row)
+  
+  </pre></div>
+  <p class="C">
+  Теперь изменим строку во второй транзакции.
+  </p>
+  <div class="S2">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'Вторая версия'</span><span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R2"><pre class="R2">UPDATE 1
+  </pre></div>
+  <p class="C">
+  Вот что получилось:
+  </p>
+  <div class="S2">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*,</span> <span style="color:#a00050">xmin</span><span style="color:#323232">,</span> <span style="color:#a00050">xmax</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R2"><pre class="R2">       s       | xmin | xmax 
+  ---------------+------+------
+   Вторая версия |  503 |    0
+  (1 row)
+  
+  </pre></div>
+  <p class="C">
+  А что увидит первая транзакция?
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*,</span> <span style="color:#a00050">xmin</span><span style="color:#323232">,</span> <span style="color:#a00050">xmax</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">       s       | xmin | xmax 
+  ---------------+------+------
+   Первая версия |  501 |  503
+  (1 row)
+  
+  </pre></div>
+  <p class="C">
+  Поскольку изменение не зафиксировано, первая транзакция продолжает видеть первую версию строки.
+  </p>
+  <p class="C">
+  Обратите внимание на xmax — значение показывает, что в настоящий момент другая транзакция меняет строку. Вообще говоря, такое «подглядывание» нарушает изоляцию, поэтому поля xmin и xmax скрытые и в реальной работе их использовать не стоит.
+  </p>
+  <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+  <p class="C">
+  Теперь зафиксируем изменения.
+  </p>
+  <div class="S2">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R2"><pre class="R2">COMMIT
+  </pre></div>
+  <p class="C">
+  Что теперь увидит первая транзакция?
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*,</span> <span style="color:#a00050">xmin</span><span style="color:#323232">,</span> <span style="color:#a00050">xmax</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">       s       | xmin | xmax 
+  ---------------+------+------
+   Вторая версия |  503 |    0
+  (1 row)
+  
+  </pre></div>
+  <p class="C">
+  Теперь и первая транзакция видит вторую версию строки.
+  </p>
+  <p class="C">
+  После фиксации первая версия строки больше не видна ни в одной транзакции.
+  </p>
+  <div class="S1">
+  <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+  </pre>
+  </div>
+  <div class="R1"><pre class="R1">COMMIT
+  </pre></div>
+  <!-- end -->
+  
+  
+  </body></html>
+
+
+  <html><head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+    <style>
+    p.C    { font-size: 80%; }
+    li     { font-size: 80%; }
+    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+    div.E  { padding-left: 0px; font-weight: bold; }
+    div.R  { padding-left: 0px; }
+    </style>
+    </head>
+    <body style="margin: 59.5px;">
+    <!-- body -->
+    <!-- 8 -->
+    <h1>
+    Блокировки
+    </h1>
+    <p class="C">
+    Повторим наш опыт, но теперь пусть обе транзакции попытаются изменить одну и ту же строку.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">BEGIN
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'Третья версия'</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">UPDATE 1
+    </pre></div>
+    <p class="C">
+    И во второй транзакции:
+    </p>
+    <div class="S2">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">BEGIN</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R2"><pre class="R2">BEGIN
+    </pre></div>
+    <div class="S2">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> s <span style="color:#323232">=</span> <span style="color:#1094a0">'Четвертая версия'</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <p class="C">
+    Вторая транзакция «повисла»: она не может изменить строку, пока первая транзакция не снимет блокировку.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">COMMIT
+    </pre></div>
+    <p class="C">
+    Теперь вторая транзакция может продолжить выполнение:
+    
+    </p>
+    <div class="R2"><pre class="R2">UPDATE 1
+    </pre></div>
+    <div class="S2">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R2"><pre class="R2">COMMIT
+    </pre></div>
+    <!-- end -->
+    
+    
+    </body></html>
+
+    

@@ -1,0 +1,1208 @@
+<html><head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+    <style>
+    p.C    { font-size: 80%; }
+    li     { font-size: 80%; }
+    h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+    div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+    div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+    div.R1 { padding-left: 0px; page-break-inside: avoid; }
+    div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+    div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+    div.E  { padding-left: 0px; font-weight: bold; }
+    div.R  { padding-left: 0px; }
+    </style>
+    </head>
+    <body style="margin: 59.5px;">
+    <!-- body -->
+    <!-- 4 -->
+    <h1>
+    Обработка ошибок в блоке
+    </h1>
+    <p class="C">
+    Рассмотрим простой пример.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">CREATE TABLE
+    </pre></div>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">INSERT 0 1
+    </pre></div>
+    <p class="C">
+    Когда нет ошибок, все операторы блока выполняются обычным образом:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        n <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">SELECT</span> id <span style="color:#3b6ac8">INTO STRICT</span> n <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Оператор SELECT INTO выполнился'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">NOTICE:  Оператор SELECT INTO выполнился
+    DO
+    </pre></div>
+    <p class="C">
+    Теперь добавим в таблицу «лишнюю» строку, чтобы спровоцировать ошибку.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">2</span><span style="color:#323232">);</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">INSERT 0 1
+    </pre></div>
+    <p class="C">
+    Если в блоке нет секции EXCEPTION, выполнение операторов в блоке прерывается, и весь блок считается завершившимся с ошибкой:
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        n <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">SELECT</span> id <span style="color:#3b6ac8">INTO STRICT</span> n <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Оператор SELECT INTO выполнился'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">ERROR:  query returned more than one row
+    HINT:  Make sure the query returns a single row, or use LIMIT 1.
+    CONTEXT:  PL/pgSQL function inline_code_block line 5 at SQL statement
+    </pre></div>
+    <p class="C">
+    Чтобы перехватить ошибку, в блоке нужна секция EXCEPTION, определяющая обработчик или несколько обработчиков.
+    </p>
+    <p class="C">
+    Эта конструкция работает аналогично CASE: условия просматриваются сверху вниз, выбирается первая подходящая ветвь и выполняются ее операторы.
+    </p>
+    <p class="C">
+    Что будет выведено?
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        n <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id<span style="color:#323232">)</span> <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">3</span><span style="color:#323232">);</span>
+        <span style="color:#3b6ac8">SELECT</span> id <span style="color:#3b6ac8">INTO STRICT</span> n <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Оператор SELECT INTO выполнился'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">EXCEPTION</span>
+        <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">no_data_found</span> <span style="color:#3b6ac8">THEN</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Нет данных'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">too_many_rows</span> <span style="color:#3b6ac8">THEN</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Слишком много данных'</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Строк в таблице: %'</span><span style="color:#323232">, (</span><span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span> <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">);</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">NOTICE:  Слишком много данных
+    NOTICE:  Строк в таблице: 2
+    DO
+    </pre></div>
+    <p class="C">
+    Выполняется обработчик, соответствующий ошибке too_many_rows. Обратите внимание: при выполнении обработчика в таблице снова осталось две строки, так как выполнился откат к неявной точке сохранения, которая устанавливается в начале блока.
+    </p>
+    <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+    <p class="C">
+    Тонкий момент: если ошибка произойдет в секции DECLARE или в самом обработчике внутри EXCEPTION, то в этом блоке ее перехватить не получится.
+    </p>
+    <div class="S1">
+    <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+    <span style="color:#3b6ac8">DECLARE</span>
+        n <span style="color:#a00050">integer</span> <span style="color:#323232">:=</span> <span style="color:#1094a0">1</span> <span style="color:#323232">/</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span> <span style="color:#969696">-- ошибка в этом месте не перехватывается</span>
+    <span style="color:#3b6ac8">BEGIN</span>
+        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Все успешно'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">EXCEPTION</span>
+        <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">division_by_zero</span> <span style="color:#3b6ac8">THEN</span>
+            <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Деление на ноль'</span><span style="color:#323232">;</span>
+    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+    $$<span style="color:#323232">;</span>
+    </pre>
+    </div>
+    <div class="R1"><pre class="R1">ERROR:  division by zero
+    CONTEXT:  SQL statement "SELECT 1 / 0"
+    PL/pgSQL function inline_code_block line 4 during statement block local variable initialization
+    </pre></div>
+    <!-- end -->
+    
+    
+    </body></html>
+
+    <html><head>
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+        <style>
+        p.C    { font-size: 80%; }
+        li     { font-size: 80%; }
+        h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+        div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+        div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+        div.R1 { padding-left: 0px; page-break-inside: avoid; }
+        div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+        div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+        div.E  { padding-left: 0px; font-weight: bold; }
+        div.R  { padding-left: 0px; }
+        </style>
+        </head>
+        <body style="margin: 59.5px;">
+        <!-- body -->
+        <!-- 6 -->
+        <h1>
+        Имена и коды ошибок
+        </h1>
+        <p class="C">
+        Имена ошибок мы уже видели, а для указания кода служит конструкция SQLSTATE.
+        </p>
+        <p class="C">
+        В обработчике можно получить код ошибки и сообщение с помощью предопределенных переменных SQLSTATE и SQLERRM.
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            n <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">SELECT</span> id <span style="color:#3b6ac8">INTO STRICT</span> n <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">EXCEPTION</span>
+            <span style="color:#3b6ac8">WHEN SQLSTATE</span> <span style="color:#1094a0">'P0003'</span> <span style="color:#3b6ac8">OR</span> <span style="color:#a00050">no_data_found</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#969696">-- можно несколько</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%: %'</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">SQLSTATE</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">SQLERRM</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  P0003: query returned more than one row
+        DO
+        </pre></div>
+        <p class="C">
+        Какой обработчик будет использован?
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            n <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">SELECT</span> id <span style="color:#3b6ac8">INTO STRICT</span> n <span style="color:#3b6ac8">FROM</span> t<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">EXCEPTION</span>
+            <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">no_data_found</span> <span style="color:#3b6ac8">THEN</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Нет данных. %: %'</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">SQLSTATE</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">SQLERRM</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">plpgsql_error</span> <span style="color:#3b6ac8">THEN</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Другая ошибка. %: %'</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">SQLSTATE</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">SQLERRM</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">too_many_rows</span> <span style="color:#3b6ac8">THEN</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Слишком много данных. %: %'</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">SQLSTATE</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">SQLERRM</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  Другая ошибка. P0003: query returned more than one row
+        DO
+        </pre></div>
+        <p class="C">
+        Выбирается первый подходящий обработчик, в данном случае — plpgsql_error. До последнего обработчика дело никогда не дойдет.
+        </p>
+        <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+        <p class="C">
+        Ошибку можно принудительно вызвать по ее коду или имени.
+        </p>
+        <p class="C">
+        Здесь мы используем специальное имя others, которое соответствует любой ошибке, которую имеет смысл перехватывать (за исключением прерванного клиентом выполнения и нарушения отладочной проверки assert).
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">RAISE</span> <span style="color:#a00050">no_data_found</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">EXCEPTION</span>
+            <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">others</span> <span style="color:#3b6ac8">THEN</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'%: %'</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">SQLSTATE</span><span style="color:#323232">,</span> <span style="color:#3b6ac8">SQLERRM</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  P0002: no_data_found
+        DO
+        </pre></div>
+        <p class="C">
+        При необходимости можно задействовать и пользовательские коды ошибок, отсутствующие в справочнике, а также указать некоторую дополнительную информацию (в примере — только часть из возможного):
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">RAISE SQLSTATE</span> <span style="color:#1094a0">'ERR01'</span> <span style="color:#3b6ac8">USING</span>
+                message <span style="color:#323232">=</span> <span style="color:#1094a0">'Сбой матрицы'</span><span style="color:#323232">,</span>
+                detail  <span style="color:#323232">=</span> <span style="color:#1094a0">'При выполнении произошел непоправимый сбой матрицы'</span><span style="color:#323232">,</span>
+                hint <span style="color:#323232">=</span> <span style="color:#1094a0">'Обратитесь к системному администратору'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">ERROR:  Сбой матрицы
+        DETAIL:  При выполнении произошел непоправимый сбой матрицы
+        HINT:  Обратитесь к системному администратору
+        CONTEXT:  PL/pgSQL function inline_code_block line 3 at RAISE
+        </pre></div>
+        <p class="C">
+        В обработчике эту информацию нельзя получить из переменных; если нужно проанализировать такие данные в коде, есть специальная конструкция:
+        </p>
+        <div class="S1">
+        <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+        <span style="color:#3b6ac8">DECLARE</span>
+            message <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+            detail <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+            hint <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">BEGIN</span>
+            <span style="color:#3b6ac8">RAISE SQLSTATE</span> <span style="color:#1094a0">'ERR01'</span> <span style="color:#3b6ac8">USING</span>
+                message <span style="color:#323232">=</span> <span style="color:#1094a0">'Сбой матрицы'</span><span style="color:#323232">,</span>
+                detail  <span style="color:#323232">=</span> <span style="color:#1094a0">'При выполнении произошел непоправимый сбой матрицы'</span><span style="color:#323232">,</span>
+                hint <span style="color:#323232">=</span> <span style="color:#1094a0">'Обратитесь к системному администратору'</span><span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">EXCEPTION</span>
+            <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">others</span> <span style="color:#3b6ac8">THEN</span>
+                <span style="color:#3b6ac8">GET STACKED DIAGNOSTICS</span>
+                    message <span style="color:#323232">=</span> message_text<span style="color:#323232">,</span>
+                    detail <span style="color:#323232">=</span> pg_exception_detail<span style="color:#323232">,</span>
+                    hint <span style="color:#323232">=</span> pg_exception_hint<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> E<span style="color:#1094a0">'\nmessage = %\ndetail = %\nhint = %'</span><span style="color:#323232">,</span>
+                    message<span style="color:#323232">,</span> detail<span style="color:#323232">,</span> hint<span style="color:#323232">;</span>
+        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+        $$<span style="color:#323232">;</span>
+        </pre>
+        </div>
+        <div class="R1"><pre class="R1">NOTICE:  
+        message = Сбой матрицы
+        detail = При выполнении произошел непоправимый сбой матрицы
+        hint = Обратитесь к системному администратору
+        DO
+        </pre></div>
+        <!-- end -->
+        
+        
+        </body></html>
+
+        <html><head>
+            <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+            <style>
+            p.C    { font-size: 80%; }
+            li     { font-size: 80%; }
+            h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+            div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+            div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+            div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+            div.R1 { padding-left: 0px; page-break-inside: avoid; }
+            div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+            div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+            div.E  { padding-left: 0px; font-weight: bold; }
+            div.R  { padding-left: 0px; }
+            </style>
+            </head>
+            <body style="margin: 59.5px;">
+            <!-- body -->
+            <!-- 8 -->
+            <h1>
+            Поиск обработчика
+            </h1>
+            <p class="C">
+            Рассмотрим несколько примеров поиска обработчика в случае вложенных блоков. Что будет выведено?
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">1</span><span style="color:#323232">/</span><span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Вложенный блок выполнен'</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">EXCEPTION</span>
+                    <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">division_by_zero</span> <span style="color:#3b6ac8">THEN</span>
+                        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Ошибка во вложенном блоке'</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Внешний блок выполнен'</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">EXCEPTION</span>
+                <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">division_by_zero</span> <span style="color:#3b6ac8">THEN</span>
+                    <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Ошибка во внешнем блоке'</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">NOTICE:  Ошибка во вложенном блоке
+            NOTICE:  Внешний блок выполнен
+            DO
+            </pre></div>
+            <p class="C">
+            Ошибка обрабатывается в том блоке, в котором она возникла. Внешний блок выполняется так, как будто никакой ошибки не было.
+            </p>
+            <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+            <p class="C">
+            А так?
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">1</span><span style="color:#323232">/</span><span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Вложенный блок выполнен'</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">EXCEPTION</span>
+                    <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">no_data_found</span> <span style="color:#3b6ac8">THEN</span>
+                        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Ошибка во вложенном блоке'</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Внешний блок выполнен'</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">EXCEPTION</span>
+                <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">division_by_zero</span> <span style="color:#3b6ac8">THEN</span>
+                    <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Ошибка во внешнем блоке'</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">NOTICE:  Ошибка во внешнем блоке
+            DO
+            </pre></div>
+            <p class="C">
+            Обработчик во внутреннем блоке не подходит; блок завершается с ошибкой, которая обрабатывается уже во внешнем блоке.
+            </p>
+            <p class="C">
+            Не забывайте, что в блоке с секцией EXCEPTION происходит откат к точке сохранения, неявно установленной в начале блока. В данном случае будут отменены все изменения, сделанные в обоих блоках.
+            </p>
+            <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+            <p class="C">
+            А так?
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DO</span> $$
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">1</span><span style="color:#323232">/</span><span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Вложенный блок выполнен'</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">EXCEPTION</span>
+                    <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">no_data_found</span> <span style="color:#3b6ac8">THEN</span>
+                        <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Ошибка во вложенном блоке'</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Внешний блок выполнен'</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">EXCEPTION</span>
+                <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">no_data_found</span> <span style="color:#3b6ac8">THEN</span>
+                    <span style="color:#3b6ac8">RAISE NOTICE</span> <span style="color:#1094a0">'Ошибка во внешнем блоке'</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">ERROR:  division by zero
+            CONTEXT:  SQL statement "SELECT 1/0"
+            PL/pgSQL function inline_code_block line 4 at SQL statement
+            </pre></div>
+            <p class="C">
+            Так не срабатывает ни один обработчик, и вся транзакция обрывается.
+            </p>
+            <p class="C">
+            Обычно не нужно стремиться обработать все возможные ошибки в серверном коде. Нет ничего плохого в том, чтобы передать возникшую ошибку клиенту. В целом, обрабатывать ошибку имеет смысл на том уровне, на котором можно сделать что-то осмысленное в возникшей ситуации. Поэтому обрабатывать ошибку внутри базы данных стоит, когда можно что-то сделать именно на серверной стороне (например, повторить операцию при ошибке сериализации). Про журналирование сообщений об ошибках мы еще будем говорить в теме «PL/pgSQL. Отладка».
+            </p>
+            <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+            <p class="C">
+            Теперь рассмотрим пример с подпрограммами.
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PROCEDURE</span> <span style="color:#c73a69">foo</span><span style="color:#323232">()</span>
+            <span style="color:#3b6ac8">AS</span> $$
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">bar</span><span style="color:#323232">();</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">CREATE PROCEDURE
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PROCEDURE</span> <span style="color:#c73a69">bar</span><span style="color:#323232">()</span>
+            <span style="color:#3b6ac8">AS</span> $$
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">baz</span><span style="color:#323232">();</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">CREATE PROCEDURE
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PROCEDURE</span> <span style="color:#c73a69">baz</span><span style="color:#323232">()</span>
+            <span style="color:#3b6ac8">AS</span> $$
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">PERFORM</span> <span style="color:#1094a0">1</span> <span style="color:#323232">/</span> <span style="color:#1094a0">0</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">CREATE PROCEDURE
+            </pre></div>
+            <p class="C">
+            Что произойдет при вызове?
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">foo</span><span style="color:#323232">();</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">ERROR:  division by zero
+            CONTEXT:  SQL statement "SELECT 1 / 0"
+            PL/pgSQL function baz() line 3 at PERFORM
+            SQL statement "CALL baz()"
+            PL/pgSQL function bar() line 3 at CALL
+            SQL statement "CALL bar()"
+            PL/pgSQL function foo() line 3 at CALL
+            </pre></div>
+            <p class="C">
+            То, что мы видим в сообщении об ошибке — это стек вызовов: сверху вниз = изнутри наружу.
+            </p>
+            <p class="C">
+            Заметьте, что в этом сообщении, как и во многих других, вместо слова procedure используется function.
+            </p>
+            <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+            <p class="C">
+            В обработчике ошибки тоже можно получить доступ к стеку, правда, в виде одной строки:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE PROCEDURE</span> <span style="color:#c73a69">bar</span><span style="color:#323232">()</span>
+            <span style="color:#3b6ac8">AS</span> $$
+            <span style="color:#3b6ac8">DECLARE</span>
+                msg <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+                ctx <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">baz</span><span style="color:#323232">();</span>
+            <span style="color:#3b6ac8">EXCEPTION</span>
+                <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">others</span> <span style="color:#3b6ac8">THEN</span>
+                    <span style="color:#3b6ac8">GET STACKED DIAGNOSTICS</span>
+                         msg <span style="color:#323232">=</span> message_text<span style="color:#323232">,</span>
+                         ctx <span style="color:#323232">=</span> pg_exception_context<span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">RAISE NOTICE</span> E<span style="color:#1094a0">'\nОшибка: %\nСтек ошибки:\n%\n'</span><span style="color:#323232">,</span> msg<span style="color:#323232">,</span> ctx<span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">CREATE PROCEDURE
+            </pre></div>
+            <p class="C">
+            Проверим:
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">foo</span><span style="color:#323232">();</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">NOTICE:  
+            Ошибка: division by zero
+            Стек ошибки:
+            SQL statement "SELECT 1 / 0"
+            PL/pgSQL function baz() line 3 at PERFORM
+            SQL statement "CALL baz()"
+            PL/pgSQL function bar() line 6 at CALL
+            SQL statement "CALL bar()"
+            PL/pgSQL function foo() line 3 at CALL
+            
+            CALL
+            </pre></div>
+            <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+            <p class="C">
+            Поскольку блок с секцией EXCEPTION устанавливает неявную точку сохранения, то и в этом блоке, и во всех блоках выше по стеку вызовов, процедуры лишаются возможности использовать команды COMMIT и ROLLBACK.
+            </p>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE PROCEDURE</span> <span style="color:#c73a69">baz</span><span style="color:#323232">()</span>
+            <span style="color:#3b6ac8">AS</span> $$
+            <span style="color:#3b6ac8">BEGIN</span>
+                <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span>
+            <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+            $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">CREATE PROCEDURE
+            </pre></div>
+            <div class="S1">
+            <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">foo</span><span style="color:#323232">();</span>
+            </pre>
+            </div>
+            <div class="R1"><pre class="R1">NOTICE:  
+            Ошибка: invalid transaction termination
+            Стек ошибки:
+            PL/pgSQL function baz() line 3 at COMMIT
+            SQL statement "CALL baz()"
+            PL/pgSQL function bar() line 6 at CALL
+            SQL statement "CALL bar()"
+            PL/pgSQL function foo() line 3 at CALL
+            
+            CALL
+            </pre></div>
+            <!-- end -->
+            
+            
+            </body></html>
+
+
+            <html><head>
+                <meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+                <style>
+                p.C    { font-size: 80%; }
+                li     { font-size: 80%; }
+                h1     { font-size: 100%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+                div.S1 { padding-left: 0px; font-weight: bold; page-break-inside: avoid; }
+                div.S2 { padding-left: 20px; font-weight: bold; page-break-inside: avoid; border-left: 1px solid grey; }
+                div.S3 { padding-left: 40px; font-weight: bold; page-break-inside: avoid; border-left: 3px double grey; }
+                div.R1 { padding-left: 0px; page-break-inside: avoid; }
+                div.R2 { padding-left: 20px; page-break-inside: avoid; border-left: 1px solid grey; }
+                div.R3 { padding-left: 40px; page-break-inside: avoid; border-left: 3px double grey; }
+                div.E  { padding-left: 0px; font-weight: bold; }
+                div.R  { padding-left: 0px; }
+                </style>
+                </head>
+                <body style="margin: 59.5px;">
+                <!-- body -->
+                <!-- 10 -->
+                <h1>
+                Накладные расходы
+                </h1>
+                <p class="C">
+                Чтобы оценить накладные расходы, рассмотрим простой пример.
+                </p>
+                <p class="C">
+                Пусть имеется таблица с текстовым полем, в которое пользователи заносят произвольные данные (обычно это признак неудачного дизайна, но иногда приходится). Нам нужно выделить числа в отдельный столбец числового типа.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">data</span><span style="color:#323232">(</span>comment <span style="color:#a00050">text</span><span style="color:#323232">,</span> n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE TABLE
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">data</span><span style="color:#323232">(</span>comment<span style="color:#323232">)</span>
+                <span style="color:#3b6ac8">SELECT CASE</span>
+                        <span style="color:#3b6ac8">WHEN</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.01</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'не число'</span> <span style="color:#969696">--  1%</span>
+                        <span style="color:#3b6ac8">ELSE</span> <span style="color:#323232">(</span><span style="color:#c73a69">random</span><span style="color:#323232">()*</span><span style="color:#1094a0">1000</span><span style="color:#323232">)::</span><span style="color:#a00050">integer</span><span style="color:#323232">::</span><span style="color:#a00050">text</span>  <span style="color:#969696">-- 99%</span>
+                    <span style="color:#3b6ac8">END</span>
+                <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">1000000</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">INSERT 0 1000000
+                </pre></div>
+                <p class="C">
+                Решим задачу с помощью обработки ошибок:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">safe_to_integer_ex</span><span style="color:#323232">(</span>s <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">RETURN</span> s<span style="color:#323232">::</span><span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">EXCEPTION</span>
+                    <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">invalid_text_representation</span> <span style="color:#3b6ac8">THEN</span>
+                        <span style="color:#3b6ac8">RETURN NULL</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span>
+                $$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE FUNCTION
+                </pre></div>
+                <p class="C">
+                Проверим:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\timing</span> on
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">Timing is on.
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> data <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> <span style="color:#c73a69">safe_to_integer_ex</span><span style="color:#323232">(</span>comment<span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">UPDATE 1000000
+                Time: 5558,068 ms (00:05,558)
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\timing</span> off
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">Timing is off.
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span> <span style="color:#3b6ac8">FROM</span> data <span style="color:#3b6ac8">WHERE</span> n <span style="color:#3b6ac8">IS NOT NULL</span><span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1"> count  
+                --------
+                 990028
+                (1 row)
+                
+                </pre></div>
+                <p class="C">
+                В другом варианте функции вместо обработки ошибки будем проверять формат с помощью регулярного выражения (слегка упрощенного):
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">safe_to_integer_re</span><span style="color:#323232">(</span>s <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">integer</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">RETURN CASE</span>
+                        <span style="color:#3b6ac8">WHEN</span> s ~ <span style="color:#1094a0">'^\d+$'</span> <span style="color:#3b6ac8">THEN</span> s<span style="color:#323232">::</span><span style="color:#a00050">integer</span>
+                        <span style="color:#3b6ac8">ELSE NULL</span>
+                    <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span>
+                $$ <span style="color:#3b6ac8">IMMUTABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE FUNCTION
+                </pre></div>
+                <p class="C">
+                Проверим этот вариант:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\timing</span> on
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">Timing is on.
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> data <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> <span style="color:#c73a69">safe_to_integer_re</span><span style="color:#323232">(</span>comment<span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">UPDATE 1000000
+                Time: 9406,433 ms (00:09,406)
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\timing</span> off
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">Timing is off.
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span> <span style="color:#3b6ac8">FROM</span> data <span style="color:#3b6ac8">WHERE</span> n <span style="color:#3b6ac8">IS NOT NULL</span><span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1"> count  
+                --------
+                 990028
+                (1 row)
+                
+                </pre></div>
+                <p class="C">
+                Получается почти в два раза быстрее. В этом примере исключение срабатывало всего в 1% случаев. Чем чаще — тем больше будет дополнительных накладных расходов на откат к точке сохранения.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> data <span style="color:#3b6ac8">SET</span> comment <span style="color:#323232">=</span> <span style="color:#1094a0">'не число'</span><span style="color:#323232">;</span> <span style="color:#969696">-- 100%</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">UPDATE 1000000
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\timing</span> on
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">Timing is on.
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> data <span style="color:#3b6ac8">SET</span> n <span style="color:#323232">=</span> <span style="color:#c73a69">safe_to_integer_ex</span><span style="color:#323232">(</span>comment<span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">UPDATE 1000000
+                Time: 13060,579 ms (00:13,061)
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\timing</span> off
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">Timing is off.
+                </pre></div>
+                <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+                <p class="C">
+                Встречаются (и довольно часто) случаи, когда можно обойтись без обработки ошибок, если выбрать другие подходящие средства.
+                </p>
+                <p class="C">
+                Задача: вернуть строку из справочника или NULL, если строки нет.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">categories</span><span style="color:#323232">(</span>code <span style="color:#a00050">text</span> <span style="color:#3b6ac8">UNIQUE</span><span style="color:#323232">,</span> description <span style="color:#a00050">text</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE TABLE
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> categories <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span><span style="color:#1094a0">'books'</span><span style="color:#323232">,</span><span style="color:#1094a0">'Книги'</span><span style="color:#323232">), (</span><span style="color:#1094a0">'discs'</span><span style="color:#323232">,</span><span style="color:#1094a0">'Диски'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">INSERT 0 2
+                </pre></div>
+                <p class="C">
+                Функция с обработкой ошибки:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE FUNCTION</span> <span style="color:#c73a69">get_cat_desc</span><span style="color:#323232">(</span>code <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">DECLARE</span>
+                    desc <span style="color:#a00050">text</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">SELECT</span> c.description <span style="color:#3b6ac8">INTO STRICT</span> desc
+                    <span style="color:#3b6ac8">FROM</span> categories c
+                    <span style="color:#3b6ac8">WHERE</span> c.code <span style="color:#323232">=</span> get_cat_desc.code<span style="color:#323232">;</span>
+                
+                    <span style="color:#3b6ac8">RETURN</span> desc<span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">EXCEPTION</span>
+                    <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">no_data_found</span> <span style="color:#3b6ac8">THEN</span>
+                        <span style="color:#3b6ac8">RETURN NULL</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">STABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE FUNCTION
+                </pre></div>
+                <p class="C">
+                Проверим, что функция работает правильно:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">get_cat_desc</span><span style="color:#323232">(</span><span style="color:#1094a0">'books'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1"> get_cat_desc 
+                --------------
+                 Книги
+                (1 row)
+                
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">get_cat_desc</span><span style="color:#323232">(</span><span style="color:#1094a0">'movies'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1"> get_cat_desc 
+                --------------
+                 
+                (1 row)
+                
+                </pre></div>
+                <p class="C">
+                Можно ли проще?
+                </p>
+                <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+                <p class="C">
+                Да, надо просто убрать STRICT или использовать подзапрос:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">get_cat_desc</span><span style="color:#323232">(</span>code <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">RETURN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">SELECT</span> c.description
+                            <span style="color:#3b6ac8">FROM</span> categories c
+                            <span style="color:#3b6ac8">WHERE</span> c.code <span style="color:#323232">=</span> get_cat_desc.code<span style="color:#323232">);</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">STABLE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE FUNCTION
+                </pre></div>
+                <p class="C">
+                В таком варианте хорошо видно, что PL/pgSQL тут вообще не нужен — достаточно SQL.
+                </p>
+                <p class="C">
+                Проверим:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">get_cat_desc</span><span style="color:#323232">(</span><span style="color:#1094a0">'books'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1"> get_cat_desc 
+                --------------
+                 Книги
+                (1 row)
+                
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">get_cat_desc</span><span style="color:#323232">(</span><span style="color:#1094a0">'movies'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1"> get_cat_desc 
+                --------------
+                 
+                (1 row)
+                
+                </pre></div>
+                <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+                <p class="C">
+                Задача: обновить строку таблицы с определенным идентификатором; если такой строки нет — вставить ее.
+                </p>
+                <p class="C">
+                Первый подход. Что здесь плохо?
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">change</span><span style="color:#323232">(</span>code <span style="color:#a00050">text</span><span style="color:#323232">,</span> description <span style="color:#a00050">text</span><span style="color:#323232">)</span>
+                <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">void</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">DECLARE</span>
+                    cnt <span style="color:#a00050">integer</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span> <span style="color:#3b6ac8">INTO</span> cnt
+                    <span style="color:#3b6ac8">FROM</span> categories c <span style="color:#3b6ac8">WHERE</span> c.code <span style="color:#323232">=</span> change.code<span style="color:#323232">;</span>
+                
+                    <span style="color:#3b6ac8">IF</span> cnt <span style="color:#323232">=</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span>
+                        <span style="color:#3b6ac8">INSERT INTO</span> categories <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span>code<span style="color:#323232">,</span> description<span style="color:#323232">);</span>
+                    <span style="color:#3b6ac8">ELSE</span>
+                        <span style="color:#3b6ac8">UPDATE</span> categories c
+                        <span style="color:#3b6ac8">SET</span> description <span style="color:#323232">=</span> change.description
+                        <span style="color:#3b6ac8">WHERE</span> c.code <span style="color:#323232">=</span> change.code<span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE FUNCTION
+                </pre></div>
+                <p class="C">
+                Плохо практически все, начиная с того, что такая функция будет работать некорректно на уровне изоляции Read Committed при наличии нескольких параллельно работающих сеансов. Причина в том, что после выполнения SELECT и перед следующей операцией данные в базе могут измениться.
+                </p>
+                <p class="C">
+                Это легко продемонстрировать, если добавить задержку между командами. Для разнообразия возьмем немного другой (но тоже неправильный) вариант:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">change</span><span style="color:#323232">(</span>code <span style="color:#a00050">text</span><span style="color:#323232">,</span> description <span style="color:#a00050">text</span><span style="color:#323232">)</span>
+                <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">void</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">UPDATE</span> categories c
+                    <span style="color:#3b6ac8">SET</span> description <span style="color:#323232">=</span> change.description
+                    <span style="color:#3b6ac8">WHERE</span> c.code <span style="color:#323232">=</span> change.code<span style="color:#323232">;</span>
+                
+                    <span style="color:#3b6ac8">IF NOT FOUND THEN</span>
+                        <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span> <span style="color:#969696">-- тут может произойти все, что угодно</span>
+                        <span style="color:#3b6ac8">INSERT INTO</span> categories <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span>code<span style="color:#323232">,</span> description<span style="color:#323232">);</span>
+                    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE FUNCTION
+                </pre></div>
+                <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+                <p class="C">
+                Теперь выполним функцию в двух сеансах почти одновременно:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">change</span><span style="color:#323232">(</span><span style="color:#1094a0">'games'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Игры'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="S2">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">change</span><span style="color:#323232">(</span><span style="color:#1094a0">'games'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Игры'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R2"><pre class="R2">ERROR:  duplicate key value violates unique constraint "categories_code_key"
+                DETAIL:  Key (code)=(games) already exists.
+                CONTEXT:  SQL statement "INSERT INTO categories VALUES (code, description)"
+                PL/pgSQL function change(text,text) line 9 at SQL statement
+                
+                </pre></div>
+                <div class="R1"><pre class="R1"> change 
+                --------
+                 
+                (1 row)
+                
+                </pre></div>
+                <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+                <p class="C">
+                Правильное решение можно построить с помощью обработки ошибки:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">change</span><span style="color:#323232">(</span>code <span style="color:#a00050">text</span><span style="color:#323232">,</span> description <span style="color:#a00050">text</span><span style="color:#323232">)</span>
+                <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">void</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">LOOP</span>
+                        <span style="color:#3b6ac8">UPDATE</span> categories c
+                        <span style="color:#3b6ac8">SET</span> description <span style="color:#323232">=</span> change.description
+                        <span style="color:#3b6ac8">WHERE</span> c.code <span style="color:#323232">=</span> change.code<span style="color:#323232">;</span>
+                
+                        <span style="color:#3b6ac8">EXIT WHEN FOUND</span><span style="color:#323232">;</span>
+                        <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span> <span style="color:#969696">-- для демонстрации</span>
+                
+                        <span style="color:#3b6ac8">BEGIN</span>
+                            <span style="color:#3b6ac8">INSERT INTO</span> categories <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span>code<span style="color:#323232">,</span> description<span style="color:#323232">);</span>
+                            <span style="color:#3b6ac8">EXIT</span><span style="color:#323232">;</span>
+                        <span style="color:#3b6ac8">EXCEPTION</span>
+                            <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">unique_violation</span> <span style="color:#3b6ac8">THEN NULL</span><span style="color:#323232">;</span>
+                        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE FUNCTION
+                </pre></div>
+                <p class="C">
+                Проверим.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">change</span><span style="color:#323232">(</span><span style="color:#1094a0">'vynil'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Грампластинки'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="S2">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">change</span><span style="color:#323232">(</span><span style="color:#1094a0">'vynil'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'Грампластинки'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R2"><pre class="R2"> change 
+                --------
+                 
+                (1 row)
+                
+                
+                </pre></div>
+                <div class="R1"><pre class="R1"> change 
+                --------
+                 
+                (1 row)
+                
+                </pre></div>
+                <p class="C">
+                Да, теперь все правильно.
+                </p>
+                <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+                <p class="C">
+                Но можно проще с помощью варианта команды INSERT, который пробует выполнить вставку, а при возникновении конфликта — обновление. И снова достаточно простого SQL.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">change</span><span style="color:#323232">(</span>code <span style="color:#a00050">text</span><span style="color:#323232">,</span> description <span style="color:#a00050">text</span><span style="color:#323232">)</span>
+                <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">void</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                    <span style="color:#3b6ac8">INSERT INTO</span> categories <span style="color:#3b6ac8">VALUES</span> <span style="color:#323232">(</span>code<span style="color:#323232">,</span> description<span style="color:#323232">)</span>
+                    <span style="color:#3b6ac8">ON CONFLICT</span><span style="color:#323232">(</span>code<span style="color:#323232">)</span>
+                        <span style="color:#3b6ac8">DO UPDATE SET</span> description <span style="color:#323232">=</span> change.description<span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> sql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE FUNCTION
+                </pre></div>
+                <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+                <p class="C">
+                Задача: гарантировать, что данные обрабатываются одновременно только одним процессом (на уровне изоляции Read Committed).
+                </p>
+                <p class="C">
+                Используя ту же таблицу, представим, что периодически категория требует специальной однопоточной обработки. Можно написать функцию следующим образом:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">process_cat</span><span style="color:#323232">(</span>code <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">PERFORM</span> c.code <span style="color:#3b6ac8">FROM</span> categories c <span style="color:#3b6ac8">WHERE</span> c.code <span style="color:#323232">=</span> process_cat.code
+                        <span style="color:#3b6ac8">FOR UPDATE NOWAIT</span><span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span> <span style="color:#969696">-- собственно обработка</span>
+                    <span style="color:#3b6ac8">RETURN</span> <span style="color:#1094a0">'Категория обработана'</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">EXCEPTION</span>
+                    <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">lock_not_available</span> <span style="color:#3b6ac8">THEN</span>
+                        <span style="color:#3b6ac8">RETURN</span> <span style="color:#1094a0">'Другой процесс уже обрабатывает эту категорию'</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE FUNCTION
+                </pre></div>
+                <p class="C">
+                Проверим, что все правильно:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">process_cat</span><span style="color:#323232">(</span><span style="color:#1094a0">'books'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="S2">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">process_cat</span><span style="color:#323232">(</span><span style="color:#1094a0">'books'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R2"><pre class="R2">                  process_cat                  
+                -----------------------------------------------
+                 Другой процесс уже обрабатывает эту категорию
+                (1 row)
+                
+                
+                </pre></div>
+                <div class="R1"><pre class="R1">     process_cat      
+                ----------------------
+                 Категория обработана
+                (1 row)
+                
+                </pre></div>
+                <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+                <p class="C">
+                Но и эту задачу можно решить без обработки ошибок, используя рекомендательные блокировки:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE OR REPLACE FUNCTION</span> <span style="color:#c73a69">process_cat</span><span style="color:#323232">(</span>code <span style="color:#a00050">text</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">RETURNS</span> <span style="color:#a00050">text</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">IF</span> <span style="color:#c73a69">pg_try_advisory_lock</span><span style="color:#323232">(</span><span style="color:#c73a69">hashtext</span><span style="color:#323232">(</span>code<span style="color:#323232">))</span> <span style="color:#3b6ac8">THEN</span>
+                        <span style="color:#3b6ac8">PERFORM</span> <span style="color:#c73a69">pg_sleep</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">);</span> <span style="color:#969696">-- собственно обработка</span>
+                        <span style="color:#3b6ac8">RETURN</span> <span style="color:#1094a0">'Категория обработана'</span><span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">ELSE</span>
+                        <span style="color:#3b6ac8">RETURN</span> <span style="color:#1094a0">'Другой процесс уже обрабатывает эту категорию'</span><span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">VOLATILE LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE FUNCTION
+                </pre></div>
+                <p class="C">
+                Проверим:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">process_cat</span><span style="color:#323232">(</span><span style="color:#1094a0">'books'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="S2">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">process_cat</span><span style="color:#323232">(</span><span style="color:#1094a0">'books'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R2"><pre class="R2">                  process_cat                  
+                -----------------------------------------------
+                 Другой процесс уже обрабатывает эту категорию
+                (1 row)
+                
+                
+                </pre></div>
+                <div class="R1"><pre class="R1">     process_cat      
+                ----------------------
+                 Категория обработана
+                (1 row)
+                
+                </pre></div>
+                <hr size="0" style="border-top: 1px dashed grey; border-bottom: 0;">
+                <p class="C">
+                Приведем и пример, когда без обработки ошибок не обойтись.
+                </p>
+                <p class="C">
+                Задача: организовать обработку пакета документов; ошибка при обработке одного документа не должна приводить к общему сбою.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TYPE</span> doc_status <span style="color:#3b6ac8">AS ENUM</span> <span style="color:#969696">-- тип перечисления</span>
+                    <span style="color:#323232">(</span><span style="color:#1094a0">'READY'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'ERROR'</span><span style="color:#323232">,</span> <span style="color:#1094a0">'PROCESSED'</span><span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE TYPE
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">documents</span><span style="color:#323232">(</span>
+                    id <span style="color:#a00050">integer</span><span style="color:#323232">,</span>
+                    version <span style="color:#a00050">integer</span><span style="color:#323232">,</span>
+                    status doc_status<span style="color:#323232">,</span>
+                    message <span style="color:#a00050">text</span>
+                <span style="color:#323232">);</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE TABLE
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> <span style="color:#c73a69">documents</span><span style="color:#323232">(</span>id<span style="color:#323232">,</span> version<span style="color:#323232">,</span> status<span style="color:#323232">)</span>
+                    <span style="color:#3b6ac8">SELECT</span> id<span style="color:#323232">,</span> <span style="color:#1094a0">1</span><span style="color:#323232">,</span> <span style="color:#1094a0">'READY'</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">100</span><span style="color:#323232">)</span> id<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">INSERT 0 100
+                </pre></div>
+                <p class="C">
+                Процедура, обрабатывающая один документ, иногда приводит к ошибке:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PROCEDURE</span> <span style="color:#c73a69">process_one_doc</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span><span style="color:#323232">)</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">UPDATE</span> documents d
+                    <span style="color:#3b6ac8">SET</span> version <span style="color:#323232">=</span> version <span style="color:#323232">+</span> <span style="color:#1094a0">1</span>
+                    <span style="color:#3b6ac8">WHERE</span> d.id <span style="color:#323232">=</span> process_one_doc.id<span style="color:#323232">;</span>
+                    <span style="color:#969696">-- обработка может длиться долго</span>
+                    <span style="color:#3b6ac8">IF</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.05</span> <span style="color:#3b6ac8">THEN</span>
+                        <span style="color:#3b6ac8">RAISE EXCEPTION</span> <span style="color:#1094a0">'Случилось страшное'</span><span style="color:#323232">;</span>
+                    <span style="color:#3b6ac8">END IF</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE PROCEDURE
+                </pre></div>
+                <p class="C">
+                Теперь напишем процедуру, обрабатывающую все документы. Она вызывает в цикле обработку одного документа и при необходимости обрабатывает ошибку.
+                </p>
+                <p class="C">
+                Обратите внимание, что фиксация транзакции выполняется вне блока с секцией EXCEPTION.
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE PROCEDURE</span> <span style="color:#c73a69">process_docs</span><span style="color:#323232">()</span>
+                <span style="color:#3b6ac8">AS</span> $$
+                <span style="color:#3b6ac8">DECLARE</span>
+                    doc <span style="color:#a00050">record</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">BEGIN</span>
+                    <span style="color:#3b6ac8">FOR</span> doc <span style="color:#3b6ac8">IN</span> <span style="color:#323232">(</span><span style="color:#3b6ac8">SELECT</span> id <span style="color:#3b6ac8">FROM</span> documents <span style="color:#3b6ac8">WHERE</span> status <span style="color:#323232">=</span> <span style="color:#1094a0">'READY'</span><span style="color:#323232">)</span>
+                    <span style="color:#3b6ac8">LOOP</span>
+                        <span style="color:#3b6ac8">BEGIN</span>
+                            <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">process_one_doc</span><span style="color:#323232">(</span>doc.id<span style="color:#323232">);</span>
+                
+                            <span style="color:#3b6ac8">UPDATE</span> documents d
+                            <span style="color:#3b6ac8">SET</span> status <span style="color:#323232">=</span> <span style="color:#1094a0">'PROCESSED'</span>
+                            <span style="color:#3b6ac8">WHERE</span> d.id <span style="color:#323232">=</span> doc.id<span style="color:#323232">;</span>
+                        <span style="color:#3b6ac8">EXCEPTION</span>
+                            <span style="color:#3b6ac8">WHEN</span> <span style="color:#a00050">others</span> <span style="color:#3b6ac8">THEN</span>
+                                <span style="color:#3b6ac8">UPDATE</span> documents d
+                                <span style="color:#3b6ac8">SET</span> status <span style="color:#323232">=</span> <span style="color:#1094a0">'ERROR'</span><span style="color:#323232">,</span> message <span style="color:#323232">=</span> sqlerrm
+                                <span style="color:#3b6ac8">WHERE</span> d.id <span style="color:#323232">=</span> doc.id<span style="color:#323232">;</span>
+                        <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                        <span style="color:#3b6ac8">COMMIT</span><span style="color:#323232">;</span> <span style="color:#969696">-- каждый документ в своей транзакции</span>
+                    <span style="color:#3b6ac8">END LOOP</span><span style="color:#323232">;</span>
+                <span style="color:#3b6ac8">END</span><span style="color:#323232">;</span>
+                $$ <span style="color:#3b6ac8">LANGUAGE</span> plpgsql<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CREATE PROCEDURE
+                </pre></div>
+                <p class="C">
+                Такую же обработку можно организовать и при помощи функции, но тогда все документы будут обрабатываться в одной общей транзакции, что может приводить к проблемам, если обработка выполняется долго. Этот вопрос детально изучается в курсе DEV2.
+                </p>
+                <p class="C">
+                Проверим результат:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CALL</span> <span style="color:#c73a69">process_docs</span><span style="color:#323232">();</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">CALL
+                </pre></div>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> d.status<span style="color:#323232">,</span> d.version<span style="color:#323232">,</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span>
+                <span style="color:#3b6ac8">FROM</span> documents d
+                <span style="color:#3b6ac8">GROUP BY</span> d.status<span style="color:#323232">,</span> d.version<span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1">  status   | version | count 
+                -----------+---------+-------
+                 PROCESSED |       2 |    93
+                 ERROR     |       1 |     7
+                (2 rows)
+                
+                </pre></div>
+                <p class="C">
+                Как видим, часть документов не обработалась, но это не помешало остальным.
+                </p>
+                <p class="C">
+                Информация об ошибках удобно сохраняется в самой таблице:
+                </p>
+                <div class="S1">
+                <pre style="color:#323232; background-color:#ffffff;"><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> documents d <span style="color:#3b6ac8">WHERE</span> d.status <span style="color:#323232">=</span> <span style="color:#1094a0">'ERROR'</span><span style="color:#323232">;</span>
+                </pre>
+                </div>
+                <div class="R1"><pre class="R1"> id | version | status |      message       
+                ----+---------+--------+--------------------
+                  2 |       1 | ERROR  | Случилось страшное
+                 41 |       1 | ERROR  | Случилось страшное
+                 29 |       1 | ERROR  | Случилось страшное
+                 75 |       1 | ERROR  | Случилось страшное
+                 76 |       1 | ERROR  | Случилось страшное
+                 83 |       1 | ERROR  | Случилось страшное
+                 86 |       1 | ERROR  | Случилось страшное
+                (7 rows)
+                
+                </pre></div>
+                <p class="C">
+                И еще раз обратим внимание, что при возникновении ошибки происходит откат к точке сохранения в начале блока: благодаря этому версии документов в статусе ERROR остались равными 1.
+                </p>
+                <!-- end -->
+                
+                
+                </body></html>
+
+                
+
+

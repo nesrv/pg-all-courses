@@ -1,0 +1,117 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Новое табличное пространство
+</h1>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">cd</span> <span style="color:#323232">/</span>home<span style="color:#323232">/</span>postgres
+</pre>
+<pre style="color:#323232; background-color:#ffffff;  ">postgres$ <span style="color:#3b6ac8">mkdir</span> ts_dir
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLESPACE</span> ts <span style="color:#3b6ac8">LOCATION</span> <span style="color:#1094a0">'/home/postgres/ts_dir'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLESPACE
+</pre></div>
+<h1>
+Табличное пространство по умолчанию для template1
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER DATABASE</span> template1 <span style="color:#3b6ac8">SET TABLESPACE</span> ts<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER DATABASE
+</pre></div>
+<h1>
+Новая база данных и проверка
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> db<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> spcname
+<span style="color:#3b6ac8">FROM</span> pg_tablespace
+<span style="color:#3b6ac8">WHERE</span> <span style="color:#a00050">OID</span> <span style="color:#323232">= (</span><span style="color:#3b6ac8">SELECT</span> dattablespace <span style="color:#3b6ac8">FROM</span> pg_database <span style="color:#3b6ac8">WHERE</span> datname <span style="color:#323232">=</span> <span style="color:#1094a0">'db'</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ spcname 
+---------
+ ts
+(1 row)
+
+</pre></div>
+<p class="C">
+Табличное пространство по умолчанию - ts. Вывод: табличное пространство по
+умолчанию определяется шаблоном, из которого клонируется новая база данных.
+</p>
+<h1>
+Символическая ссылка
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#a00050">OID</span> <span style="color:#3b6ac8">AS</span> tsoid <span style="color:#3b6ac8">FROM</span> pg_tablespace <span style="color:#3b6ac8">WHERE</span> spcname <span style="color:#323232">=</span> <span style="color:#1094a0">'ts'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ tsoid 
+-------
+ 16421
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\!</span> ls <span style="color:#323232">-</span>l <span style="color:#323232">/</span>usr<span style="color:#323232">/</span><span style="color:#3b6ac8">local</span><span style="color:#323232">/</span>pgsql<span style="color:#323232">/</span><span style="color:#3b6ac8">data</span><span style="color:#323232">/</span>pg_tblspc<span style="color:#323232">/</span><span style="color:#1094a0">16421</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+lrwxrwxrwx 1 postgres postgres 21 &#1084;&#1072;&#1088; 31 15:24 /usr/local/pgsql/data/pg_tblspc/16421 -&gt; /home/postgres/ts_dir
+</pre></div>
+<h1>
+Удаление табличного пространства
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER DATABASE</span> template1 <span style="color:#3b6ac8">SET TABLESPACE</span> pg_default<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP DATABASE</span> db<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DROP DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DROP TABLESPACE</span> ts<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DROP TABLESPACE
+</pre></div>
+</body>
+</html>

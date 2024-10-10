@@ -1,0 +1,184 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Создание таблицы
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> wal_buffercache<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> wal_buffercache
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;wal_buffercache&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>n <span style="color:#a00050">integer</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">10000</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 10000
+</pre></div>
+<h1>
+Размер таблицы
+</h1>
+<p class="C">
+Сколько страниц на диске занимает таблица?
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> setting <span style="color:#3b6ac8">FROM</span> pg_settings <span style="color:#3b6ac8">WHERE</span> name <span style="color:#323232">=</span> <span style="color:#1094a0">'block_size'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ setting 
+---------
+ 8192
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_table_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">) /</span> <span style="color:#1094a0">8192</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ ?column? 
+----------
+       43
+(1 row)
+
+</pre></div>
+<p class="C">
+Из них основной слой:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_relation_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">,</span><span style="color:#1094a0">'main'</span><span style="color:#323232">) /</span> <span style="color:#1094a0">8192</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ ?column? 
+----------
+       40
+(1 row)
+
+</pre></div>
+<p class="C">
+И карта свободного пространства:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_relation_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">,</span><span style="color:#1094a0">'fsm'</span><span style="color:#323232">) /</span> <span style="color:#1094a0">8192</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ ?column? 
+----------
+        3
+(1 row)
+
+</pre></div>
+<p class="C">
+Сколько буферов в кэше занимает таблица?
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE EXTENSION</span> pg_buffercache<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE EXTENSION
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT CASE</span> relforknumber
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">0</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'main'</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">1</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'fsm'</span>
+         <span style="color:#3b6ac8">WHEN</span> <span style="color:#1094a0">2</span> <span style="color:#3b6ac8">THEN</span> <span style="color:#1094a0">'vm'</span>
+       <span style="color:#3b6ac8">END</span> relfork<span style="color:#323232">,</span>
+       <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span>
+<span style="color:#3b6ac8">FROM</span>   pg_buffercache b<span style="color:#323232">,</span>
+       pg_class c
+<span style="color:#3b6ac8">WHERE</span>  b.reldatabase <span style="color:#323232">= (</span>
+         <span style="color:#3b6ac8">SELECT</span> <span style="color:#a00050">oid</span> <span style="color:#3b6ac8">FROM</span> pg_database <span style="color:#3b6ac8">WHERE</span> datname <span style="color:#323232">=</span> <span style="color:#c73a69">current_database</span><span style="color:#323232">()</span>
+       <span style="color:#323232">)</span>
+<span style="color:#3b6ac8">AND</span>    c.<span style="color:#a00050">oid</span> <span style="color:#323232">=</span> <span style="color:#1094a0">'t'</span><span style="color:#323232">::</span><span style="color:#a00050">regclass</span>
+<span style="color:#3b6ac8">AND</span>    b.relfilenode <span style="color:#323232">=</span> c.relfilenode
+<span style="color:#3b6ac8">GROUP BY</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ relfork | count 
+---------+-------
+ fsm     |     2
+ main    |    40
+(2 rows)
+
+</pre></div>
+<h1>
+Количество грязных буферов в кэше
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span>
+<span style="color:#3b6ac8">FROM</span>   pg_buffercache b
+<span style="color:#3b6ac8">WHERE</span>  isdirty<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ count 
+-------
+    88
+(1 row)
+
+</pre></div>
+<h1>
+Контрольная точка
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CHECKPOINT</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CHECKPOINT
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span>
+<span style="color:#3b6ac8">FROM</span>   pg_buffercache b
+<span style="color:#3b6ac8">WHERE</span>  isdirty<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ count 
+-------
+     0
+(1 row)
+
+</pre></div>
+<p class="C">
+Грязных буферов не осталось. Подробнее о контрольной точке рассказывается
+в отдельной теме.
+</p>
+</body>
+</html>

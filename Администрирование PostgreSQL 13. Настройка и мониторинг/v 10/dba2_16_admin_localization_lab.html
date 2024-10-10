@@ -1,0 +1,220 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Кодировки базы данных
+</h1>
+<p class="C">
+Проверим, что в ОС есть локали с кодировкой koi8:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\!</span> locale <span style="color:#323232">-</span>a|grep koi8
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ru_RU.koi8r
+</pre></div>
+<p class="C">
+Создаем базы данных с кодировками KOI8R и UTF8:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> admin_localization_koi8r
+  <span style="color:#3b6ac8">TEMPLATE</span> template0
+  <span style="color:#3b6ac8">ENCODING</span> <span style="color:#1094a0">'KOI8R'</span>
+  LC_CTYPE <span style="color:#1094a0">'ru_RU.koi8r'</span>
+  LC_COLLATE <span style="color:#1094a0">'ru_RU.koi8r'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> admin_localization_utf8<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\l</span> admin_localization_<span style="color:#323232">*</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+                                       List of databases
+           Name           |  Owner   | Encoding |   Collate   |    Ctype    | Access privileges 
+--------------------------+----------+----------+-------------+-------------+-------------------
+ admin_localization_koi8r | postgres | KOI8R    | ru_RU.koi8r | ru_RU.koi8r | 
+ admin_localization_utf8  | postgres | UTF8     | ru_RU.utf8  | ru_RU.utf8  | 
+(2 rows)
+
+</pre></div>
+<p class="C">
+Подключаемся к базе с кодировкой KOI8R:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> admin_localization_koi8r
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;admin_localization_koi8r&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> client_encoding <span style="color:#323232">=</span> <span style="color:#1094a0">'UTF8'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SET
+</pre></div>
+<p class="C">
+Убедимся, что клиент и сервер используют разные кодировки:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> name<span style="color:#323232">,</span> setting <span style="color:#3b6ac8">FROM</span> pg_settings <span style="color:#3b6ac8">WHERE</span> name <span style="color:#3b6ac8">LIKE</span> <span style="color:#1094a0">'%encoding'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+      name       | setting 
+-----------------+---------
+ client_encoding | UTF8
+ server_encoding | KOI8R
+(2 rows)
+
+</pre></div>
+<p class="C">
+Создаем таблицу, содержащую строки с кириллицей:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> tab <span style="color:#3b6ac8">AS</span>
+  <span style="color:#3b6ac8">SELECT</span> <span style="color:#1094a0">'Привет, мир!'</span> <span style="color:#3b6ac8">AS</span> col<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SELECT 1
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> tab<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+     col      
+--------------
+ &#1055;&#1088;&#1080;&#1074;&#1077;&#1090;, &#1084;&#1080;&#1088;!
+(1 row)
+
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\q</span>
+</pre>
+</div>
+<p class="C">
+Получаем логическую копию:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_dump</span> <span style="color:#323232">-</span>d admin_localization_koi8r <span style="color:#323232">-</span>Fc <span style="color:#323232">-</span>f koi8r.dump
+</pre>
+</div>
+<p class="C">
+Содержимое копии выгружается в кодировке базы данных (KOI8R), а в начале
+файла есть команда установки параметра client_encoding в то же значение KOI8R.
+</p>
+<p class="C">
+Восстанавливаем таблицу в базе данных admin_localization_utf8:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff;  ">student$ <span style="color:#00a150">pg_restore</span> koi8r.dump <span style="color:#323232">-</span>d admin_localization_utf8 <span style="color:#323232">-</span>t tab
+</pre>
+</div>
+<p class="C">
+Благодаря установке client_encoding при восстановлении символы автоматически
+перекодируются. Проверим, что кириллица корректно перенесена:
+</p>
+<div class="E">
+<pre style="color:#323232; background-color:#ffffff; ">student$ <span style="color:#00a150">psql</span> <span style="color:#323232">-</span>d admin_localization_utf8
+</pre>
+</div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> tab<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+     col      
+--------------
+ &#1055;&#1088;&#1080;&#1074;&#1077;&#1090;, &#1084;&#1080;&#1088;!
+(1 row)
+
+</pre></div>
+<h1>
+Номер сегодняшнего дня недели
+</h1>
+<p class="C">
+Текущие настройки локализации даты и времени:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SHOW</span> lc_time<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+  lc_time   
+------------
+ ru_RU.utf8
+(1 row)
+
+</pre></div>
+<p class="C">
+Для получения номера дня недели есть две форматные маски:
+</p>
+<ul class="U">
+<li>ID - неделя начинается с понедельника,</li>
+<li>D  - неделя начинается с воскресенья.</li>
+</ul>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">to_char</span><span style="color:#323232">(</span><span style="color:#3b6ac8">current_date</span><span style="color:#323232">,</span> <span style="color:#1094a0">'TMDay: ID'</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> <span style="color:#1094a0">&quot;ID&quot;</span><span style="color:#323232">,</span>
+          <span style="color:#c73a69">to_char</span><span style="color:#323232">(</span><span style="color:#3b6ac8">current_date</span><span style="color:#323232">,</span> <span style="color:#1094a0">'TMDay: D'</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> <span style="color:#1094a0">&quot;D&quot;</span> <span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+       ID       |       D        
+----------------+----------------
+ &#1055;&#1086;&#1085;&#1077;&#1076;&#1077;&#1083;&#1100;&#1085;&#1080;&#1082;: 1 | &#1055;&#1086;&#1085;&#1077;&#1076;&#1077;&#1083;&#1100;&#1085;&#1080;&#1082;: 2
+(1 row)
+
+</pre></div>
+<p class="C">
+Номер дня недели не зависит от настроек локализации, в частности, от
+параметра lc_time:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SET</span> lc_time <span style="color:#3b6ac8">TO</span> <span style="color:#1094a0">'en_US.utf8'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+SET
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">to_char</span><span style="color:#323232">(</span><span style="color:#3b6ac8">current_date</span><span style="color:#323232">,</span> <span style="color:#1094a0">'TMDay: ID'</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> <span style="color:#1094a0">&quot;ID&quot;</span><span style="color:#323232">,</span>
+          <span style="color:#c73a69">to_char</span><span style="color:#323232">(</span><span style="color:#3b6ac8">current_date</span><span style="color:#323232">,</span> <span style="color:#1094a0">'TMDay: D'</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">AS</span> <span style="color:#1094a0">&quot;D&quot;</span> <span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+    ID     |     D     
+-----------+-----------
+ Monday: 1 | Monday: 2
+(1 row)
+
+</pre></div>
+</body>
+</html>

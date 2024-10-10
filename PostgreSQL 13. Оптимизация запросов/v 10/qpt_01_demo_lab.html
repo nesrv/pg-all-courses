@@ -1,0 +1,157 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Сколько человек в одном бронировании?
+</h1>
+<p class="C">
+Посчитаем количество человек в каждом бронировании, а затем число бронирований
+для каждого количества.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> tt.cnt<span style="color:#323232">,</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span>
+<span style="color:#3b6ac8">FROM</span> <span style="color:#323232">(</span>
+  <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span> cnt
+  <span style="color:#3b6ac8">FROM</span> tickets t 
+  <span style="color:#3b6ac8">GROUP BY</span> t.book_ref
+<span style="color:#323232">)</span> tt
+<span style="color:#3b6ac8">GROUP BY</span> tt.cnt
+<span style="color:#3b6ac8">ORDER bY</span> tt.cnt<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ cnt |  count  
+-----+---------
+   1 | 1388875
+   2 |  613356
+   3 |  101440
+   4 |    7245
+   5 |     194
+(5 rows)
+
+</pre></div>
+<h1>
+До каких городов нельзя добраться без пересадок из Москвы?
+</h1>
+<p class="C">
+Найдем города, куда можно добраться, и выведем все остальные.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> a.city
+<span style="color:#3b6ac8">FROM</span> airports a
+<span style="color:#3b6ac8">EXCEPT</span>
+<span style="color:#3b6ac8">SELECT</span> arr.city
+<span style="color:#3b6ac8">FROM</span> airports dep<span style="color:#323232">,</span> airports arr<span style="color:#323232">,</span> flights f
+<span style="color:#3b6ac8">WHERE</span> dep.city <span style="color:#323232">=</span> <span style="color:#1094a0">'Москва'</span>
+<span style="color:#3b6ac8">AND</span> f.departure_airport <span style="color:#323232">=</span> dep.airport_code
+<span style="color:#3b6ac8">AND</span> f.arrival_airport <span style="color:#323232">=</span> arr.airport_code<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+         city         
+----------------------
+ &#1050;&#1072;&#1083;&#1091;&#1075;&#1072;
+ &#1050;&#1086;&#1075;&#1072;&#1083;&#1099;&#1084;
+ &#1071;&#1082;&#1091;&#1090;&#1089;&#1082;
+ &#1053;&#1086;&#1074;&#1086;&#1082;&#1091;&#1079;&#1085;&#1077;&#1094;&#1082;
+ &#1057;&#1091;&#1088;&#1075;&#1091;&#1090;
+ &#1048;&#1088;&#1082;&#1091;&#1090;&#1089;&#1082;
+ &#1059;&#1076;&#1072;&#1095;&#1085;&#1099;&#1081;
+ &#1050;&#1099;&#1079;&#1099;&#1083;
+ &#1057;&#1090;&#1088;&#1077;&#1078;&#1077;&#1074;&#1086;&#1081;
+ &#1071;&#1088;&#1086;&#1089;&#1083;&#1072;&#1074;&#1083;&#1100;
+ &#1048;&#1074;&#1072;&#1085;&#1086;&#1074;&#1086;
+ &#1059;&#1089;&#1090;&#1100;-&#1050;&#1091;&#1090;
+ &#1052;&#1072;&#1075;&#1072;&#1076;&#1072;&#1085;
+ &#1063;&#1080;&#1090;&#1072;
+ &#1063;&#1077;&#1088;&#1077;&#1087;&#1086;&#1074;&#1077;&#1094;
+ &#1050;&#1086;&#1084;&#1089;&#1086;&#1084;&#1086;&#1083;&#1100;&#1089;&#1082;-&#1085;&#1072;-&#1040;&#1084;&#1091;&#1088;&#1077;
+ &#1059;&#1089;&#1090;&#1100;-&#1048;&#1083;&#1080;&#1084;&#1089;&#1082;
+ &#1052;&#1086;&#1089;&#1082;&#1074;&#1072;
+ &#1041;&#1083;&#1072;&#1075;&#1086;&#1074;&#1077;&#1097;&#1077;&#1085;&#1089;&#1082;
+ &#1059;&#1093;&#1090;&#1072;
+ &#1053;&#1080;&#1078;&#1085;&#1077;&#1082;&#1072;&#1084;&#1089;&#1082;
+(21 rows)
+
+</pre></div>
+<p class="C">
+Интересно, что из Москвы в Москву без пересадок добраться не получится.
+</p>
+<h1>
+Какие модели выполняют больше всего и меньше всего рейсов?
+</h1>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> a.model<span style="color:#323232">,</span> f.cnt
+<span style="color:#3b6ac8">FROM</span> aircrafts a
+  <span style="color:#3b6ac8">LEFT JOIN</span> <span style="color:#323232">(</span>
+    <span style="color:#3b6ac8">SELECT</span> f.aircraft_code<span style="color:#323232">,</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span> cnt
+    <span style="color:#3b6ac8">FROM</span> flights f
+    <span style="color:#3b6ac8">GROUP BY</span> f.aircraft_code
+  <span style="color:#323232">)</span> f
+  <span style="color:#3b6ac8">ON</span> f.aircraft_code <span style="color:#323232">=</span> a.aircraft_code
+<span style="color:#3b6ac8">ORDER BY</span> cnt <span style="color:#3b6ac8">DESC NULLS LAST</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+        model        |  cnt  
+---------------------+-------
+ &#1057;&#1077;&#1089;&#1089;&#1085;&#1072; 208 &#1050;&#1072;&#1088;&#1072;&#1074;&#1072;&#1085;  | 60196
+ &#1041;&#1086;&#1084;&#1073;&#1072;&#1088;&#1076;&#1100;&#1077; CRJ-200   | 58611
+ &#1057;&#1091;&#1093;&#1086;&#1081; &#1057;&#1091;&#1087;&#1077;&#1088;&#1076;&#1078;&#1077;&#1090;-100 | 55213
+ &#1040;&#1101;&#1088;&#1086;&#1073;&#1091;&#1089; A321-200    | 12672
+ &#1041;&#1086;&#1080;&#1085;&#1075; 737-300       |  8263
+ &#1040;&#1101;&#1088;&#1086;&#1073;&#1091;&#1089; A319-100    |  8032
+ &#1041;&#1086;&#1080;&#1085;&#1075; 767-300       |  7920
+ &#1041;&#1086;&#1080;&#1085;&#1075; 777-300       |  3960
+ &#1040;&#1101;&#1088;&#1086;&#1073;&#1091;&#1089; A320-200    |      
+(9 rows)
+
+</pre></div>
+<p class="C">
+Больше всех трудится маленькая Сессна, а одна модель авиапарка вообще не
+используется на рейсах.
+</p>
+<h1>
+Какая модель перевозит больше всего пассажиров?
+</h1>
+<p class="C">
+Число пассажиров на рейсе можно посчитать по посадочным талонам.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> a.model<span style="color:#323232">,</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span> cnt
+<span style="color:#3b6ac8">FROM</span> flights f<span style="color:#323232">,</span> boarding_passes bp<span style="color:#323232">,</span> aircrafts a
+<span style="color:#3b6ac8">WHERE</span> bp.flight_id <span style="color:#323232">=</span> f.flight_id <span style="color:#3b6ac8">AND</span> a.aircraft_code <span style="color:#323232">=</span> f.aircraft_code
+<span style="color:#3b6ac8">GROUP BY</span> a.model
+<span style="color:#3b6ac8">ORDER BY</span> <span style="color:#c73a69">count</span><span style="color:#323232">(*)</span> <span style="color:#3b6ac8">DESC</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+        model        |   cnt   
+---------------------+---------
+ &#1057;&#1091;&#1093;&#1086;&#1081; &#1057;&#1091;&#1087;&#1077;&#1088;&#1076;&#1078;&#1077;&#1090;-100 | 2767457
+ &#1041;&#1086;&#1084;&#1073;&#1072;&#1088;&#1076;&#1100;&#1077; CRJ-200   | 1155683
+ &#1041;&#1086;&#1080;&#1085;&#1075; 777-300       | 1111547
+ &#1041;&#1086;&#1080;&#1085;&#1075; 767-300       |  945568
+ &#1040;&#1101;&#1088;&#1086;&#1073;&#1091;&#1089; A321-200    |  777370
+ &#1041;&#1086;&#1080;&#1085;&#1075; 737-300       |  649730
+ &#1040;&#1101;&#1088;&#1086;&#1073;&#1091;&#1089; A319-100    |  407361
+ &#1057;&#1077;&#1089;&#1089;&#1085;&#1072; 208 &#1050;&#1072;&#1088;&#1072;&#1074;&#1072;&#1085;  |  111096
+(8 rows)
+
+</pre></div>
+</body>
+</html>

@@ -1,0 +1,309 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=UTF8">
+<style>
+p.c    { }
+h1     { font-size: 160%; font-weight: bold; padding-top: 1ex; padding-bottom: 1ex; }
+div.s1 { margin-left: 20px; padding-left: 10px; font-weight: bold; }
+div.s2 { margin-left: 80px; padding-left: 10px; font-weight: bold; }
+div.s3 { margin-left: 140px; padding-left: 10px; font-weight: bold; }
+div.r1 { margin-left: 20px; padding-left: 10px; }
+div.r2 { margin-left: 80px; padding-left: 10px; }
+div.r3 { margin-left: 140px; padding-left: 10px; }
+div.e  { margin-left: 20px; padding-left: 10px; font-weight: bold; <!--color: darkblue;--> }
+div.r  { margin-left: 20px; padding-left: 10px; <!--color: darkblue;--> }
+</style>
+</head>
+<body>
+<h1>
+Сканирование индексов при очистке
+</h1>
+<p class="C">
+Создадим таблицу с данными и индекс. Параметр autovacuum_enabled указан,
+чтобы не срабатывала автоматическая очистка.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE DATABASE</span> mvcc_vacuum<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE DATABASE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> mvcc_vacuum
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+You are now connected to database &quot;mvcc_vacuum&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE TABLE</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id <span style="color:#a00050">integer</span><span style="color:#323232">)</span> <span style="color:#3b6ac8">WITH</span> <span style="color:#323232">(</span>autovacuum_enabled <span style="color:#323232">=</span> <span style="color:#3b6ac8">off</span><span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">SELECT</span> gen.id <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">1000000</span><span style="color:#323232">)</span> <span style="color:#c73a69">gen</span><span style="color:#323232">(</span>id<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1000000
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">CREATE INDEX</span> t_id <span style="color:#3b6ac8">ON</span> <span style="color:#c73a69">t</span><span style="color:#323232">(</span>id<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+CREATE INDEX
+</pre></div>
+<p class="C">
+Уменьшаем размер памяти, выделяемой под массив идентификаторов:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM SET</span> maintenance_work_mem <span style="color:#323232">=</span> <span style="color:#1094a0">'1MB'</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_reload_conf</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+</pre></div>
+<p class="C">
+Обновляем все строки:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">UPDATE</span> t <span style="color:#3b6ac8">SET</span> id <span style="color:#323232">=</span> id <span style="color:#323232">+</span> <span style="color:#1094a0">1</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+UPDATE 1000000
+</pre></div>
+<p class="C">
+Запускаем очистку. Заодно через небольшое время в другом сеансе обратимся
+к pg_stat_progress_vacuum.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM VERBOSE</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#00a150">\c</span> mvcc_vacuum
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+You are now connected to database &quot;mvcc_vacuum&quot; as user &quot;postgres&quot;.
+</pre></div>
+<div class="S2">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#323232">*</span> <span style="color:#3b6ac8">FROM</span> pg_stat_progress_vacuum <span style="color:#00a150">\gx</span>
+</pre>
+</div>
+<div class="R2"><pre class="R2">
+-[ RECORD 1 ]------+------------------
+pid                | 23919
+datid              | 25112
+datname            | mvcc_vacuum
+relid              | 25113
+phase              | vacuuming indexes
+heap_blks_total    | 7844
+heap_blks_scanned  | 3425
+heap_blks_vacuumed | 2739
+index_vacuum_count | 4
+max_dead_tuples    | 174762
+num_dead_tuples    | 174675
+
+
+</pre></div>
+<div class="R1"><pre class="R1">
+INFO:  vacuuming &quot;public.t&quot;
+INFO:  scanned index &quot;t_id&quot; to remove 174675 row versions
+DETAIL:  CPU: user: 0.11 s, system: 0.00 s, elapsed: 0.11 s
+INFO:  &quot;t&quot;: removed 174675 row versions in 685 pages
+DETAIL:  CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+INFO:  scanned index &quot;t_id&quot; to remove 174675 row versions
+DETAIL:  CPU: user: 0.10 s, system: 0.00 s, elapsed: 0.10 s
+INFO:  &quot;t&quot;: removed 174675 row versions in 685 pages
+DETAIL:  CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+INFO:  scanned index &quot;t_id&quot; to remove 174675 row versions
+DETAIL:  CPU: user: 0.09 s, system: 0.00 s, elapsed: 0.09 s
+INFO:  &quot;t&quot;: removed 174675 row versions in 685 pages
+DETAIL:  CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+INFO:  scanned index &quot;t_id&quot; to remove 174675 row versions
+DETAIL:  CPU: user: 0.08 s, system: 0.00 s, elapsed: 0.09 s
+INFO:  &quot;t&quot;: removed 174675 row versions in 685 pages
+DETAIL:  CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+INFO:  scanned index &quot;t_id&quot; to remove 174675 row versions
+DETAIL:  CPU: user: 0.08 s, system: 0.00 s, elapsed: 0.15 s
+INFO:  &quot;t&quot;: removed 174675 row versions in 685 pages
+DETAIL:  CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+INFO:  scanned index &quot;t_id&quot; to remove 126625 row versions
+DETAIL:  CPU: user: 0.07 s, system: 0.00 s, elapsed: 0.14 s
+INFO:  &quot;t&quot;: removed 126625 row versions in 497 pages
+DETAIL:  CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+INFO:  index &quot;t_id&quot; now contains 1000000 row versions in 6592 pages
+DETAIL:  1000000 index row versions were removed.
+0 index pages have been deleted, 0 are currently reusable.
+CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s.
+INFO:  &quot;t&quot;: found 1000000 removable, 1000000 nonremovable row versions in 7844 out of 7844 pages
+DETAIL:  0 dead row versions cannot be removed yet, oldest xmin: 55505
+There were 0 unused item pointers.
+Skipped 0 pages due to buffer pins, 0 frozen pages.
+0 pages are entirely empty.
+CPU: user: 0.73 s, system: 0.00 s, elapsed: 0.98 s.
+VACUUM
+</pre></div>
+<p class="C">
+Восстановим значение измененного параметра.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">ALTER SYSTEM RESET</span> maintenance_work_mem<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ALTER SYSTEM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_reload_conf</span><span style="color:#323232">();</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+</pre></div>
+<h1>
+Очистка большого количества строк
+</h1>
+<p class="C">
+Текущий размер файла данных:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_table_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">));</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_size_pretty 
+----------------
+ 61 MB
+(1 row)
+
+</pre></div>
+<p class="C">
+Удалим 90 % случайных строк. Случайность важна, чтобы в каждой странице
+остались какие-нибудь неудаленные строки - в противном случае очистка имеет
+шанс уменьшить размер файла.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DELETE FROM</span> t <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.9</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DELETE 899695
+</pre></div>
+<p class="C">
+Объем после очистки:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+VACUUM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_table_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">));</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_size_pretty 
+----------------
+ 61 MB
+(1 row)
+
+</pre></div>
+<p class="C">
+Объем не изменился.
+</p>
+<h1>
+Полная очистка большого количества строк
+</h1>
+<p class="C">
+Заново наполним таблицу.
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">TRUNCATE</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+TRUNCATE TABLE
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">INSERT INTO</span> t <span style="color:#3b6ac8">SELECT</span> gen.id <span style="color:#3b6ac8">FROM</span> <span style="color:#c73a69">generate_series</span><span style="color:#323232">(</span><span style="color:#1094a0">1</span><span style="color:#323232">,</span><span style="color:#1094a0">1000000</span><span style="color:#323232">)</span> <span style="color:#c73a69">gen</span><span style="color:#323232">(</span>id<span style="color:#323232">);</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+INSERT 0 1000000
+</pre></div>
+<p class="C">
+Текущий размер файла данных:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_table_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">));</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_size_pretty 
+----------------
+ 31 MB
+(1 row)
+
+</pre></div>
+<p class="C">
+Обратите внимание, что в прошлый раз размер был примерно в два раза
+больше. Вторая половина была занята версиями строк, которые создала команда
+UPDATE.
+</p>
+<p class="C">
+Объем после удаления и полной очистки:
+</p>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">DELETE FROM</span> t <span style="color:#3b6ac8">WHERE</span> <span style="color:#c73a69">random</span><span style="color:#323232">() &lt;</span> <span style="color:#1094a0">0.9</span><span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+DELETE 900249
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">VACUUM FULL</span> t<span style="color:#323232">;</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+VACUUM
+</pre></div>
+<div class="S1">
+<pre style="color:#323232; background-color:#ffffff;  "><span style="color:#323232">=&gt;</span> <span style="color:#3b6ac8">SELECT</span> <span style="color:#c73a69">pg_size_pretty</span><span style="color:#323232">(</span><span style="color:#c73a69">pg_table_size</span><span style="color:#323232">(</span><span style="color:#1094a0">'t'</span><span style="color:#323232">));</span>
+</pre>
+</div>
+<div class="R1"><pre class="R1">
+ pg_size_pretty 
+----------------
+ 3136 kB
+(1 row)
+
+</pre></div>
+<p class="C">
+Объем уменьшился на 90 %.
+</p>
+</body>
+</html>
