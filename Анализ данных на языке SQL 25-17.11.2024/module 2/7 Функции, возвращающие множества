@@ -9,10 +9,25 @@
 
 ```sql
 SELECT * FROM generate_series(1,10) as res;
+
 SELECT * FROM generate_series(5,1,-2);
+
 SELECT generate_series(1.1, 4, 1.3);
+
 SELECT random() FROM generate_series(1,10) as res;
+
+SELECT x, '*', y, '=' , x * y as результат
+FROM generate_series(1,5) AS x, generate_series(1, 5) AS y;
+
+SELECT chr(line + 64), number
+FROM generate_series(1,10) AS line, generate_series(1, line) AS number;
+
+SELECT x || ' * '  ||  y || ' = ' || x * y as Таблица_умножения
+FROM generate_series(1,5) AS x, generate_series(1, 5) AS y;
+
 ```
+
+
 
 ## Как узнать тип данных в pl/pgSQL
 
